@@ -6,15 +6,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from '@/components/ui/calendar';
-import { base44 } from '@/api/base44Client';
+import { useMutation } from "convex/react";
+import { api } from "../../../../Backend/convex/_generated/api";
+import { useUser } from "@clerk/clerk-react";
 import { format, addDays, isBefore, isWeekend, startOfToday } from 'date-fns';
 import { it } from 'date-fns/locale';
 import CalendarWidget from '../components/appointments/CalendarWidget';
-import { 
-  Calendar as CalendarIcon, 
-  Clock, 
-  User, 
-  Mail, 
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  User,
+  Mail,
   Phone,
   FileText,
   Check,
@@ -35,6 +37,7 @@ const PROJECT_TYPES = [
 ];
 
 export default function Appuntamenti() {
+  const { user, isLoaded } = useUser();
   const [step, setStep] = useState(1);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
@@ -47,33 +50,22 @@ export default function Appuntamenti() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [user, setUser] = useState(null);
-  const [showCalendarWidget, setShowCalendarWidget] = useState(false);
+
+  const createAppointment = useMutation(api.appointments.create);
 
   useEffect(() => {
-    checkUser();
-  }, []);
-
-  const checkUser = async () => {
-    try {
-      const currentUser = await base44.auth.me();
-      setUser(currentUser);
-      setShowCalendarWidget(true);
+    if (user) {
       setFormData(prev => ({
         ...prev,
-        full_name: currentUser.full_name || '',
-        email: currentUser.email || ''
+        full_name: user.fullName || '',
+        email: user.primaryEmailAddress?.emailAddress || ''
       }));
-    } catch (error) {
-      setUser(null);
-      setShowCalendarWidget(false);
     }
-  };
+  }, [user]);
 
   const handleCalendarSelectDate = (date) => {
     setSelectedDate(date);
     setStep(1);
-    setShowCalendarWidget(false);
   };
 
   const disabledDays = (date) => {
@@ -88,28 +80,25 @@ export default function Appuntamenti() {
       appointment_date: format(selectedDate, 'yyyy-MM-dd'),
       appointment_time: selectedTime,
       project_type: projectType,
-      status: 'pending'
+      status: 'pending' // Note: backend defaults to confirmed unless we change it
     };
 
-    // Save to database
-    await base44.entities.Appointment.create(appointmentData);
-    
-    // Send initial email notification (pending status)
-    await base44.integrations.Core.SendEmail({
-      to: formData.email,
-      subject: 'Richiesta Appuntamento Ricevuta - IwHome',
-      body: `Gentile ${formData.full_name},\n\nAbbiamo ricevuto la tua richiesta di appuntamento.\n\nData richiesta: ${format(selectedDate, 'EEEE d MMMM yyyy', { locale: it })}\nOra: ${selectedTime}\nTipo: ${PROJECT_TYPES.find(t => t.id === projectType)?.name}\n\nIl nostro team verificherà la disponibilità e ti invierà una conferma entro 24 ore.\n\nCordiali saluti,\nTeam IwHome\n\nShowroom: Via Montefiorino 10/E, Reggio Emilia\nTel: +39 340 292 1052`
-    });
-    
-    // Create Google Calendar event
     try {
-      await base44.functions.invoke('createCalendarEvent', appointmentData);
+      await createAppointment(appointmentData);
+
+      // TODO: Send emails via Convex Action
+      // await base44.integrations.Core.SendEmail(...)
+
+      // TODO: Create Calendar Event via Convex Action
+      // await base44.functions.invoke('createCalendarEvent', ...)
+
+      setSubmitted(true);
     } catch (error) {
-      console.error('Error creating calendar event:', error);
+      console.error("Error booking appointment", error);
+      // Handle error (show toast etc)
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
-    setSubmitted(true);
   };
 
   if (submitted) {
@@ -147,8 +136,8 @@ export default function Appuntamenti() {
           <p className="text-sm text-[#adb5bd] mb-8">
             Ti invieremo una conferma via email entro 24 ore.
           </p>
-          <Button 
-            onClick={() => window.location.href = '/'} 
+          <Button
+            onClick={() => window.location.href = '/'}
             className="w-full bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529] hover:shadow-2xl rounded-full"
           >
             Torna alla Home
@@ -185,7 +174,7 @@ export default function Appuntamenti() {
               Prenota una <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef]">visita</span>
             </h1>
             <p className="text-[#dee2e6] max-w-2xl mx-auto text-lg">
-              Vieni a trovarci nel nostro showroom. I nostri esperti sono a tua disposizione 
+              Vieni a trovarci nel nostro showroom. I nostri esperti sono a tua disposizione
               per una consulenza gratuita e personalizzata.
             </p>
           </motion.div>
@@ -211,23 +200,20 @@ export default function Appuntamenti() {
                 <div className="flex flex-col items-center">
                   <motion.div
                     whileHover={{ scale: 1.1 }}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-medium transition-all shadow-lg ${
-                      step >= s.num 
-                        ? 'bg-gradient-to-br from-[#f8f9fa] to-[#e9ecef] text-[#212529]' 
-                        : 'bg-[#495057] text-[#adb5bd] border border-[#f8f9fa]/20'
-                    }`}>
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-medium transition-all shadow-lg ${step >= s.num
+                      ? 'bg-gradient-to-br from-[#f8f9fa] to-[#e9ecef] text-[#212529]'
+                      : 'bg-[#495057] text-[#adb5bd] border border-[#f8f9fa]/20'
+                      }`}>
                     {step > s.num ? <Check size={18} /> : s.num}
                   </motion.div>
-                  <span className={`text-xs mt-2 hidden sm:block ${
-                    step >= s.num ? 'text-[#f8f9fa]' : 'text-[#adb5bd]'
-                  }`}>
+                  <span className={`text-xs mt-2 hidden sm:block ${step >= s.num ? 'text-[#f8f9fa]' : 'text-[#adb5bd]'
+                    }`}>
                     {s.label}
                   </span>
                 </div>
                 {i < 2 && (
-                  <div className={`flex-1 h-0.5 mx-4 ${
-                    step > s.num ? 'bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef]' : 'bg-[#495057]'
-                  }`} />
+                  <div className={`flex-1 h-0.5 mx-4 ${step > s.num ? 'bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef]' : 'bg-[#495057]'
+                    }`} />
                 )}
               </React.Fragment>
             ))}
@@ -236,7 +222,7 @@ export default function Appuntamenti() {
       </section>
 
       {/* Calendar Widget for Logged Users */}
-      {showCalendarWidget && user && (
+      {user && (
         <section className="relative py-12 bg-gradient-to-b from-[#495057] to-[#6c757d]">
           <div className="max-w-7xl mx-auto px-6">
             <CalendarWidget onSelectDate={handleCalendarSelectDate} user={user} />
@@ -305,13 +291,12 @@ export default function Appuntamenti() {
                             whileTap={{ scale: 0.95 }}
                             onClick={() => setSelectedTime(time)}
                             disabled={!selectedDate}
-                            className={`py-3 px-4 rounded-xl text-sm font-medium transition-all shadow-lg hover-lift ${
-                              selectedTime === time
-                                ? 'bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529]'
-                                : selectedDate
-                                  ? 'bg-[#343a40]/50 text-[#f8f9fa] hover:bg-[#495057] border border-[#f8f9fa]/10'
-                                  : 'bg-[#343a40]/30 text-[#6c757d] cursor-not-allowed border border-[#f8f9fa]/5'
-                            }`}
+                            className={`py-3 px-4 rounded-xl text-sm font-medium transition-all shadow-lg hover-lift ${selectedTime === time
+                              ? 'bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529]'
+                              : selectedDate
+                                ? 'bg-[#343a40]/50 text-[#f8f9fa] hover:bg-[#495057] border border-[#f8f9fa]/10'
+                                : 'bg-[#343a40]/30 text-[#6c757d] cursor-not-allowed border border-[#f8f9fa]/5'
+                              }`}
                           >
                             {time}
                           </motion.button>
@@ -381,16 +366,14 @@ export default function Appuntamenti() {
                       <motion.label
                         key={type.id}
                         whileTap={{ scale: 0.99 }}
-                        className={`flex items-center gap-4 p-6 rounded-2xl border-2 cursor-pointer transition-all backdrop-blur-sm ${
-                          projectType === type.id
-                            ? 'border-[#f8f9fa] bg-[#f8f9fa]/20'
-                            : 'border-[#f8f9fa]/20 hover:border-[#f8f9fa]/40 bg-[#343a40]/50'
-                        }`}
-                        >
+                        className={`flex items-center gap-4 p-6 rounded-2xl border-2 cursor-pointer transition-all backdrop-blur-sm ${projectType === type.id
+                          ? 'border-[#f8f9fa] bg-[#f8f9fa]/20'
+                          : 'border-[#f8f9fa]/20 hover:border-[#f8f9fa]/40 bg-[#343a40]/50'
+                          }`}
+                      >
                         <RadioGroupItem value={type.id} className="sr-only" />
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          projectType === type.id ? 'border-[#f8f9fa]' : 'border-[#f8f9fa]/30'
-                        }`}>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${projectType === type.id ? 'border-[#f8f9fa]' : 'border-[#f8f9fa]/30'
+                          }`}>
                           {projectType === type.id && (
                             <div className="w-3 h-3 rounded-full bg-[#f8f9fa]" />
                           )}
@@ -470,9 +453,9 @@ export default function Appuntamenti() {
                           className="rounded-xl bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#adb5bd] focus:border-[#f8f9fa] focus:ring-[#f8f9fa]"
                         />
                       </div>
-                      </div>
+                    </div>
 
-                      <div>
+                    <div>
                       <Label className="text-[#f8f9fa] mb-2 flex items-center gap-2">
                         <Mail size={16} /> Email *
                       </Label>
@@ -483,9 +466,9 @@ export default function Appuntamenti() {
                         required
                         className="rounded-xl bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#adb5bd] focus:border-[#f8f9fa] focus:ring-[#f8f9fa]"
                       />
-                      </div>
+                    </div>
 
-                      <div>
+                    <div>
                       <Label className="text-[#f8f9fa] mb-2">Note o Richieste Particolari</Label>
                       <Textarea
                         value={formData.notes}
@@ -599,7 +582,7 @@ export default function Appuntamenti() {
                       Italia
                     </p>
                     <p className="text-[#adb5bd] text-xs mt-2">
-                      Facilmente raggiungibile dall'uscita autostradale.<br/>
+                      Facilmente raggiungibile dall'uscita autostradale.<br />
                       Parcheggio gratuito disponibile.
                     </p>
                   </div>

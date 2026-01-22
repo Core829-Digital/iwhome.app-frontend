@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../../../../Backend/convex/_generated/api";
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2, Calendar } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 export default function TaskManager({ cantiereId, user }) {
@@ -19,40 +18,26 @@ export default function TaskManager({ cantiereId, user }) {
     status: 'da_fare',
     priority: 'media'
   });
-  const queryClient = useQueryClient();
 
-  const { data: tasks = [] } = useQuery({
-    queryKey: ['tasks', cantiereId],
-    queryFn: () => base44.entities.TaskCantiere.filter({ cantiere_id: cantiereId }),
-    enabled: !!cantiereId
-  });
+  const tasks = useQuery(api.tasks.list, { cantiere_id: cantiereId }) || [];
 
-  const createTask = useMutation({
-    mutationFn: (data) => base44.entities.TaskCantiere.create({
-      ...data,
+  const createTask = useMutation(api.tasks.create);
+  const updateTask = useMutation(api.tasks.update);
+  const deleteTask = useMutation(api.tasks.remove);
+
+  const handleCreateTask = async () => {
+    await createTask({
+      ...taskData,
       cantiere_id: cantiereId
-    }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['tasks']);
-      setShowDialog(false);
-      setTaskData({ title: '', description: '', status: 'da_fare', priority: 'media' });
-    }
-  });
-
-  const updateTask = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.TaskCantiere.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries(['tasks'])
-  });
-
-  const deleteTask = useMutation({
-    mutationFn: (id) => base44.entities.TaskCantiere.delete(id),
-    onSuccess: () => queryClient.invalidateQueries(['tasks'])
-  });
+    });
+    setShowDialog(false);
+    setTaskData({ title: '', description: '', status: 'da_fare', priority: 'media' });
+  };
 
   const handleDragEnd = (result) => {
     if (!result.destination) return;
     const newStatus = result.destination.droppableId;
-    updateTask.mutate({ id: result.draggableId, data: { status: newStatus } });
+    updateTask({ id: result.draggableId, data: { status: newStatus } });
   };
 
   const columns = [
@@ -81,16 +66,15 @@ export default function TaskManager({ cantiereId, user }) {
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`rounded-xl p-3 min-h-[200px] ${
-                      snapshot.isDraggingOver ? 'bg-[#495057]/50' : 'bg-[#343a40]/20'
-                    } border-2 ${column.color}`}
+                    className={`rounded-xl p-3 min-h-[200px] ${snapshot.isDraggingOver ? 'bg-[#495057]/50' : 'bg-[#343a40]/20'
+                      } border-2 ${column.color}`}
                   >
                     <div className="text-sm font-medium text-[#f8f9fa] mb-3">
                       {column.label} ({columnTasks.length})
                     </div>
                     <div className="space-y-2">
                       {columnTasks.map((task, index) => (
-                        <Draggable key={task.id} draggableId={task.id} index={index}>
+                        <Draggable key={task._id} draggableId={task._id} index={index}>
                           {(provided) => (
                             <div
                               ref={provided.innerRef}
@@ -104,7 +88,7 @@ export default function TaskManager({ cantiereId, user }) {
                                     <Button
                                       size="icon"
                                       variant="ghost"
-                                      onClick={() => deleteTask.mutate(task.id)}
+                                      onClick={() => deleteTask({ id: task._id })}
                                       className="h-6 w-6 text-red-400"
                                     >
                                       <Trash2 size={12} />
@@ -114,11 +98,10 @@ export default function TaskManager({ cantiereId, user }) {
                                     <p className="text-xs text-[#adb5bd] mb-2">{task.description}</p>
                                   )}
                                   <div className="flex items-center gap-2 text-xs">
-                                    <span className={`px-2 py-0.5 rounded ${
-                                      task.priority === 'alta' ? 'bg-red-500/20 text-red-300' :
+                                    <span className={`px-2 py-0.5 rounded ${task.priority === 'alta' ? 'bg-red-500/20 text-red-300' :
                                       task.priority === 'media' ? 'bg-yellow-500/20 text-yellow-300' :
-                                      'bg-blue-500/20 text-blue-300'
-                                    }`}>
+                                        'bg-blue-500/20 text-blue-300'
+                                      }`}>
                                       {task.priority}
                                     </span>
                                     {task.scadenza && (
@@ -176,7 +159,7 @@ export default function TaskManager({ cantiereId, user }) {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={() => createTask.mutate(taskData)} className="w-full">
+            <Button onClick={handleCreateTask} className="w-full">
               Crea Task
             </Button>
           </div>

@@ -1,6 +1,6 @@
 import React from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../../../../Backend/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -8,35 +8,26 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Building, TrendingUp, Clock, Euro, CheckCircle, AlertCircle, Plus, Link as LinkIcon } from 'lucide-react';
+import { Building, TrendingUp, Euro, CheckCircle, AlertCircle, Link as LinkIcon } from 'lucide-react';
 import TaskManager from './TaskManager';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function CantieriDashboard({ user }) {
   const [selectedCantiere, setSelectedCantiere] = React.useState(null);
   const [showDetails, setShowDetails] = React.useState(false);
-  const queryClient = useQueryClient();
 
-  const { data: cantieri = [] } = useQuery({
-    queryKey: ['cantieri', user.email],
-    queryFn: () => base44.entities.Cantiere.filter({ company_email: user.email }),
-    enabled: !!user
-  });
+  // Cantieri Query
+  const cantieri = useQuery(api.cantieri.listCantieri, { company_email: user?.email }) || [];
 
-  const { data: teams = [] } = useQuery({
-    queryKey: ['teams', user.email],
-    queryFn: () => base44.entities.CompanyTeam.filter({ company_email: user.email }),
-    enabled: !!user
-  });
+  // Teams Query
+  const teams = useQuery(api.cantieri.listTeams, { company_email: user?.email }) || [];
 
-  const updateCantiere = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Cantiere.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries(['cantieri'])
-  });
+  // Update Mutation
+  const updateCantiere = useMutation(api.cantieri.updateCantiere);
 
   const cantieriAttivi = cantieri.filter(c => c.status === 'attivo');
   const cantieriCompletati = cantieri.filter(c => c.status === 'completato');
-  
+
   const totals = cantieri.reduce((acc, c) => ({
     valore: acc.valore + (c.valore_contratto || 0),
     costi: acc.costi + (c.costi_effettivi || 0)
@@ -102,13 +93,13 @@ export default function CantieriDashboard({ user }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {cantieri.map((cantiere) => {
           const isOverBudget = cantiere.costi_effettivi > cantiere.valore_contratto;
-          const budgetUsage = cantiere.valore_contratto 
-            ? (cantiere.costi_effettivi / cantiere.valore_contratto) * 100 
+          const budgetUsage = cantiere.valore_contratto
+            ? (cantiere.costi_effettivi / cantiere.valore_contratto) * 100
             : 0;
 
           return (
             <Card
-              key={cantiere.id}
+              key={cantiere._id}
               onClick={() => {
                 setSelectedCantiere(cantiere);
                 setShowDetails(true);
@@ -122,11 +113,11 @@ export default function CantieriDashboard({ user }) {
                     <p className="text-sm text-[#adb5bd]">{cantiere.cliente}</p>
                   </div>
                   <Badge className={
-                    cantiere.status === 'attivo' 
+                    cantiere.status === 'attivo'
                       ? 'bg-blue-500/20 border-blue-500/30 text-blue-300'
                       : cantiere.status === 'completato'
-                      ? 'bg-green-500/20 border-green-500/30 text-green-300'
-                      : 'bg-yellow-500/20 border-yellow-500/30 text-yellow-300'
+                        ? 'bg-green-500/20 border-green-500/30 text-green-300'
+                        : 'bg-yellow-500/20 border-yellow-500/30 text-yellow-300'
                   }>
                     {cantiere.status}
                   </Badge>
@@ -188,8 +179,8 @@ export default function CantieriDashboard({ user }) {
                 <Input
                   type="number"
                   defaultValue={selectedCantiere.progresso || 0}
-                  onBlur={(e) => updateCantiere.mutate({
-                    id: selectedCantiere.id,
+                  onBlur={(e) => updateCantiere({
+                    id: selectedCantiere._id,
                     data: { progresso: parseInt(e.target.value) }
                   })}
                   className="bg-[#495057]/30 border-[#f8f9fa]/20 text-[#f8f9fa]"
@@ -201,8 +192,8 @@ export default function CantieriDashboard({ user }) {
                 <Input
                   type="number"
                   defaultValue={selectedCantiere.costi_effettivi || 0}
-                  onBlur={(e) => updateCantiere.mutate({
-                    id: selectedCantiere.id,
+                  onBlur={(e) => updateCantiere({
+                    id: selectedCantiere._id,
                     data: { costi_effettivi: parseFloat(e.target.value) }
                   })}
                   className="bg-[#495057]/30 border-[#f8f9fa]/20 text-[#f8f9fa]"
@@ -213,8 +204,8 @@ export default function CantieriDashboard({ user }) {
                 <Label className="text-[#f8f9fa]">Team Assegnato</Label>
                 <Select
                   value={selectedCantiere.team_assegnato || ''}
-                  onValueChange={(v) => updateCantiere.mutate({
-                    id: selectedCantiere.id,
+                  onValueChange={(v) => updateCantiere({
+                    id: selectedCantiere._id,
                     data: { team_assegnato: v }
                   })}
                 >
@@ -224,14 +215,14 @@ export default function CantieriDashboard({ user }) {
                   <SelectContent>
                     <SelectItem value={null}>Nessuno</SelectItem>
                     {teams.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>{t.team_name}</SelectItem>
+                      <SelectItem key={t._id} value={t._id}>{t.team_name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="pt-4 border-t border-[#f8f9fa]/10">
-                <TaskManager cantiereId={selectedCantiere.id} user={user} />
+                <TaskManager cantiereId={selectedCantiere._id} user={user} />
               </div>
             </div>
           )}

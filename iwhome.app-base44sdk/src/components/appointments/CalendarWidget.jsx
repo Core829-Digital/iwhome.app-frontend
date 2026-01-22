@@ -3,8 +3,8 @@ import { motion } from 'framer-motion';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "convex/react";
+import { api } from "../../../../../Backend/convex/_generated/api";
 import { format, isSameDay } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { Calendar as CalendarIcon, Clock, Plus } from 'lucide-react';
@@ -12,13 +12,9 @@ import { Calendar as CalendarIcon, Clock, Plus } from 'lucide-react';
 export default function CalendarWidget({ onSelectDate, user }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
-  const { data: appointments = [] } = useQuery({
-    queryKey: ['user-appointments'],
-    queryFn: () => base44.entities.Appointment.filter({ email: user.email }, '-appointment_date'),
-    enabled: !!user
-  });
+  const appointments = useQuery(api.appointments.get) || [];
 
-  const appointmentsForSelectedDate = appointments.filter(apt => 
+  const appointmentsForSelectedDate = appointments.filter(apt =>
     isSameDay(new Date(apt.appointment_date), selectedDate)
   );
 
@@ -94,18 +90,17 @@ export default function CalendarWidget({ onSelectDate, user }) {
             <div className="space-y-3">
               {appointmentsForSelectedDate.map((apt) => (
                 <motion.div
-                  key={apt.id}
+                  key={apt._id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   className="bg-[#343a40]/50 rounded-xl p-4 border border-[#f8f9fa]/10"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium text-[#f8f9fa]">{apt.appointment_time}</span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      apt.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
+                    <span className={`text-xs px-2 py-1 rounded-full ${apt.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
                       apt.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                      'bg-red-500/20 text-red-400'
-                    }`}>
+                        'bg-red-500/20 text-red-400'
+                      }`}>
                       {apt.status}
                     </span>
                   </div>

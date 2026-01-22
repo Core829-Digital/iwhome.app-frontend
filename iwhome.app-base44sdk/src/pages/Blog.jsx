@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
-import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { useQuery } from 'convex/react';
+import { api } from '../../../../Backend/convex/_generated/api';
+// import { base44 } from '@/api/base44Client';
 import SEO from '../components/seo/SEO';
 import { Calendar, Clock, ArrowRight, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -24,14 +25,16 @@ export default function Blog() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { data: posts = [], isLoading } = useQuery({
-    queryKey: ['blog-posts'],
-    queryFn: () => base44.entities.BlogPost.filter({ published: true }, '-published_date'),
-  });
+  const posts = useQuery(api.blog_posts.get) || [];
+  const isLoading = posts === undefined; // simplified check
+  // const { data: posts = [], isLoading } = useQuery({
+  //   queryKey: ['blog-posts'],
+  //   queryFn: () => base44.entities.BlogPost.filter({ published: true }, '-published_date'),
+  // });
 
   const filteredPosts = posts.filter(post => {
     const matchesCategory = selectedCategory === 'all' || post.category === selectedCategory;
-    const matchesSearch = !searchQuery || 
+    const matchesSearch = !searchQuery ||
       post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       post.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
@@ -55,7 +58,7 @@ export default function Blog() {
 
   return (
     <div>
-      <SEO 
+      <SEO
         title="Blog IwHome | Guide, Consigli e Novità su Ristrutturazioni e Infissi"
         description="Scopri guide pratiche, consigli professionali e le ultime novità su ristrutturazioni, infissi e design per la casa dal team di esperti IwHome."
         keywords="blog ristrutturazioni, guide infissi, consigli design casa, novità materiali edili, guide pratiche ristrutturazione"
@@ -97,11 +100,10 @@ export default function Blog() {
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                    selectedCategory === cat.id
-                      ? 'bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529]'
-                      : 'bg-[#343a40]/50 text-[#dee2e6] hover:bg-[#495057]'
-                  }`}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === cat.id
+                    ? 'bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529]'
+                    : 'bg-[#343a40]/50 text-[#dee2e6] hover:bg-[#495057]'
+                    }`}
                 >
                   {cat.name}
                 </button>
@@ -134,7 +136,7 @@ export default function Blog() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredPosts.map((post, index) => (
                 <motion.article
-                  key={post.id}
+                  key={post._id}
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}

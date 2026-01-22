@@ -7,16 +7,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { base44 } from '@/api/base44Client';
+import { useMutation } from "convex/react";
+import { api } from "../../../../Backend/convex/_generated/api";
+import { useUser, useClerk } from "@clerk/clerk-react";
 import WindowCalculator from '../components/calculator/WindowCalculator';
 import ProjectCalculator from '../components/calculator/ProjectCalculator';
 import QuoteDownload from '../components/quote/QuoteDownload';
-import { 
-  Layers, 
-  Home, 
-  ArrowRight, 
-  Mail, 
-  Phone, 
+import {
+  Layers,
+  Home,
+  ArrowRight,
+  Mail,
+  Phone,
   User,
   Send,
   Check,
@@ -26,13 +28,16 @@ import {
 } from 'lucide-react';
 
 export default function Calcolatore() {
+  const { user } = useUser();
+  const { openSignIn } = useClerk();
+  const createQuote = useMutation(api.quotes.create);
+
   const [quoteType, setQuoteType] = useState('finestre'); // 'finestre' | 'chiavi_in_mano'
   const [includeWindows, setIncludeWindows] = useState(true);
   const [windowConfig, setWindowConfig] = useState(null);
   const [projectConfig, setProjectConfig] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  const [user, setUser] = useState(null);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -44,22 +49,14 @@ export default function Calcolatore() {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    checkUser();
-  }, []);
-
-  const checkUser = async () => {
-    try {
-      const currentUser = await base44.auth.me();
-      setUser(currentUser);
+    if (user) {
       setFormData(prev => ({
         ...prev,
-        full_name: currentUser.full_name || '',
-        email: currentUser.email || ''
+        full_name: user.fullName || '',
+        email: user.primaryEmailAddress?.emailAddress || ''
       }));
-    } catch (error) {
-      setUser(null);
     }
-  };
+  }, [user]);
 
   const handleRequestQuote = () => {
     if (!user) {
@@ -83,28 +80,36 @@ export default function Calcolatore() {
     setIsSubmitting(true);
 
     const quoteNumber = `IWH-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    
+
     const quoteData = {
       ...formData,
       quote_type: quoteType === 'finestre' ? 'finestre' : (includeWindows ? 'completo' : 'chiavi_in_mano'),
       window_config: quoteType === 'finestre' || includeWindows ? windowConfig : null,
       project_config: quoteType === 'chiavi_in_mano' ? projectConfig : null,
       estimated_price: getTotalPrice(),
-      status: 'draft'
+      status: 'draft',
+      created_date: new Date().toISOString()
     };
 
-    // Save quote to database
-    await base44.entities.Quote.create(quoteData);
-    
-    // Send emails
-    await base44.functions.invoke('sendQuoteEmail', {
-      quoteData,
-      totalPrice: getTotalPrice(),
-      quoteNumber
-    });
-    
-    setIsSubmitting(false);
-    setSubmitted(true);
+    try {
+      // Save quote to database
+      await createQuote(quoteData);
+
+      // TODO: Send emails via Convex Action
+      // await base44.functions.invoke('sendQuoteEmail', ...)
+
+      setSubmitted(true);
+    } catch (error) {
+      console.error("Error creating quote", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // NOTE: File upload disabled for now until Convex storage is implemented
+  const handleFileUpload = async (e) => {
+    // Placeholder for future implementation
+    console.log("File upload not yet implemented");
   };
 
   if (submitted) {
@@ -178,7 +183,7 @@ export default function Calcolatore() {
               Calcola il tuo <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef]">preventivo</span>
             </h1>
             <p className="text-[#dee2e6] max-w-2xl mx-auto text-lg">
-              Configura il tuo progetto e ottieni una stima immediata. 
+              Configura il tuo progetto e ottieni una stima immediata.
               I prezzi sono indicativi e potranno essere perfezionati durante la consulenza.
             </p>
           </motion.div>
@@ -199,18 +204,16 @@ export default function Calcolatore() {
               whileTap={{ scale: 0.98 }}
               whileHover={{ y: -5, scale: 1.02 }}
               onClick={() => setQuoteType('finestre')}
-              className={`flex items-center gap-4 px-8 py-5 rounded-2xl border-2 transition-all shadow-xl hover-lift ${
-                quoteType === 'finestre' 
-                  ? 'border-[#f8f9fa] bg-gradient-to-br from-[#f8f9fa]/20 to-[#e9ecef]/10 backdrop-blur-sm' 
-                  : 'border-[#f8f9fa]/20 bg-[#495057]/50 backdrop-blur-sm hover:border-[#f8f9fa]/40'
-              }`}
+              className={`flex items-center gap-4 px-8 py-5 rounded-2xl border-2 transition-all shadow-xl hover-lift ${quoteType === 'finestre'
+                ? 'border-[#f8f9fa] bg-gradient-to-br from-[#f8f9fa]/20 to-[#e9ecef]/10 backdrop-blur-sm'
+                : 'border-[#f8f9fa]/20 bg-[#495057]/50 backdrop-blur-sm hover:border-[#f8f9fa]/40'
+                }`}
             >
               <motion.div
                 whileHover={{ rotate: 360 }}
                 transition={{ duration: 0.6 }}
-                className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  quoteType === 'finestre' ? 'bg-[#f8f9fa]/30' : 'bg-[#f8f9fa]/10'
-                }`}
+                className={`w-12 h-12 rounded-xl flex items-center justify-center ${quoteType === 'finestre' ? 'bg-[#f8f9fa]/30' : 'bg-[#f8f9fa]/10'
+                  }`}
               >
                 <Layers size={24} className={quoteType === 'finestre' ? 'text-[#f8f9fa]' : 'text-[#dee2e6]'} />
               </motion.div>
@@ -226,18 +229,16 @@ export default function Calcolatore() {
               whileTap={{ scale: 0.98 }}
               whileHover={{ y: -5, scale: 1.02 }}
               onClick={() => setQuoteType('chiavi_in_mano')}
-              className={`flex items-center gap-4 px-8 py-5 rounded-2xl border-2 transition-all shadow-xl hover-lift ${
-                quoteType === 'chiavi_in_mano' 
-                  ? 'border-[#f8f9fa] bg-gradient-to-br from-[#f8f9fa]/20 to-[#e9ecef]/10 backdrop-blur-sm' 
-                  : 'border-[#f8f9fa]/20 bg-[#495057]/50 backdrop-blur-sm hover:border-[#f8f9fa]/40'
-              }`}
+              className={`flex items-center gap-4 px-8 py-5 rounded-2xl border-2 transition-all shadow-xl hover-lift ${quoteType === 'chiavi_in_mano'
+                ? 'border-[#f8f9fa] bg-gradient-to-br from-[#f8f9fa]/20 to-[#e9ecef]/10 backdrop-blur-sm'
+                : 'border-[#f8f9fa]/20 bg-[#495057]/50 backdrop-blur-sm hover:border-[#f8f9fa]/40'
+                }`}
             >
               <motion.div
                 whileHover={{ rotate: 360 }}
                 transition={{ duration: 0.6 }}
-                className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  quoteType === 'chiavi_in_mano' ? 'bg-[#f8f9fa]/30' : 'bg-[#f8f9fa]/10'
-                }`}
+                className={`w-12 h-12 rounded-xl flex items-center justify-center ${quoteType === 'chiavi_in_mano' ? 'bg-[#f8f9fa]/30' : 'bg-[#f8f9fa]/10'
+                  }`}
               >
                 <Home size={24} className={quoteType === 'chiavi_in_mano' ? 'text-[#f8f9fa]' : 'text-[#dee2e6]'} />
               </motion.div>
@@ -311,7 +312,7 @@ export default function Calcolatore() {
                 )}
 
                 {/* Project Calculator */}
-                <ProjectCalculator 
+                <ProjectCalculator
                   onQuoteChange={setProjectConfig}
                   windowsPrice={includeWindows ? (windowConfig?.estimatedPrice || 0) : 0}
                 />
@@ -326,7 +327,7 @@ export default function Calcolatore() {
             className="mt-12 space-y-6"
           >
             {/* Download PDF Button */}
-            <QuoteDownload 
+            <QuoteDownload
               quoteData={{
                 quote_type: quoteType === 'finestre' ? 'finestre' : (includeWindows ? 'completo' : 'chiavi_in_mano'),
                 window_config: quoteType === 'finestre' || includeWindows ? windowConfig : null,
@@ -335,219 +336,208 @@ export default function Calcolatore() {
               }}
               totalPrice={getTotalPrice()}
             />
-            
+
             {/* Request Quote Button */}
             <div className="text-center">
-            {!showForm && !showLoginPrompt ? (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleRequestQuote}
-                className="px-10 py-5 bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529] rounded-full font-medium text-lg flex items-center gap-3 mx-auto hover:shadow-2xl transition-all"
-              >
-                Richiedi Preventivo Dettagliato
-                <ArrowRight size={20} />
-              </motion.button>
-            ) : showLoginPrompt ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-gradient-to-br from-[#495057] to-[#6c757d] backdrop-blur-sm border border-[#f8f9fa]/20 rounded-3xl p-8 max-w-2xl mx-auto shadow-2xl"
-              >
-                <div className="flex items-center justify-center gap-3 mb-6">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#f8f9fa]/20 to-[#e9ecef]/10 flex items-center justify-center">
-                    <Gift size={32} className="text-[#f8f9fa]" />
+              {!showForm && !showLoginPrompt ? (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleRequestQuote}
+                  className="px-10 py-5 bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529] rounded-full font-medium text-lg flex items-center gap-3 mx-auto hover:shadow-2xl transition-all"
+                >
+                  Richiedi Preventivo Dettagliato
+                  <ArrowRight size={20} />
+                </motion.button>
+              ) : showLoginPrompt ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-gradient-to-br from-[#495057] to-[#6c757d] backdrop-blur-sm border border-[#f8f9fa]/20 rounded-3xl p-8 max-w-2xl mx-auto shadow-2xl"
+                >
+                  <div className="flex items-center justify-center gap-3 mb-6">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#f8f9fa]/20 to-[#e9ecef]/10 flex items-center justify-center">
+                      <Gift size={32} className="text-[#f8f9fa]" />
+                    </div>
                   </div>
-                </div>
-                
-                <h3 className="text-2xl font-medium text-[#f8f9fa] mb-3 text-center">
-                  Accedi per Continuare
-                </h3>
-                <p className="text-[#dee2e6] mb-6 text-center">
-                  Registrati o accedi per ricevere il preventivo via email e salvare le tue configurazioni
-                </p>
 
-                <div className="bg-[#343a40]/50 backdrop-blur-sm border border-[#f8f9fa]/10 rounded-xl p-6 mb-6">
-                  <p className="text-[#f8f9fa] font-medium mb-3 flex items-center gap-2">
-                    <Check className="text-green-400" size={18} />
-                    Vantaggi della registrazione:
+                  <h3 className="text-2xl font-medium text-[#f8f9fa] mb-3 text-center">
+                    Accedi per Continuare
+                  </h3>
+                  <p className="text-[#dee2e6] mb-6 text-center">
+                    Registrati o accedi per ricevere il preventivo via email e salvare le tue configurazioni
                   </p>
-                  <ul className="space-y-2 text-sm text-[#dee2e6]">
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#f8f9fa] mt-0.5">✓</span>
-                      <span>Ricevi il preventivo dettagliato via email</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#f8f9fa] mt-0.5">✓</span>
-                      <span>Salva e confronta multiple configurazioni</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#f8f9fa] mt-0.5">✓</span>
-                      <span>Prenota appuntamenti direttamente online</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#f8f9fa] mt-0.5">✓</span>
-                      <span>Ricevi aggiornamenti sul tuo progetto</span>
-                    </li>
-                  </ul>
-                </div>
 
-                <div className="flex flex-col gap-3">
-                  <Button
-                    onClick={() => base44.auth.redirectToLogin(window.location.pathname)}
-                    className="w-full py-6 bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529] hover:shadow-2xl rounded-full text-lg font-medium transition-all"
-                  >
-                    <LogIn size={20} className="mr-2" />
-                    Accedi o Registrati
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowLoginPrompt(false)}
-                    className="w-full rounded-full border-[#f8f9fa]/30 text-[#f8f9fa] hover:bg-[#f8f9fa]/10"
-                  >
-                    Torna Indietro
-                  </Button>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-gradient-to-br from-[#495057] to-[#6c757d] backdrop-blur-sm border border-[#f8f9fa]/20 rounded-3xl p-8 max-w-2xl mx-auto shadow-2xl"
-              >
-                <h3 className="text-2xl font-medium text-[#f8f9fa] mb-2">
-                  Completa la richiesta
-                </h3>
-                <p className="text-[#dee2e6] mb-4">
-                  Inserisci i tuoi dati per ricevere il preventivo dettagliato
-                </p>
-                
-                <div className="bg-[#343a40]/50 backdrop-blur-sm border border-[#f8f9fa]/10 rounded-xl p-4 mb-8">
-                  <Label className="text-[#f8f9fa] mb-3 block">
-                    Carica Immagini del Progetto (opzionale)
-                  </Label>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={async (e) => {
-                      const files = Array.from(e.target.files);
-                      const uploadedUrls = [];
-                      for (const file of files) {
-                        const { file_url } = await base44.integrations.Core.UploadFile({ file });
-                        uploadedUrls.push(file_url);
-                      }
-                      setFormData(prev => ({
-                        ...prev,
-                        files: [...(prev.files || []), ...uploadedUrls]
-                      }));
-                    }}
-                    className="rounded-xl bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-[#f8f9fa]/10 file:text-[#f8f9fa] hover:file:bg-[#f8f9fa]/20"
-                  />
-                  {formData.files?.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {formData.files.map((url, i) => (
-                        <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-[#f8f9fa]/20">
-                          <img src={url} alt={`Upload ${i + 1}`} className="w-full h-full object-cover" />
-                        </div>
-                      ))}
+                  <div className="bg-[#343a40]/50 backdrop-blur-sm border border-[#f8f9fa]/10 rounded-xl p-6 mb-6">
+                    <p className="text-[#f8f9fa] font-medium mb-3 flex items-center gap-2">
+                      <Check className="text-green-400" size={18} />
+                      Vantaggi della registrazione:
+                    </p>
+                    <ul className="space-y-2 text-sm text-[#dee2e6]">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#f8f9fa] mt-0.5">✓</span>
+                        <span>Ricevi il preventivo dettagliato via email</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#f8f9fa] mt-0.5">✓</span>
+                        <span>Salva e confronta multiple configurazioni</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#f8f9fa] mt-0.5">✓</span>
+                        <span>Prenota appuntamenti direttamente online</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#f8f9fa] mt-0.5">✓</span>
+                        <span>Ricevi aggiornamenti sul tuo progetto</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    <Button
+                      onClick={() => openSignIn()}
+                      className="w-full py-6 bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529] hover:shadow-2xl rounded-full text-lg font-medium transition-all"
+                    >
+                      <LogIn size={20} className="mr-2" />
+                      Accedi o Registrati
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowLoginPrompt(false)}
+                      className="w-full rounded-full border-[#f8f9fa]/30 text-[#f8f9fa] hover:bg-[#f8f9fa]/10"
+                    >
+                      Torna Indietro
+                    </Button>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-gradient-to-br from-[#495057] to-[#6c757d] backdrop-blur-sm border border-[#f8f9fa]/20 rounded-3xl p-8 max-w-2xl mx-auto shadow-2xl"
+                >
+                  <h3 className="text-2xl font-medium text-[#f8f9fa] mb-2">
+                    Completa la richiesta
+                  </h3>
+                  <p className="text-[#dee2e6] mb-4">
+                    Inserisci i tuoi dati per ricevere il preventivo dettagliato
+                  </p>
+
+                  <div className="bg-[#343a40]/50 backdrop-blur-sm border border-[#f8f9fa]/10 rounded-xl p-4 mb-8">
+                    <Label className="text-[#f8f9fa] mb-3 block">
+                      Carica Immagini del Progetto (opzionale)
+                    </Label>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFileUpload}
+                      className="rounded-xl bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-[#f8f9fa]/10 file:text-[#f8f9fa] hover:file:bg-[#f8f9fa]/20"
+                    />
+                    {formData.files?.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {formData.files.map((url, i) => (
+                          <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-[#f8f9fa]/20">
+                            <img src={url} alt={`Upload ${i + 1}`} className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {user && (
+                    <div className="bg-[#343a40]/50 backdrop-blur-sm border border-green-500/30 rounded-xl p-4 mb-6 flex items-center gap-3">
+                      <Check className="text-green-400" size={20} />
+                      <div>
+                        <p className="text-[#f8f9fa] font-medium">Account Collegato</p>
+                        <p className="text-sm text-[#dee2e6]">{user.primaryEmailAddress?.emailAddress}</p>
+                      </div>
                     </div>
                   )}
-                </div>
 
-                {user && (
-                  <div className="bg-[#343a40]/50 backdrop-blur-sm border border-green-500/30 rounded-xl p-4 mb-6 flex items-center gap-3">
-                    <Check className="text-green-400" size={20} />
-                    <div>
-                      <p className="text-[#f8f9fa] font-medium">Account Collegato</p>
-                      <p className="text-sm text-[#dee2e6]">{user.email}</p>
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <Label className="text-[#f8f9fa] mb-2 flex items-center gap-2">
+                          <User size={16} /> Nome e Cognome
+                        </Label>
+                        <Input
+                          value={formData.full_name}
+                          onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
+                          required
+                          disabled={!!user?.fullName}
+                          className="rounded-xl bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#adb5bd] focus:border-[#f8f9fa] focus:ring-[#f8f9fa] disabled:opacity-70"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[#f8f9fa] mb-2 flex items-center gap-2">
+                          <Phone size={16} /> Telefono
+                        </Label>
+                        <Input
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                          className="rounded-xl bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#adb5bd] focus:border-[#f8f9fa] focus:ring-[#f8f9fa]"
+                        />
+                      </div>
                     </div>
-                  </div>
-                )}
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <Label className="text-[#f8f9fa] mb-2 flex items-center gap-2">
-                        <User size={16} /> Nome e Cognome
+                        <Mail size={16} /> Email
                       </Label>
                       <Input
-                        value={formData.full_name}
-                        onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                         required
-                        disabled={!!user?.full_name}
+                        disabled={!!user}
                         className="rounded-xl bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#adb5bd] focus:border-[#f8f9fa] focus:ring-[#f8f9fa] disabled:opacity-70"
                       />
                     </div>
+
                     <div>
-                      <Label className="text-[#f8f9fa] mb-2 flex items-center gap-2">
-                        <Phone size={16} /> Telefono
-                      </Label>
-                      <Input
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                        className="rounded-xl bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#adb5bd] focus:border-[#f8f9fa] focus:ring-[#f8f9fa]"
+                      <Label className="text-[#f8f9fa] mb-2">Note Aggiuntive</Label>
+                      <Textarea
+                        value={formData.notes}
+                        onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                        placeholder="Descrivi il tuo progetto o aggiungi dettagli..."
+                        className="rounded-xl bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#adb5bd] focus:border-[#f8f9fa] focus:ring-[#f8f9fa] min-h-[100px]"
                       />
                     </div>
-                  </div>
 
-                  <div>
-                    <Label className="text-[#f8f9fa] mb-2 flex items-center gap-2">
-                      <Mail size={16} /> Email
-                    </Label>
-                    <Input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      required
-                      disabled={!!user}
-                      className="rounded-xl bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#adb5bd] focus:border-[#f8f9fa] focus:ring-[#f8f9fa] disabled:opacity-70"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-[#f8f9fa] mb-2">Note Aggiuntive</Label>
-                    <Textarea
-                      value={formData.notes}
-                      onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                      placeholder="Descrivi il tuo progetto o aggiungi dettagli..."
-                      className="rounded-xl bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#adb5bd] focus:border-[#f8f9fa] focus:ring-[#f8f9fa] min-h-[100px]"
-                    />
-                  </div>
-
-                  <div className="bg-gradient-to-r from-[#343a40] to-[#495057] rounded-xl p-4 flex items-center justify-between border border-[#f8f9fa]/20">
-                    <span className="text-[#dee2e6]">Preventivo Stimato</span>
-                    <span className="text-2xl font-light text-transparent bg-clip-text bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef]">
-                      €{getTotalPrice().toLocaleString()}
-                    </span>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full py-6 bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529] hover:shadow-2xl rounded-full text-lg font-medium transition-all duration-300"
-                  >
-                    {isSubmitting ? (
-                      <span className="flex items-center gap-2">
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        >
-                          ⏳
-                        </motion.div>
-                        Invio in corso...
+                    <div className="bg-gradient-to-r from-[#343a40] to-[#495057] rounded-xl p-4 flex items-center justify-between border border-[#f8f9fa]/20">
+                      <span className="text-[#dee2e6]">Preventivo Stimato</span>
+                      <span className="text-2xl font-light text-transparent bg-clip-text bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef]">
+                        €{getTotalPrice().toLocaleString()}
                       </span>
-                    ) : (
-                      <span className="flex items-center gap-2">
-                        <Send size={18} />
-                        Invia Richiesta
-                      </span>
-                    )}
-                  </Button>
-                </form>
-              </motion.div>
-            )}
+                    </div>
+
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-6 bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529] hover:shadow-2xl rounded-full text-lg font-medium transition-all duration-300"
+                    >
+                      {isSubmitting ? (
+                        <span className="flex items-center gap-2">
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          >
+                            ⏳
+                          </motion.div>
+                          Invio in corso...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <Send size={18} />
+                          Invia Richiesta
+                        </span>
+                      )}
+                    </Button>
+                  </form>
+                </motion.div>
+              )}
             </div>
           </motion.div>
         </div>

@@ -3,14 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Input } from '@/components/ui/input';
-import { 
-  Search, 
-  FileText, 
-  MessageSquare, 
-  Calendar, 
-  X, 
+import {
+  Search,
+  FileText,
+  MessageSquare,
+  Calendar,
+  X,
   Loader2,
-  ArrowRight 
+  ArrowRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../../utils';
@@ -32,60 +32,15 @@ export default function GlobalSearch({ user, onClose }) {
     queryFn: async () => {
       if (!debouncedQuery || debouncedQuery.length < 2) return null;
 
-      const query = debouncedQuery.toLowerCase();
-      
-      // Search documents
-      const documents = await base44.entities.Document.filter({
-        created_by: user.email
-      });
-      const matchedDocs = documents.filter(doc => 
-        doc.title?.toLowerCase().includes(query) ||
-        doc.description?.toLowerCase().includes(query) ||
-        doc.file_name?.toLowerCase().includes(query)
-      );
-
-      // Search messages
-      const conversations = await base44.entities.Conversation.filter({
-        participants: { $contains: user.email }
-      });
-      const convIds = conversations.map(c => c.id);
-      
-      let matchedMessages = [];
-      for (const convId of convIds) {
-        const msgs = await base44.entities.Message.filter({
-          conversation_id: convId
-        });
-        const filtered = msgs.filter(msg => 
-          msg.content?.toLowerCase().includes(query)
-        );
-        matchedMessages = [...matchedMessages, ...filtered];
-      }
-
-      // Search appointments
-      const appointments = await base44.entities.Appointment.filter({
-        email: user.email
-      });
-      const matchedAppointments = appointments.filter(apt =>
-        apt.full_name?.toLowerCase().includes(query) ||
-        apt.notes?.toLowerCase().includes(query) ||
-        apt.project_type?.toLowerCase().includes(query)
-      );
-
-      // Search quotes
-      const quotes = await base44.entities.Quote.filter({
-        email: user.email
-      });
-      const matchedQuotes = quotes.filter(q =>
-        q.full_name?.toLowerCase().includes(query) ||
-        q.quote_type?.toLowerCase().includes(query)
-      );
+      // TODO: Implement full-text search with Convex
+      // For now, returning empty results to prevent Base44 crashes
 
       return {
-        documents: matchedDocs.slice(0, 5),
-        messages: matchedMessages.slice(0, 5),
-        appointments: matchedAppointments.slice(0, 5),
-        quotes: matchedQuotes.slice(0, 5),
-        total: matchedDocs.length + matchedMessages.length + matchedAppointments.length + matchedQuotes.length
+        documents: [],
+        messages: [],
+        appointments: [],
+        quotes: [],
+        total: 0
       };
     },
     enabled: !!user && debouncedQuery.length >= 2,

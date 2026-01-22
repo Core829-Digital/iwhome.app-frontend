@@ -1,71 +1,76 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { createPageUrl } from '../../utils';
-import { base44 } from '@/api/base44Client';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
+  LogOut,
+  ChevronRight,
+  Menu,
+  X,
   LayoutDashboard,
   FileText,
   MessageSquare,
   Settings,
-  ChevronRight,
+  FolderOpen,
+  Upload,
+  Share2,
   Calendar,
   Users,
-  Building,
-  LogOut,
-  Menu,
-  X
+  Building
 } from 'lucide-react';
-import NotificationBell from './NotificationBell';
+import { useUser, useClerk } from '@clerk/clerk-react';
+import NotificationBell from './NotificationBell'; // Verify path
+
+// Helper function to create page URLs (simplified for now)
+const createPageUrl = (page) => {
+  const routes = {
+    Dashboard: '/Dashboard',
+    Documents: '/Documents',
+    UploadDocument: '/UploadDocument',
+    SharedDocuments: '/SharedDocuments',
+    Messages: '/Messages',
+    MyAppointments: '/MyAppointments',
+    Settings: '/Settings',
+    CompanyDashboard: '/CompanyDashboard',
+    AdminAppointments: '/AdminAppointments'
+  };
+  return routes[page] || '/Dashboard';
+};
 
 const getMenuItems = (user) => {
-  // Utenti standard: solo Dashboard, Appuntamenti, Impostazioni
-  if (!user?.is_company && user?.access_level !== 'azienda') {
-    return [
-      {
-        name: 'Dashboard',
-        page: 'Dashboard',
-        icon: LayoutDashboard
-      },
-      {
-        name: 'Appuntamenti',
-        page: 'MyAppointments',
-        icon: Calendar
-      },
-      {
-        name: 'Impostazioni',
-        page: 'Settings',
-        icon: Settings
-      }
-    ];
-  }
-
-  // Utenti azienda: menu completo
   const baseItems = [
     {
       name: 'Dashboard',
       page: 'Dashboard',
-      icon: LayoutDashboard
+      icon: LayoutDashboard,
+      subItems: []
     },
     {
       name: 'Documenti',
       page: 'Documents',
-      icon: FileText
+      icon: FileText,
+      subItems: [
+        { name: 'I Miei Documenti', page: 'Documents', icon: FolderOpen },
+        { name: 'Carica Documento', page: 'UploadDocument', icon: Upload },
+        { name: 'Condivisi con me', page: 'SharedDocuments', icon: Share2 }
+      ]
     },
     {
       name: 'Messaggi',
       page: 'Messages',
-      icon: MessageSquare
+      icon: MessageSquare,
+      subItems: []
     },
     {
       name: 'Appuntamenti',
       page: 'MyAppointments',
-      icon: Calendar
+      icon: Calendar,
+      subItems: []
     },
     {
       name: 'Impostazioni',
       page: 'Settings',
-      icon: Settings
+      icon: Settings,
+      subItems: []
     }
   ];
 
@@ -73,12 +78,8 @@ const getMenuItems = (user) => {
     baseItems.splice(1, 0, {
       name: 'Azienda',
       page: 'CompanyDashboard',
-      icon: Building
-    });
-    baseItems.splice(2, 0, {
-      name: 'Editor PDF',
-      page: 'PdfEditor',
-      icon: FileText
+      icon: Building,
+      subItems: []
     });
   }
 
@@ -86,30 +87,31 @@ const getMenuItems = (user) => {
     baseItems.splice(4, 0, {
       name: 'Gestione',
       page: 'AdminAppointments',
-      icon: Users
+      icon: Users,
+      subItems: []
     });
   }
 
   return baseItems;
 };
 
+
 export default function VerticalMenu() {
   const location = useLocation();
-  const [user, setUser] = React.useState(null);
+  const { user: clerkUser } = useUser();
+  const { signOut } = useClerk();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  React.useEffect(() => {
-    const getUser = async () => {
-      try {
-        const currentUser = await base44.auth.me();
-        setUser(currentUser);
-      } catch (error) {
-        console.error('Error fetching user:', error);
-      }
-    };
-    getUser();
-  }, []);
+  // Map Clerk user to match props expected by getMenuItems
+  const user = clerkUser ? {
+    email: clerkUser.primaryEmailAddress?.emailAddress,
+    full_name: clerkUser.fullName,
+    // Note: custom claims like is_company or role should come from session publicMetadata in a real app
+    // For migration, we might default these or pull from metadata if set up
+    role: clerkUser.publicMetadata?.role,
+    is_company: clerkUser.publicMetadata?.is_company,
+  } : null;
 
   // Auto-close menu on mobile when clicking a link
   React.useEffect(() => {
@@ -121,8 +123,10 @@ export default function VerticalMenu() {
   const menuItems = getMenuItems(user);
 
   const handleLogout = async () => {
-    await base44.auth.logout();
+    await signOut();
   };
+
+
 
   return (
     <>
@@ -154,9 +158,8 @@ export default function VerticalMenu() {
           width: isCollapsed ? 80 : 280,
           x: isMobileOpen || window.innerWidth >= 1024 ? 0 : -280
         }}
-        className={`fixed left-0 top-0 lg:top-[76px] h-screen lg:h-[calc(100vh-76px)] bg-gradient-to-b from-[#212529] to-[#343a40] border-r border-[#f8f9fa]/10 z-[145] shadow-2xl ${
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        } transition-transform lg:transition-none`}
+        className={`fixed left-0 top-0 lg:top-[76px] h-screen lg:h-[calc(100vh-76px)] bg-gradient-to-b from-[#212529] to-[#343a40] border-r border-[#f8f9fa]/10 z-[145] shadow-2xl ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          } transition-transform lg:transition-none`}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
@@ -186,9 +189,8 @@ export default function VerticalMenu() {
             >
               <ChevronRight
                 size={20}
-                className={`text-[#f8f9fa] transition-transform ${
-                  isCollapsed ? '' : 'rotate-180'
-                }`}
+                className={`text-[#f8f9fa] transition-transform ${isCollapsed ? '' : 'rotate-180'
+                  }`}
               />
             </button>
           </div>
@@ -204,11 +206,10 @@ export default function VerticalMenu() {
                   key={item.page}
                   to={createPageUrl(item.page)}
                   onClick={() => setIsMobileOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                    isActive
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                      : 'text-[#dee2e6] hover:bg-[#f8f9fa]/10'
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                    : 'text-[#dee2e6] hover:bg-[#f8f9fa]/10'
+                    }`}
                 >
                   <Icon size={20} className="flex-shrink-0" />
                   {!isCollapsed && (

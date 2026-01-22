@@ -2,8 +2,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
-import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { useQuery } from 'convex/react';
+import { api } from '../../../../Backend/convex/_generated/api';
+// import { base44 } from '@/api/base44Client';
 import SEO from '../components/seo/SEO';
 import { Calendar, Clock, ArrowLeft, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -14,12 +15,7 @@ export default function BlogPost() {
   const urlParams = new URLSearchParams(window.location.search);
   const slug = urlParams.get('slug');
 
-  const { data: posts = [] } = useQuery({
-    queryKey: ['blog-post', slug],
-    queryFn: () => base44.entities.BlogPost.filter({ slug, published: true }),
-  });
-
-  const post = posts[0];
+  const post = useQuery(api.blog_posts.getBySlug, { slug: slug || "" });
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -55,7 +51,7 @@ export default function BlogPost() {
     "datePublished": post.published_date,
     "author": {
       "@type": "Person",
-      "name": post.author
+      "name": post.author_name
     },
     "publisher": {
       "@type": "Organization",
@@ -69,11 +65,11 @@ export default function BlogPost() {
 
   return (
     <div>
-      <SEO 
-        title={post.meta_title || `${post.title} | IwHome Blog`}
-        description={post.meta_description || post.excerpt}
+      <SEO
+        title={post.title}
+        description={post.excerpt}
         keywords={post.tags?.join(', ') || ''}
-        ogImage={post.featured_image}
+        image={post.featured_image}
         structuredData={structuredData}
       />
 
@@ -125,7 +121,7 @@ export default function BlogPost() {
                   {post.read_time} minuti di lettura
                 </span>
               )}
-              <span>Di {post.author}</span>
+              <span>Di {post.author_name}</span>
               <button
                 onClick={handleShare}
                 className="ml-auto flex items-center gap-2 px-4 py-2 bg-[#495057]/50 hover:bg-[#495057] rounded-full transition-colors"

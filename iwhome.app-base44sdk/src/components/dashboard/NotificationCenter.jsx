@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
-import { 
-  Bell, 
-  Check, 
-  MessageSquare, 
-  FileText, 
-  Calendar, 
-  X, 
-  Filter,
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../../../../Backend/convex/_generated/api";
+import {
+  Bell,
+  Check,
+  MessageSquare,
+  FileText,
+  Calendar,
+  X,
   Trash2,
   CheckCheck,
   AlertCircle
@@ -22,59 +21,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 export default function NotificationCenter({ user, onClose }) {
   const [filterType, setFilterType] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
-  const queryClient = useQueryClient();
 
-  const { data: notifications = [] } = useQuery({
-    queryKey: ['notifications', user?.email, filterType, filterPriority],
-    queryFn: async () => {
-      if (!user) return [];
-      let query = { user_email: user.email };
-      
-      if (filterType !== 'all') query.type = filterType;
-      if (filterPriority !== 'all') query.priority = filterPriority;
-      
-      return await base44.entities.Notification.filter(query, '-created_date', 100);
-    },
-    enabled: !!user,
-    staleTime: 5000,
-    refetchInterval: 10000
-  });
+  const notifications = useQuery(api.notifications.list, {
+    type: filterType,
+    priority: filterPriority
+  }) || [];
 
-  const markAsReadMutation = useMutation({
-    mutationFn: (id) => base44.entities.Notification.update(id, { read: true }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    }
-  });
+  const markAsRead = useMutation(api.notifications.markAsRead);
+  const deleteNotification = useMutation(api.notifications.deleteNotification);
 
-  const markAllAsReadMutation = useMutation({
-    mutationFn: async () => {
-      const unread = notifications.filter(n => !n.read);
-      await Promise.all(unread.map(n => 
-        base44.entities.Notification.update(n.id, { read: true })
-      ));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    }
-  });
+  const markAllAsRead = async () => {
+    const unread = notifications.filter(n => !n.read);
+    await Promise.all(unread.map(n =>
+      markAsRead({ id: n._id })
+    ));
+  };
 
-  const deleteNotificationMutation = useMutation({
-    mutationFn: (id) => base44.entities.Notification.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    }
-  });
-
-  const deleteAllReadMutation = useMutation({
-    mutationFn: async () => {
-      const read = notifications.filter(n => n.read);
-      await Promise.all(read.map(n => base44.entities.Notification.delete(n.id)));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    }
-  });
+  const deleteAllRead = async () => {
+    const read = notifications.filter(n => n.read);
+    await Promise.all(read.map(n => deleteNotification({ id: n._id })));
+  };
 
   const unreadNotifications = notifications.filter(n => !n.read);
   const readNotifications = notifications.filter(n => n.read);
@@ -108,9 +74,8 @@ export default function NotificationCenter({ user, onClose }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -100 }}
-      className={`p-4 border-b border-[#f8f9fa]/5 hover:bg-[#f8f9fa]/5 transition-all ${
-        !notif.read ? 'bg-[#f8f9fa]/5' : ''
-      }`}
+      className={`p-4 border-b border-[#f8f9fa]/5 hover:bg-[#f8f9fa]/5 transition-all ${!notif.read ? 'bg-[#f8f9fa]/5' : ''
+        }`}
     >
       <div className="flex items-start gap-3">
         <div className="mt-0.5">{getIcon(notif.type)}</div>
@@ -118,7 +83,7 @@ export default function NotificationCenter({ user, onClose }) {
           <Link
             to={notif.link || createPageUrl('Dashboard')}
             onClick={() => {
-              markAsReadMutation.mutate(notif.id);
+              markAsRead({ id: notif._id });
               if (onClose) onClose();
             }}
             className="block"
@@ -156,7 +121,7 @@ export default function NotificationCenter({ user, onClose }) {
         <div className="flex gap-1">
           {!notif.read && (
             <button
-              onClick={() => markAsReadMutation.mutate(notif.id)}
+              onClick={() => markAsRead({ id: notif._id })}
               className="text-[#adb5bd] hover:text-green-400 transition-colors"
               title="Segna come letta"
             >
@@ -164,7 +129,7 @@ export default function NotificationCenter({ user, onClose }) {
             </button>
           )}
           <button
-            onClick={() => deleteNotificationMutation.mutate(notif.id)}
+            onClick={() => deleteNotification({ id: notif._id })}
             className="text-[#adb5bd] hover:text-red-400 transition-colors"
             title="Elimina"
           >
@@ -193,7 +158,7 @@ export default function NotificationCenter({ user, onClose }) {
             <X size={20} className="text-[#f8f9fa]" />
           </button>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <span className="text-sm text-[#dee2e6]">
             {unreadNotifications.length} non lette
@@ -209,7 +174,7 @@ export default function NotificationCenter({ user, onClose }) {
       <div className="px-6 py-3 border-b border-[#f8f9fa]/10 flex gap-2">
         <Button
           size="sm"
-          onClick={() => markAllAsReadMutation.mutate()}
+          onClick={markAllAsRead}
           disabled={unreadNotifications.length === 0}
           className="bg-green-600/20 hover:bg-green-600/30 text-green-400 border border-green-600/30"
         >
@@ -218,7 +183,7 @@ export default function NotificationCenter({ user, onClose }) {
         </Button>
         <Button
           size="sm"
-          onClick={() => deleteAllReadMutation.mutate()}
+          onClick={deleteAllRead}
           disabled={readNotifications.length === 0}
           className="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/30"
         >
@@ -244,7 +209,7 @@ export default function NotificationCenter({ user, onClose }) {
               </div>
             ) : (
               unreadNotifications.map((notif) => (
-                <NotificationItem key={notif.id} notif={notif} />
+                <NotificationItem key={notif._id} notif={notif} />
               ))
             )}
           </AnimatePresence>
@@ -259,7 +224,7 @@ export default function NotificationCenter({ user, onClose }) {
               </div>
             ) : (
               notifications.map((notif) => (
-                <NotificationItem key={notif.id} notif={notif} />
+                <NotificationItem key={notif._id} notif={notif} />
               ))
             )}
           </AnimatePresence>
@@ -274,7 +239,7 @@ export default function NotificationCenter({ user, onClose }) {
               </div>
             ) : (
               readNotifications.map((notif) => (
-                <NotificationItem key={notif.id} notif={notif} />
+                <NotificationItem key={notif._id} notif={notif} />
               ))
             )}
           </AnimatePresence>
