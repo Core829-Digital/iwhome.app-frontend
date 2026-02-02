@@ -28,9 +28,9 @@ export default function Settings() {
     if (user) {
       setFormData({
         full_name: user.fullName || '',
-        phone: user.unsafeMetadata?.phone || '',
-        company_name: user.unsafeMetadata?.company_name || '',
-        company_code: user.unsafeMetadata?.company_code || ''
+        phone: `${user.unsafeMetadata?.phone || ''}`,
+        company_name: `${user.unsafeMetadata?.company_name || ''}`,
+        company_code: `${user.unsafeMetadata?.company_code || ''}`
       });
     }
   }, [user]);
@@ -114,7 +114,7 @@ export default function Settings() {
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-[#adb5bd]" size={18} />
                     <Input
-                      value={user.email}
+                      value={user.primaryEmailAddress?.emailAddress}
                       disabled
                       className="pl-10 bg-[#495057]/20 backdrop-blur-sm border-[#f8f9fa]/10 text-[#adb5bd]"
                     />
@@ -181,13 +181,13 @@ export default function Settings() {
                   <Input
                     value={formData.company_code}
                     onChange={(e) => setFormData({ ...formData, company_code: e.target.value })}
-                    placeholder="IWSHOWROOMLIVELLO1@AREAPRIVATA"
+                    placeholder="IWSHOWROOMAZIENDE@AREAPRIVATA"
                     className="bg-[#495057]/30 backdrop-blur-sm border-[#f8f9fa]/20 text-[#f8f9fa] focus:bg-[#495057]/50 transition-all font-mono text-sm"
                   />
                   <Card className="bg-blue-500/10 border-blue-500/30 p-3">
                     <p className="text-xs text-blue-300 font-medium mb-2">💡 Codice Standard:</p>
                     <code className="text-xs text-blue-200 bg-black/20 px-2 py-1 rounded block">
-                      IWSHOWROOMLIVELLO1@AREAPRIVATA
+                      IWSHOWROOMAZIENDE@AREAPRIVATA
                     </code>
                     <p className="text-xs text-blue-300 mt-2">Usa questo codice per attivare l'accesso all'area privata</p>
                   </Card>
