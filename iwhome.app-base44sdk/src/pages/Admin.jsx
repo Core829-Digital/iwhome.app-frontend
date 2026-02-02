@@ -112,7 +112,10 @@ export default function Admin() {
     // Here we use role === 'admin' check if available, or just check specific email for dev
     const isAdmin = convexUser?.role === 'admin' || user?.primaryEmailAddress?.emailAddress === 'info@iwhome.it';
 
-    if (!convexUser) return <div className="min-h-screen grid place-items-center bg-[#212529] text-white">Caricamento...</div>;
+    if (convexUser === undefined) return <div className="min-h-screen grid place-items-center bg-[#212529] text-white">Caricamento...</div>;
+
+    // If null, user not found in Convex
+    if (convexUser === null) return <div className="min-h-screen grid place-items-center bg-[#212529] text-white">Utente non trovato nel database. Assicurati di essere registrato.</div>;
 
     if (!isAdmin) {
         return (

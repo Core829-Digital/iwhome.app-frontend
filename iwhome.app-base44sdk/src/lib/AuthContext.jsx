@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useConvexAuth, useQuery } from "convex/react";
+import { useConvexAuth, useQuery, useMutation } from "convex/react";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { api } from "../../../../Backend/convex/_generated/api";
 
@@ -32,6 +32,15 @@ export const AuthProvider = ({ children }) => {
   const navigateToLogin = () => {
     openSignIn();
   };
+
+  // Sync user to Convex
+  const storeUser = useMutation(api.users.store);
+
+  useEffect(() => {
+    if (isAuthenticated && clerkUser) {
+      storeUser().catch(err => console.error("Failed to sync user:", err));
+    }
+  }, [isAuthenticated, clerkUser, storeUser]);
 
   const checkAppState = async () => {
     // No-op in new auth flow

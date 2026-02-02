@@ -183,6 +183,12 @@ export default function VerticalMenu() {
                 </div>
               </motion.div>
             )}
+            {/* Notification Bell in Header */}
+            {user && !isCollapsed && (
+              <div className="mr-2">
+                <NotificationBell user={user} />
+              </div>
+            )}
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="hidden lg:block p-1.5 hover:bg-[#f8f9fa]/10 rounded-lg transition-all"
@@ -222,11 +228,7 @@ export default function VerticalMenu() {
 
           {/* Footer */}
           <div className="p-3 border-t border-[#f8f9fa]/10">
-            {user && !isCollapsed && (
-              <div className="mb-2">
-                <NotificationBell user={user} />
-              </div>
-            )}
+
             <button
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[#dee2e6] hover:bg-red-500/20 hover:text-red-400 transition-all"
