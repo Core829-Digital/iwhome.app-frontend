@@ -107,7 +107,7 @@ export default function Dashboard() {
     return (
       quote.full_name?.toLowerCase().includes(search) ||
       quote.email?.toLowerCase().includes(search) ||
-      quote.id.toLowerCase().includes(search)
+      quote._id.toLowerCase().includes(search)
     );
   });
 
@@ -350,7 +350,7 @@ export default function Dashboard() {
               {/* Quotes List */}
               <div className="space-y-4">
                 {filteredQuotes.map((quote) => (
-                  <Card key={quote.id} className="bg-gradient-to-br from-[#495057] to-[#6c757d] border-[#f8f9fa]/20">
+                  <Card key={quote._id} className="bg-gradient-to-br from-[#495057] to-[#6c757d] border-[#f8f9fa]/20">
                     <CardContent className="pt-6">
                       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div className="flex-1">
@@ -375,7 +375,7 @@ export default function Dashboard() {
                         <div className="flex flex-wrap gap-2">
                           <Select
                             value={quote.status}
-                            onValueChange={(value) => updateQuoteStatus(quote.id, value)}
+                            onValueChange={(value) => updateQuoteStatus(quote._id, value)}
                           >
                             <SelectTrigger className="w-32 bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa]">
                               <SelectValue />
@@ -411,7 +411,7 @@ export default function Dashboard() {
                 </div>
               ) : (
                 preventivi.map((doc) => (
-                  <Card key={doc.id} className="bg-gradient-to-br from-[#495057] to-[#6c757d] border-[#f8f9fa]/20">
+                  <Card key={doc._id} className="bg-gradient-to-br from-[#495057] to-[#6c757d] border-[#f8f9fa]/20">
                     <CardContent className="pt-6">
                       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div className="flex-1">
@@ -450,7 +450,7 @@ export default function Dashboard() {
             {/* Appointments Tab */}
             <TabsContent value="appointments" className="space-y-4">
               {appointments.map((apt) => (
-                <Card key={apt.id} className="bg-gradient-to-br from-[#495057] to-[#6c757d] border-[#f8f9fa]/20">
+                <Card key={apt._id} className="bg-gradient-to-br from-[#495057] to-[#6c757d] border-[#f8f9fa]/20">
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div>

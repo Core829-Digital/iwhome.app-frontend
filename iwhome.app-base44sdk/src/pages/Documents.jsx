@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useQuery, useMutation } from "convex/react";
