@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import VerticalMenu from '../components/dashboard/VerticalMenu';
 import { Card } from '@/components/ui/card';
 import { User, Mail, Phone, Building, Save, Check } from 'lucide-react';
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../../../Backend/convex/_generated/api";
 
 export default function Settings() {
   const { user } = useUser();
@@ -18,6 +20,9 @@ export default function Settings() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const upgradeToCompany = useMutation(api.users.upgradeToCompany);
+  const convexUser = useQuery(api.users.getByEmail, { email: user?.primaryEmailAddress?.emailAddress || "" });
 
   useEffect(() => {
     if (user) {
@@ -36,11 +41,13 @@ export default function Settings() {
 
     try {
       // Verifica codice di accesso se modificato
-      if (formData.company_code && formData.company_code !== user.unsafeMetadata?.company_code) {
-        // Simple client-side check or call backend action
-        if (formData.company_code !== 'IWSHOWROOMLIVELLO1@AREAPRIVATA') {
-          // For now just allow it or simulate check
-          // alert('Codice non valido'); 
+      // Verifica codice di accesso se modificato o presente
+      if (formData.company_code) {
+        try {
+          await upgradeToCompany({ accessCode: formData.company_code });
+        } catch (err) {
+          console.error("Upgrade failed:", err);
+          // Optional: alert('Codice non valido'); 
         }
       }
 
@@ -149,7 +156,7 @@ export default function Settings() {
                   Informazioni Azienda (Opzionale)
                 </h2>
 
-                {user.is_company && (
+                {convexUser?.is_company && (
                   <div className="bg-green-500/20 backdrop-blur-sm border border-green-500/30 rounded-xl p-4 flex items-center gap-3">
                     <Check className="text-green-400" size={20} />
                     <div>

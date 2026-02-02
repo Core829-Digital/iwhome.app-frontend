@@ -282,7 +282,7 @@ export default function Documents() {
                       size="sm"
                       variant="outline"
                       onClick={() => window.open(doc.file_url, '_blank')}
-                      className="flex-1 border-[#f8f9fa]/30 text-[#f8f9fa] hover:bg-[#f8f9fa]/10"
+                      className="flex-1 bg-[#f8f9fa] text-[#212529] hover:bg-[#e9ecef] transition-colors font-medium"
                     >
                       <Eye size={14} className="mr-1" />
                       Vedi

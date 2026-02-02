@@ -198,6 +198,37 @@ export default function Messages() {
     </div>;
   }
 
+  const convexUser = useQuery(api.users.getByEmail, { email: user?.primaryEmailAddress?.emailAddress || "" });
+
+  if (convexUser === undefined) {
+    return <div className="min-h-screen flex items-center justify-center">
+      <div className="text-[#f8f9fa]">Caricamento profilo...</div>
+    </div>;
+  }
+
+  if (!convexUser?.is_company) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
+        <VerticalMenu />
+        <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe flex items-center justify-center">
+          <div className="text-center p-8 bg-[#343a40]/50 backdrop-blur-xl rounded-2xl border border-[#f8f9fa]/20 max-w-md mx-4">
+            <div className="w-16 h-16 bg-[#f8f9fa]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MessageSquare size={32} className="text-[#adb5bd]" />
+            </div>
+            <h2 className="text-xl font-medium text-[#f8f9fa] mb-2">Accesso Riservato</h2>
+            <p className="text-[#dee2e6] mb-6">La messaggistica è riservata agli account aziendali e ai collaboratori.</p>
+            <Button
+              className="bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529]"
+              onClick={() => window.location.href = '/settings'}
+            >
+              Vai alle Impostazioni
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
       <AnimatedBackground />

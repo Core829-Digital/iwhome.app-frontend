@@ -68,7 +68,7 @@ export default function NotificationBell({ user }) {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="fixed sm:absolute right-0 left-0 sm:left-auto top-16 sm:top-full sm:mt-2 mx-2 sm:mx-0 w-[calc(100%-1rem)] sm:w-96 max-h-[70vh] sm:max-h-96 overflow-y-auto bg-[#343a40]/95 backdrop-blur-xl border border-[#f8f9fa]/20 rounded-2xl shadow-2xl z-[200]"
+              className="fixed right-2 sm:right-4 top-16 w-[calc(100%-1rem)] sm:w-96 max-h-[70vh] sm:max-h-96 overflow-y-auto bg-[#343a40]/95 backdrop-blur-xl border border-[#f8f9fa]/20 rounded-2xl shadow-2xl z-[1000]"
             >
               <div className="p-4 border-b border-[#f8f9fa]/10">
                 <div className="flex items-center justify-between">

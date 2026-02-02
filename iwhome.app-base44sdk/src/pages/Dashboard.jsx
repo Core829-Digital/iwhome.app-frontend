@@ -41,9 +41,10 @@ export default function Dashboard() {
 
   // Convex Queries
   const allQuotes = useQuery(api.quotes.get) || [];
-  const appointments = useQuery(api.appointments.get) || []; // Assuming api.appointments.get exists/will exist
+  const appointments = useQuery(api.appointments.get) || [];
   const documents = useQuery(api.documents.get) || [];
   const conversations = useQuery(api.chat_channels.get) || []; // Assuming mapping to chat_channels
+  const convexUser = useQuery(api.users.getByEmail, { email: user?.primaryEmailAddress?.emailAddress || "" });
 
   // Mutations
   const updateQuoteStatusMutation = useMutation(api.quotes.updateStatus);
@@ -183,38 +184,38 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6 lg:mb-8">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <Card className="bg-gradient-to-br from-blue-600 to-blue-700 border-0 shadow-lg hover:shadow-xl transition-all">
-                <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 p-3 sm:p-6">
+                <CardHeader className="flex flex-row items-center justify-between pb-1 p-4">
                   <CardTitle className="text-xs font-medium text-white/80">Preventivi</CardTitle>
                   <FileText className="h-4 w-4 text-white flex-shrink-0" />
                 </CardHeader>
-                <CardContent className="p-3 sm:p-6 pt-0">
-                  <div className="text-xl sm:text-2xl lg:text-3xl font-light text-white">{stats.totalQuotes}</div>
-                  <p className="text-xs text-white/60 mt-0.5 sm:mt-1 hidden sm:block">Form richieste</p>
+                <CardContent className="p-4 pt-0">
+                  <div className="text-2xl font-light text-white">{stats.totalQuotes}</div>
+                  <p className="text-xs text-white/60 mt-0.5 hidden sm:block">Form richieste</p>
                 </CardContent>
               </Card>
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
               <Card className="bg-gradient-to-br from-cyan-600 to-cyan-700 border-0 shadow-lg hover:shadow-xl transition-all">
-                <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 p-3 sm:p-6">
+                <CardHeader className="flex flex-row items-center justify-between pb-1 p-4">
                   <CardTitle className="text-xs font-medium text-white/80">Prev. Doc</CardTitle>
                   <FileText className="h-4 w-4 text-white flex-shrink-0" />
                 </CardHeader>
-                <CardContent className="p-3 sm:p-6 pt-0">
-                  <div className="text-xl sm:text-2xl lg:text-3xl font-light text-white">{stats.totalPreventivi}</div>
-                  <p className="text-xs text-white/60 mt-0.5 sm:mt-1 hidden sm:block">File caricati</p>
+                <CardContent className="p-4 pt-0">
+                  <div className="text-2xl font-light text-white">{stats.totalPreventivi}</div>
+                  <p className="text-xs text-white/60 mt-0.5 hidden sm:block">File caricati</p>
                 </CardContent>
               </Card>
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
               <Card className="bg-gradient-to-br from-green-600 to-green-700 border-0 shadow-lg hover:shadow-xl transition-all">
-                <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 p-3 sm:p-6">
+                <CardHeader className="flex flex-row items-center justify-between pb-1 p-4">
                   <CardTitle className="text-xs font-medium text-white/80">Appuntamenti</CardTitle>
                   <Calendar className="h-4 w-4 text-white flex-shrink-0" />
                 </CardHeader>
-                <CardContent className="p-3 sm:p-6 pt-0">
-                  <div className="text-xl sm:text-2xl lg:text-3xl font-light text-white">{stats.totalAppointments}</div>
+                <CardContent className="p-4 pt-0">
+                  <div className="text-2xl font-light text-white">{stats.totalAppointments}</div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -228,36 +229,38 @@ export default function Dashboard() {
                 className="h-full"
               >
                 <Card className="bg-gradient-to-br from-purple-600 to-purple-700 border-0 shadow-xl hover:shadow-2xl transition-all cursor-pointer h-full">
-                  <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 p-3 sm:p-6">
+                  <CardHeader className="flex flex-row items-center justify-between pb-1 p-4">
                     <CardTitle className="text-xs font-medium text-white/80">Documenti</CardTitle>
                     <Upload className="h-4 w-4 text-white flex-shrink-0" />
                   </CardHeader>
-                  <CardContent className="p-3 sm:p-6 pt-0">
-                    <div className="text-xl sm:text-2xl lg:text-3xl font-light text-white">{stats.totalDocuments}</div>
+                  <CardContent className="p-4 pt-0">
+                    <div className="text-2xl font-light text-white">{stats.totalDocuments}</div>
                   </CardContent>
                 </Card>
               </motion.div>
             </Link>
 
-            <Link to={createPageUrl('Messages')} className="block h-full">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                whileHover={{ y: -4 }}
-                className="h-full"
-              >
-                <Card className="bg-gradient-to-br from-orange-600 to-orange-700 border-0 shadow-xl hover:shadow-2xl transition-all cursor-pointer h-full">
-                  <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 p-3 sm:p-6">
-                    <CardTitle className="text-xs font-medium text-white/80">Messaggi</CardTitle>
-                    <MessageSquare className="h-4 w-4 text-white flex-shrink-0" />
-                  </CardHeader>
-                  <CardContent className="p-3 sm:p-6 pt-0">
-                    <div className="text-xl sm:text-2xl lg:text-3xl font-light text-white">{stats.totalMessages}</div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </Link>
+            {convexUser?.is_company && (
+              <Link to={createPageUrl('Messages')} className="block h-full">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  whileHover={{ y: -4 }}
+                  className="h-full"
+                >
+                  <Card className="bg-gradient-to-br from-orange-600 to-orange-700 border-0 shadow-xl hover:shadow-2xl transition-all cursor-pointer h-full">
+                    <CardHeader className="flex flex-row items-center justify-between pb-1 p-4">
+                      <CardTitle className="text-xs font-medium text-white/80">Messaggi</CardTitle>
+                      <MessageSquare className="h-4 w-4 text-white flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      <div className="text-2xl font-light text-white">{stats.totalMessages}</div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </Link>
+            )}
           </div>
 
           {/* Tabs */}

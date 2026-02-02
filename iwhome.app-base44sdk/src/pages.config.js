@@ -1,4 +1,5 @@
 import AdminAppointments from './pages/AdminAppointments';
+import Admin from './pages/Admin';
 import Appuntamenti from './pages/Appuntamenti';
 import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
@@ -25,6 +26,7 @@ import __Layout from './Layout.jsx';
 
 export const PAGES = {
     "AdminAppointments": AdminAppointments,
+    "Admin": Admin,
     "Appuntamenti": Appuntamenti,
     "Blog": Blog,
     "BlogPost": BlogPost,

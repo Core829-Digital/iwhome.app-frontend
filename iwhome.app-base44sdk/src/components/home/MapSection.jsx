@@ -1,19 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Clock, Phone, Mail } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+
 
 export default function MapSection() {
   const [mapUrl, setMapUrl] = useState('');
   const address = 'Via Montefiorino 10/E, Reggio Emilia, Italia';
 
   useEffect(() => {
-    const loadMap = async () => {
-      const { data } = await base44.functions.invoke('getMapApiKey');
-      const encodedAddress = encodeURIComponent(address);
-      setMapUrl(`https://www.google.com/maps/embed/v1/place?key=${data.apiKey}&q=${encodedAddress}&zoom=15`);
-    };
-    loadMap();
+    const encodedAddress = encodeURIComponent(address);
+    setMapUrl(`https://maps.google.com/maps?q=${encodedAddress}&t=&z=15&ie=UTF8&iwloc=&output=embed`);
   }, []);
 
   return (
