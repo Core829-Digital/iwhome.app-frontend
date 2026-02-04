@@ -4,10 +4,12 @@ import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
 import Calcolatore from './pages/Calcolatore';
 import ChiSiamo from './pages/ChiSiamo';
+import ClientChat from './pages/ClientChat';
 import CompanyDashboard from './pages/CompanyDashboard';
 import CantieriDashboard from './pages/CantieriDashboard';
 import Contatti from './pages/Contatti';
 import Cookie from './pages/Cookie';
+import Clienti from './pages/Clienti';
 import Dashboard from './pages/Dashboard';
 import Documents from './pages/Documents';
 import Home from './pages/Home';
@@ -32,10 +34,12 @@ export const PAGES = {
     "BlogPost": BlogPost,
     "Calcolatore": Calcolatore,
     "ChiSiamo": ChiSiamo,
+    "ClientChat": ClientChat,
     "CompanyDashboard": CompanyDashboard,
     "CantieriDashboard": CantieriDashboard,
     "Contatti": Contatti,
     "Cookie": Cookie,
+    "Clienti": Clienti,
     "Dashboard": Dashboard,
     "Documents": Documents,
     "Home": Home,

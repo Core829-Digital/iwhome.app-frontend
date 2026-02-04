@@ -8,7 +8,7 @@ import {
     Search, Plus, Building, Calendar, CheckCircle, Clock,
     HardHat, X, Users, MessageSquare, ChevronRight, Send, Paperclip,
     GripVertical, ArrowRight, Mic, MicOff, Image, FileText, Play, Pause,
-    Volume2, UserPlus, Mail, Loader2
+    Volume2, UserPlus, Mail, Loader2, ClipboardList, Check, Trash2, ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,11 +20,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import VerticalMenu from '../components/dashboard/VerticalMenu';
 import AnimatedBackground from '../components/dashboard/AnimatedBackground';
 
-// Kanban phases
+// Kanban phases (3 phases only)
 const KANBAN_PHASES = [
-    { id: 'preventivo', label: 'Preventivo', color: 'bg-blue-500', textColor: 'text-blue-400' },
     { id: 'in_lavorazione', label: 'In Lavorazione', color: 'bg-yellow-500', textColor: 'text-yellow-400' },
-    { id: 'installazione', label: 'Installazione', color: 'bg-purple-500', textColor: 'text-purple-400' },
+    { id: 'posa_in_opera', label: 'Posa In Opera', color: 'bg-purple-500', textColor: 'text-purple-400' },
     { id: 'completato', label: 'Completato', color: 'bg-green-500', textColor: 'text-green-400' },
 ];
 
@@ -38,8 +37,11 @@ export default function CantieriDashboard() {
     const [newCantiere, setNewCantiere] = useState({
         nome_cantiere: '',
         cliente: '',
-        status: 'preventivo',
+        client_id: null,
+        indirizzo: '',
+        status: 'in_lavorazione',
         valore_contratto: '',
+        valore_progetto: '',
     });
 
     // Drag state
@@ -63,13 +65,13 @@ export default function CantieriDashboard() {
     const messagesEndRef = useRef(null);
     const recordingIntervalRef = useRef(null);
 
-    // Progress slider state for modal
-    const [localProgress, setLocalProgress] = useState(0);
+
 
     const userEmail = user?.primaryEmailAddress?.emailAddress || "";
 
     // Queries
     const cantieri = useQuery(api.cantieri.listCantieri, { company_email: userEmail }) || [];
+    const clientsList = useQuery(api.clients.list) || []; // For client dropdown
     const cantiereTeam = useQuery(
         api.cantieri.getCantiereTeam,
         selectedCantiere ? { cantiere_id: selectedCantiere._id } : "skip"
@@ -88,15 +90,31 @@ export default function CantieriDashboard() {
     const inviteTeamMemberMutation = useMutation(api.cantieri.inviteTeamMember);
     const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
+    // Phase Tasks - NEW
+    const phaseTasks = useQuery(
+        api.phase_tasks.listByPhase,
+        selectedCantiere ? { cantiere_id: selectedCantiere._id } : "skip"
+    ) || [];
+    const createPhaseTaskMutation = useMutation(api.phase_tasks.create);
+    const updatePhaseTaskMutation = useMutation(api.phase_tasks.update);
+    const removePhaseTaskMutation = useMutation(api.phase_tasks.remove);
+
+    // Legacy task queries (keep for compatibility)
+    const tasksList = useQuery(
+        api.tasks.list,
+        selectedCantiere ? { cantiere_id: selectedCantiere._id } : "skip"
+    ) || [];
+    const createTaskMutation = useMutation(api.tasks.create);
+    const updateTaskMutation = useMutation(api.tasks.update);
+    const removeTaskMutation = useMutation(api.tasks.remove);
+
+    // Phase task state
+    const [expandedPhase, setExpandedPhase] = useState('in_lavorazione');
+    const [newPhaseTask, setNewPhaseTask] = useState({ title: '', phase: 'in_lavorazione', priority: 'media', assigned_to: '' });
+
     // Actions
     const sendInviteEmail = useAction(api.actions.sendTeamInviteEmail);
 
-    // Update local progress when cantiere changes
-    useEffect(() => {
-        if (selectedCantiere) {
-            setLocalProgress(selectedCantiere.progresso || 0);
-        }
-    }, [selectedCantiere]);
 
     // Scroll to bottom of messages
     useEffect(() => {
@@ -108,13 +126,16 @@ export default function CantieriDashboard() {
             await createCantiereMutation({
                 nome_cantiere: newCantiere.nome_cantiere,
                 cliente: newCantiere.cliente,
+                client_id: newCantiere.client_id || undefined,
+                indirizzo: newCantiere.indirizzo || undefined,
                 status: newCantiere.status,
                 valore_contratto: parseFloat(newCantiere.valore_contratto) || 0,
+                valore_progetto: parseFloat(newCantiere.valore_progetto) || 0,
                 company_email: userEmail,
                 created_date: new Date().toISOString()
             });
             setCreateModalOpen(false);
-            setNewCantiere({ nome_cantiere: '', cliente: '', status: 'preventivo', valore_contratto: '' });
+            setNewCantiere({ nome_cantiere: '', cliente: '', client_id: null, indirizzo: '', status: 'in_lavorazione', valore_contratto: '', valore_progetto: '' });
         } catch (error) {
             console.error("Error creating cantiere:", error);
             alert("Errore durante la creazione del cantiere");
@@ -136,22 +157,6 @@ export default function CantieriDashboard() {
         }
     };
 
-    const handleProgressChange = async (value) => {
-        setLocalProgress(value);
-    };
-
-    const handleProgressCommit = async () => {
-        if (!selectedCantiere) return;
-        try {
-            await updateCantiereMutation({
-                id: selectedCantiere._id,
-                data: { progresso: localProgress }
-            });
-            setSelectedCantiere(prev => ({ ...prev, progresso: localProgress }));
-        } catch (error) {
-            console.error("Error updating progress:", error);
-        }
-    };
 
     // Drag and Drop handlers
     const handleDragStart = (e, cantiere) => {
@@ -383,15 +388,64 @@ export default function CantieriDashboard() {
                                                 className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] placeholder:text-[#adb5bd]"
                                             />
                                         </div>
+
+                                        {/* Client Selection Dropdown */}
                                         <div className="space-y-2">
-                                            <Label className="text-[#dee2e6]">Cliente</Label>
+                                            <Label className="text-[#dee2e6]">Seleziona Cliente (da Clienti)</Label>
+                                            <Select
+                                                value={newCantiere.client_id || "manual"}
+                                                onValueChange={(v) => {
+                                                    if (v === "manual") {
+                                                        setNewCantiere({ ...newCantiere, client_id: null });
+                                                    } else {
+                                                        const client = clientsList.find(c => c._id === v);
+                                                        setNewCantiere({
+                                                            ...newCantiere,
+                                                            client_id: v,
+                                                            cliente: client?.full_name || newCantiere.cliente
+                                                        });
+                                                    }
+                                                }}
+                                            >
+                                                <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
+                                                    <SelectValue placeholder="Seleziona cliente..." />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa]">
+                                                    <SelectItem value="manual" className="text-[#f8f9fa] focus:bg-[#495057] focus:text-[#f8f9fa]">
+                                                        ✍️ Inserisci manualmente
+                                                    </SelectItem>
+                                                    {clientsList.filter(c => c.status === 'active').map(client => (
+                                                        <SelectItem key={client._id} value={client._id} className="text-[#f8f9fa] focus:bg-[#495057] focus:text-[#f8f9fa]">
+                                                            {client.full_name} {client.company_name && `(${client.company_name})`}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        {!newCantiere.client_id && (
+                                            <div className="space-y-2">
+                                                <Label className="text-[#dee2e6]">Nome Cliente (manuale)</Label>
+                                                <Input
+                                                    value={newCantiere.cliente}
+                                                    onChange={e => setNewCantiere({ ...newCantiere, cliente: e.target.value })}
+                                                    placeholder="Nome Cliente"
+                                                    className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] placeholder:text-[#adb5bd]"
+                                                />
+                                            </div>
+                                        )}
+
+                                        {/* Address */}
+                                        <div className="space-y-2">
+                                            <Label className="text-[#dee2e6]">Indirizzo Cantiere</Label>
                                             <Input
-                                                value={newCantiere.cliente}
-                                                onChange={e => setNewCantiere({ ...newCantiere, cliente: e.target.value })}
-                                                placeholder="Nome Cliente"
+                                                value={newCantiere.indirizzo}
+                                                onChange={e => setNewCantiere({ ...newCantiere, indirizzo: e.target.value })}
+                                                placeholder="Via, Numero, Città"
                                                 className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] placeholder:text-[#adb5bd]"
                                             />
                                         </div>
+
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <Label className="text-[#dee2e6]">Valore Contratto (€)</Label>
@@ -403,23 +457,33 @@ export default function CantieriDashboard() {
                                                 />
                                             </div>
                                             <div className="space-y-2">
-                                                <Label className="text-[#dee2e6]">Fase Iniziale</Label>
-                                                <Select
-                                                    value={newCantiere.status}
-                                                    onValueChange={v => setNewCantiere({ ...newCantiere, status: v })}
-                                                >
-                                                    <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa]">
-                                                        {KANBAN_PHASES.map(phase => (
-                                                            <SelectItem key={phase.id} value={phase.id} className="text-[#f8f9fa] focus:bg-[#495057] focus:text-[#f8f9fa]">
-                                                                {phase.label}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
+                                                <Label className="text-[#dee2e6]">Valore Progetto (€)</Label>
+                                                <Input
+                                                    type="number"
+                                                    value={newCantiere.valore_progetto}
+                                                    onChange={e => setNewCantiere({ ...newCantiere, valore_progetto: e.target.value })}
+                                                    placeholder="Stima progetto"
+                                                    className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] placeholder:text-[#adb5bd]"
+                                                />
                                             </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[#dee2e6]">Fase Iniziale</Label>
+                                            <Select
+                                                value={newCantiere.status}
+                                                onValueChange={v => setNewCantiere({ ...newCantiere, status: v })}
+                                            >
+                                                <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa]">
+                                                    {KANBAN_PHASES.map(phase => (
+                                                        <SelectItem key={phase.id} value={phase.id} className="text-[#f8f9fa] focus:bg-[#495057] focus:text-[#f8f9fa]">
+                                                            {phase.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </div>
                                         <Button
                                             onClick={handleCreate}
@@ -671,6 +735,9 @@ export default function CantieriDashboard() {
                                     <TabsTrigger value="details" className="text-[#adb5bd] data-[state=active]:bg-transparent data-[state=active]:text-[#f8f9fa] data-[state=active]:border-b-2 data-[state=active]:border-[#f8f9fa] rounded-none">
                                         Dettagli
                                     </TabsTrigger>
+                                    <TabsTrigger value="tasks" className="text-[#adb5bd] data-[state=active]:bg-transparent data-[state=active]:text-[#f8f9fa] data-[state=active]:border-b-2 data-[state=active]:border-[#f8f9fa] rounded-none">
+                                        Tasks
+                                    </TabsTrigger>
                                     <TabsTrigger value="team" className="text-[#adb5bd] data-[state=active]:bg-transparent data-[state=active]:text-[#f8f9fa] data-[state=active]:border-b-2 data-[state=active]:border-[#f8f9fa] rounded-none">
                                         Team
                                     </TabsTrigger>
@@ -690,32 +757,31 @@ export default function CantieriDashboard() {
                                                 </p>
                                             </div>
                                             <div className="bg-[#343a40] rounded-xl p-4 border border-[#495057]">
-                                                <p className="text-xs text-[#adb5bd] mb-1">Avanzamento</p>
+                                                <p className="text-xs text-[#adb5bd] mb-1">Avanzamento (auto)</p>
                                                 <p className="text-lg font-medium text-[#f8f9fa]">
-                                                    {localProgress}%
+                                                    {selectedCantiere.progresso || 0}%
                                                 </p>
                                             </div>
                                         </div>
 
+                                        {/* Auto-calculated progress based on tasks */}
                                         <div className="bg-[#343a40] rounded-xl p-4 border border-[#495057]">
-                                            <Label className="text-xs text-[#adb5bd] mb-3 block">Progresso Lavori</Label>
+                                            <p className="text-xs text-[#adb5bd] mb-3">Progresso Lavori (automatico)</p>
                                             <div className="space-y-3">
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="100"
-                                                    value={localProgress}
-                                                    onChange={(e) => handleProgressChange(parseInt(e.target.value))}
-                                                    onMouseUp={handleProgressCommit}
-                                                    onTouchEnd={handleProgressCommit}
-                                                    className="w-full accent-blue-500 h-2 bg-[#495057] rounded-lg appearance-none cursor-pointer"
-                                                />
+                                                <div className="h-3 bg-[#495057] rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all rounded-full"
+                                                        style={{ width: `${selectedCantiere.progresso || 0}%` }}
+                                                    />
+                                                </div>
                                                 <div className="flex justify-between text-xs text-[#adb5bd]">
                                                     <span>0%</span>
-                                                    <span className="text-[#f8f9fa] font-medium">{localProgress}%</span>
+                                                    <span className="text-[#f8f9fa] font-medium">{selectedCantiere.progresso || 0}% completato</span>
                                                     <span>100%</span>
                                                 </div>
-                                                <div className="h-2 bg-[#495057] rounded-full overflow-hidden"><div className="h-full bg-blue-500 transition-all rounded-full" style={{ width: `${localProgress}%` }} /></div>
+                                                <p className="text-xs text-[#6c757d] italic">
+                                                    Calcolato automaticamente dal completamento delle task
+                                                </p>
                                             </div>
                                         </div>
 
@@ -737,6 +803,167 @@ export default function CantieriDashboard() {
                                                 ))}
                                             </div>
                                         </div>
+                                    </div>
+                                </TabsContent>
+
+                                {/* Tasks Tab - Phase Based */}
+                                <TabsContent value="tasks" className="flex-1 overflow-y-auto p-6 m-0">
+                                    <div className="space-y-6">
+                                        {/* Overall Progress */}
+                                        <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl p-4 border border-blue-500/30">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <h3 className="font-medium text-[#f8f9fa]">Progresso Totale</h3>
+                                                <span className="text-sm text-blue-400 font-medium">
+                                                    {phaseTasks.filter(t => t.status === 'completato').length}/{phaseTasks.length} task completate
+                                                </span>
+                                            </div>
+                                            <div className="h-3 bg-[#495057] rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all rounded-full"
+                                                    style={{ width: `${phaseTasks.length > 0 ? Math.round((phaseTasks.filter(t => t.status === 'completato').length / phaseTasks.length) * 100) : 0}%` }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Phase Sections */}
+                                        {KANBAN_PHASES.map((phase) => {
+                                            const phaseName = phase.id;
+                                            const tasksInPhase = phaseTasks.filter(t => t.phase === phaseName);
+                                            const completedInPhase = tasksInPhase.filter(t => t.status === 'completato').length;
+                                            const phaseProgress = tasksInPhase.length > 0 ? Math.round((completedInPhase / tasksInPhase.length) * 100) : 0;
+                                            const isExpanded = expandedPhase === phaseName;
+
+                                            return (
+                                                <div key={phase.id} className="bg-[#343a40] rounded-xl border border-[#495057] overflow-hidden">
+                                                    {/* Phase Header */}
+                                                    <button
+                                                        onClick={() => setExpandedPhase(isExpanded ? null : phaseName)}
+                                                        className="w-full flex items-center justify-between p-4 hover:bg-[#495057]/30 transition-colors"
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-3 h-3 rounded-full ${phase.color}`} />
+                                                            <span className="font-medium text-[#f8f9fa]">{phase.label}</span>
+                                                            <span className="text-xs text-[#6c757d]">({tasksInPhase.length} task)</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="w-24 h-2 bg-[#495057] rounded-full overflow-hidden">
+                                                                <div className={`h-full ${phase.color} transition-all rounded-full`} style={{ width: `${phaseProgress}%` }} />
+                                                            </div>
+                                                            <span className="text-sm text-[#adb5bd] min-w-[3rem] text-right">{phaseProgress}%</span>
+                                                            <ChevronDown size={16} className={`text-[#6c757d] transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                                        </div>
+                                                    </button>
+
+                                                    {/* Expanded Content */}
+                                                    {isExpanded && (
+                                                        <div className="border-t border-[#495057] p-4 space-y-4">
+                                                            {/* Add Task Form for this phase */}
+                                                            <div className="flex gap-2">
+                                                                <Input
+                                                                    value={newPhaseTask.phase === phaseName ? newPhaseTask.title : ''}
+                                                                    onChange={(e) => setNewPhaseTask({ ...newPhaseTask, title: e.target.value, phase: phaseName })}
+                                                                    placeholder={`Nuova task per ${phase.label}...`}
+                                                                    className="flex-1 bg-[#495057] border-[#6c757d] text-[#f8f9fa]"
+                                                                    onKeyPress={(e) => {
+                                                                        if (e.key === 'Enter' && newPhaseTask.title.trim()) {
+                                                                            createPhaseTaskMutation({
+                                                                                cantiere_id: selectedCantiere._id,
+                                                                                phase: phaseName,
+                                                                                title: newPhaseTask.title.trim(),
+                                                                                priority: newPhaseTask.priority,
+                                                                                assigned_to: newPhaseTask.assigned_to || undefined
+                                                                            });
+                                                                            setNewPhaseTask({ title: '', phase: phaseName, priority: 'media', assigned_to: '' });
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <Select
+                                                                    value={newPhaseTask.priority}
+                                                                    onValueChange={(v) => setNewPhaseTask({ ...newPhaseTask, priority: v })}
+                                                                >
+                                                                    <SelectTrigger className="w-24 bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent className="bg-[#343a40] border-[#495057]">
+                                                                        <SelectItem value="alta" className="text-red-400">Alta</SelectItem>
+                                                                        <SelectItem value="media" className="text-yellow-400">Media</SelectItem>
+                                                                        <SelectItem value="bassa" className="text-blue-400">Bassa</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                                <Button
+                                                                    onClick={() => {
+                                                                        if (newPhaseTask.title.trim()) {
+                                                                            createPhaseTaskMutation({
+                                                                                cantiere_id: selectedCantiere._id,
+                                                                                phase: phaseName,
+                                                                                title: newPhaseTask.title.trim(),
+                                                                                priority: newPhaseTask.priority,
+                                                                                assigned_to: newPhaseTask.assigned_to || undefined
+                                                                            });
+                                                                            setNewPhaseTask({ title: '', phase: phaseName, priority: 'media', assigned_to: '' });
+                                                                        }
+                                                                    }}
+                                                                    size="sm"
+                                                                    className="bg-blue-600 hover:bg-blue-700"
+                                                                >
+                                                                    <Plus size={16} />
+                                                                </Button>
+                                                            </div>
+
+                                                            {/* Tasks List */}
+                                                            {tasksInPhase.length === 0 ? (
+                                                                <div className="text-center py-6 text-[#6c757d]">
+                                                                    <ClipboardList size={28} className="mx-auto mb-2 opacity-50" />
+                                                                    <p className="text-sm">Nessuna task in questa fase</p>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="space-y-2">
+                                                                    {tasksInPhase.map((task) => (
+                                                                        <div
+                                                                            key={task._id}
+                                                                            className={`flex items-center gap-3 p-3 bg-[#495057]/50 rounded-lg ${task.status === 'completato' ? 'opacity-60' : ''}`}
+                                                                        >
+                                                                            <button
+                                                                                onClick={() => updatePhaseTaskMutation({
+                                                                                    id: task._id,
+                                                                                    data: { status: task.status === 'completato' ? 'da_fare' : 'completato' }
+                                                                                })}
+                                                                                className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${task.status === 'completato'
+                                                                                    ? 'bg-green-500 border-green-500'
+                                                                                    : 'border-[#6c757d] hover:border-green-500'
+                                                                                    }`}
+                                                                            >
+                                                                                {task.status === 'completato' && <Check size={12} className="text-white" />}
+                                                                            </button>
+                                                                            <span className={`flex-1 text-sm ${task.status === 'completato' ? 'line-through text-[#6c757d]' : 'text-[#f8f9fa]'}`}>
+                                                                                {task.title}
+                                                                            </span>
+                                                                            {task.assigned_to && (
+                                                                                <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">
+                                                                                    {task.assigned_to.split('@')[0]}
+                                                                                </span>
+                                                                            )}
+                                                                            <span className={`text-xs px-2 py-0.5 rounded ${task.priority === 'alta' ? 'bg-red-500/20 text-red-400' :
+                                                                                task.priority === 'media' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                                                    'bg-blue-500/20 text-blue-400'
+                                                                                }`}>
+                                                                                {task.priority}
+                                                                            </span>
+                                                                            <button
+                                                                                onClick={() => removePhaseTaskMutation({ id: task._id })}
+                                                                                className="text-[#6c757d] hover:text-red-400 transition-colors"
+                                                                            >
+                                                                                <Trash2 size={14} />
+                                                                            </button>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </TabsContent>
 

@@ -16,7 +16,9 @@ import {
   Calendar,
   Users,
   Building,
-  HardHat
+  HardHat,
+  MessagesSquare,
+  Receipt
 } from 'lucide-react';
 import { useUser, useClerk } from '@clerk/clerk-react';
 
@@ -31,8 +33,10 @@ const createPageUrl = (page) => {
     MyAppointments: '/MyAppointments',
     Settings: '/Settings',
     CompanyDashboard: '/CompanyDashboard',
-
-    CantieriDashboard: '/CantieriDashboard'
+    ClientChat: '/ClientChat',
+    CantieriDashboard: '/CantieriDashboard',
+    Clienti: '/Clienti',
+    Preventivi: '/Preventivi'
   };
   return routes[page] || '/Dashboard';
 };
@@ -90,6 +94,24 @@ const getMenuItems = (user) => {
       name: 'Gestione Cantieri',
       page: 'CantieriDashboard',
       icon: HardHat,
+      subItems: []
+    });
+    baseItems.splice(5, 0, {
+      name: 'Clienti',
+      page: 'Clienti',
+      icon: Users,
+      subItems: []
+    });
+    baseItems.splice(6, 0, {
+      name: 'Chat Clienti',
+      page: 'ClientChat',
+      icon: MessagesSquare,
+      subItems: []
+    });
+    baseItems.splice(7, 0, {
+      name: 'Preventivi',
+      page: 'Preventivi',
+      icon: Receipt,
       subItems: []
     });
   }

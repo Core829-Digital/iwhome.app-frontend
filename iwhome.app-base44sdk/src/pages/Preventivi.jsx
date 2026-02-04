@@ -1,16 +1,18 @@
 /// <reference types="vite/client" />
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import {
-    FileText, Download, Share2, Search, Filter, CheckCircle, XCircle, Clock
+    FileText, Download, Search, CheckCircle, XCircle, Clock, HardHat, Link2, Unlink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import VerticalMenu from '../components/dashboard/VerticalMenu';
 import AnimatedBackground from '../components/dashboard/AnimatedBackground';
 
@@ -18,11 +20,24 @@ export default function Preventivi() {
     const { user } = useUser();
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [linkModalOpen, setLinkModalOpen] = useState(false);
+    const [selectedQuote, setSelectedQuote] = useState(null);
+    const [selectedCantiere, setSelectedCantiere] = useState(undefined);
 
     const userEmail = user?.primaryEmailAddress?.emailAddress || "";
+    const isAdmin = user?.publicMetadata?.role === 'admin' || userEmail.includes('admin') || userEmail.includes('ceo');
 
-    // Query quotes (Preventivi)
-    const quotes = useQuery(api.quotes.getByUser, { email: userEmail }) || [];
+    // Query quotes - admin sees all, users see their own
+    const allQuotes = useQuery(api.quotes.getAll, {}) || [];
+    const userQuotes = useQuery(api.quotes.getByUser, { email: userEmail }) || [];
+    const quotes = isAdmin ? allQuotes : userQuotes;
+
+    // Query cantieri for linking
+    const cantieri = useQuery(api.cantieri.listCantieri, { company_email: userEmail }) || [];
+
+    // Mutations
+    const linkToCantiereMutation = useMutation(api.quotes.linkToCantiere);
+    const unlinkFromCantiereMutation = useMutation(api.quotes.unlinkFromCantiere);
 
     const getStatusBadge = (status) => {
         switch (status) {
@@ -37,10 +52,32 @@ export default function Preventivi() {
         }
     };
 
+    const getCantiereInfo = (cantiereId) => {
+        if (!cantiereId) return null;
+        return cantieri.find(c => c._id === cantiereId);
+    };
+
+    const handleLink = async () => {
+        if (!selectedQuote || !selectedCantiere) return;
+        await linkToCantiereMutation({
+            quote_id: selectedQuote._id,
+            cantiere_id: selectedCantiere
+        });
+        setLinkModalOpen(false);
+        setSelectedQuote(null);
+        setSelectedCantiere(undefined);
+    };
+
+    const handleUnlink = async (quoteId) => {
+        await unlinkFromCantiereMutation({ quote_id: quoteId });
+    };
+
     const filteredQuotes = quotes.filter(quote => {
         const matchesSearch =
             (quote.notes?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (quote.quote_type?.toLowerCase().includes(searchTerm.toLowerCase()));
+            (quote.quote_type?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (quote.full_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (quote.email?.toLowerCase().includes(searchTerm.toLowerCase()));
 
         const matchesStatus = statusFilter === 'all' || quote.status === statusFilter;
 
@@ -60,9 +97,11 @@ export default function Preventivi() {
                         <div>
                             <h1 className="text-3xl font-light text-[#f8f9fa] mb-2 flex items-center gap-3">
                                 <FileText className="text-[#f8f9fa]" />
-                                I Miei Preventivi
+                                {isAdmin ? 'Gestione Preventivi' : 'I Miei Preventivi'}
                             </h1>
-                            <p className="text-[#adb5bd]">Visualizza e gestisci le tue richieste di preventivo</p>
+                            <p className="text-[#adb5bd]">
+                                {isAdmin ? 'Visualizza e collega preventivi ai cantieri' : 'Visualizza e gestisci le tue richieste di preventivo'}
+                            </p>
                         </div>
                     </div>
 
@@ -104,6 +143,44 @@ export default function Preventivi() {
                         </CardContent>
                     </Card>
 
+                    {/* Link to Cantiere Modal */}
+                    <Dialog open={linkModalOpen} onOpenChange={setLinkModalOpen}>
+                        <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md">
+                            <DialogHeader>
+                                <DialogTitle className="text-[#f8f9fa]">Collega a Cantiere</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                {selectedQuote && (
+                                    <div className="bg-[#495057]/50 rounded-lg p-3">
+                                        <p className="text-sm text-[#adb5bd]">Preventivo selezionato:</p>
+                                        <p className="text-[#f8f9fa] font-medium">{selectedQuote.quote_type}</p>
+                                        <p className="text-xs text-[#6c757d]">{selectedQuote.email}</p>
+                                    </div>
+                                )}
+
+                                <Select value={selectedCantiere} onValueChange={setSelectedCantiere}>
+                                    <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
+                                        <SelectValue placeholder="Seleziona cantiere..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-[#343a40] border-[#495057]">
+                                        {cantieri.map(cantiere => (
+                                            <SelectItem key={cantiere._id} value={cantiere._id} className="text-[#f8f9fa] focus:bg-[#495057]">
+                                                <div className="flex items-center gap-2">
+                                                    <HardHat size={14} />
+                                                    {cantiere.nome_cantiere}
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+
+                                <Button onClick={handleLink} disabled={!selectedCantiere} className="w-full bg-blue-600 hover:bg-blue-700">
+                                    <Link2 size={16} className="mr-2" /> Collega
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+
                     {/* Quotes List */}
                     <div className="grid grid-cols-1 gap-4">
                         {filteredQuotes.length === 0 ? (
@@ -113,54 +190,94 @@ export default function Preventivi() {
                                 <p className="text-[#adb5bd] mt-2">Le tue richieste di preventivo appariranno qui.</p>
                             </div>
                         ) : (
-                            filteredQuotes.map((quote) => (
-                                <motion.div
-                                    key={quote._id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                >
-                                    <Card className="bg-[#343a40] border border-[#495057] hover:border-[#6c757d] transition-all">
-                                        <CardContent className="p-6">
-                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-3 mb-2">
-                                                        <h3 className="text-lg font-medium text-[#f8f9fa]">
-                                                            Preventivo: {quote.quote_type === 'finestre' ? 'Infissi e Serramenti' :
-                                                                quote.quote_type === 'chiavi_in_mano' ? 'Ristrutturazione Chiavi in Mano' : 'Progetto Completo'}
-                                                        </h3>
-                                                        {getStatusBadge(quote.status)}
-                                                    </div>
-                                                    <div className="flex items-center text-sm text-[#adb5bd] gap-4">
-                                                        <span className="flex items-center gap-1">
-                                                            <Clock size={14} />
-                                                            {new Date(quote.created_date).toLocaleDateString('it-IT')}
-                                                        </span>
-                                                        {quote.estimated_price && (
-                                                            <span className="text-[#f8f9fa] font-medium">
-                                                                € {quote.estimated_price.toLocaleString()}
+                            filteredQuotes.map((quote) => {
+                                const linkedCantiere = getCantiereInfo(quote.cantiere_id);
+                                return (
+                                    <motion.div
+                                        key={quote._id}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                    >
+                                        <Card className="bg-[#343a40] border border-[#495057] hover:border-[#6c757d] transition-all">
+                                            <CardContent className="p-6">
+                                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-3 mb-2 flex-wrap">
+                                                            <h3 className="text-lg font-medium text-[#f8f9fa]">
+                                                                Preventivo: {quote.quote_type === 'finestre' ? 'Infissi e Serramenti' :
+                                                                    quote.quote_type === 'chiavi_in_mano' ? 'Ristrutturazione Chiavi in Mano' : 'Progetto Completo'}
+                                                            </h3>
+                                                            {getStatusBadge(quote.status)}
+                                                            {linkedCantiere && (
+                                                                <Badge variant="secondary" className="bg-purple-500/20 text-purple-400 border-none">
+                                                                    <HardHat size={12} className="mr-1" />
+                                                                    {linkedCantiere.nome_cantiere}
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center text-sm text-[#adb5bd] gap-4 flex-wrap">
+                                                            {isAdmin && quote.full_name && (
+                                                                <span className="text-[#f8f9fa]">{quote.full_name}</span>
+                                                            )}
+                                                            {isAdmin && (
+                                                                <span className="text-[#6c757d]">{quote.email}</span>
+                                                            )}
+                                                            <span className="flex items-center gap-1">
+                                                                <Clock size={14} />
+                                                                {new Date(quote.created_date).toLocaleDateString('it-IT')}
                                                             </span>
+                                                            {quote.estimated_price && (
+                                                                <span className="text-[#f8f9fa] font-medium">
+                                                                    € {quote.estimated_price.toLocaleString()}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {quote.notes && (
+                                                            <p className="text-sm text-[#adb5bd] mt-2 line-clamp-2">{quote.notes}</p>
                                                         )}
                                                     </div>
-                                                    {quote.notes && (
-                                                        <p className="text-sm text-[#adb5bd] mt-2 line-clamp-2">{quote.notes}</p>
-                                                    )}
-                                                </div>
 
-                                                <div className="flex items-center gap-2">
-                                                    {quote.files && quote.files.length > 0 && (
-                                                        <Button variant="outline" className="text-[#f8f9fa] border-[#6c757d] hover:bg-[#495057]">
-                                                            <Download size={16} className="mr-2" /> Scarica
+                                                    <div className="flex items-center gap-2">
+                                                        {quote.files && quote.files.length > 0 && (
+                                                            <Button variant="outline" className="text-[#f8f9fa] border-[#6c757d] hover:bg-[#495057]">
+                                                                <Download size={16} className="mr-2" /> Scarica
+                                                            </Button>
+                                                        )}
+
+                                                        {/* Admin linking controls */}
+                                                        {isAdmin && (
+                                                            linkedCantiere ? (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    onClick={() => handleUnlink(quote._id)}
+                                                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                                                                >
+                                                                    <Unlink size={16} className="mr-1" /> Scollega
+                                                                </Button>
+                                                            ) : (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    onClick={() => {
+                                                                        setSelectedQuote(quote);
+                                                                        setLinkModalOpen(true);
+                                                                    }}
+                                                                    className="text-purple-400 border-purple-500/30 hover:bg-purple-500/20"
+                                                                >
+                                                                    <Link2 size={16} className="mr-1" /> Collega a Cantiere
+                                                                </Button>
+                                                            )
+                                                        )}
+
+                                                        <Button variant="ghost" className="text-[#adb5bd] hover:text-[#f8f9fa]">
+                                                            Dettagli
                                                         </Button>
-                                                    )}
-                                                    <Button variant="ghost" className="text-[#adb5bd] hover:text-[#f8f9fa]">
-                                                        Dettagli
-                                                    </Button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </motion.div>
-                            ))
+                                            </CardContent>
+                                        </Card>
+                                    </motion.div>
+                                );
+                            })
                         )}
                     </div>
                 </div>

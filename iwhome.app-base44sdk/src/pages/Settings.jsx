@@ -21,7 +21,7 @@ export default function Settings() {
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const upgradeToCompany = useMutation(api.users.upgradeToCompany);
+  const verifyAccount = useMutation(api.users.verifyAccount);
   const convexUser = useQuery(api.users.getByEmail, { email: user?.primaryEmailAddress?.emailAddress || "" });
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function Settings() {
       // Verifica codice di accesso se modificato o presente
       if (formData.company_code) {
         try {
-          await upgradeToCompany({ accessCode: formData.company_code });
+          await verifyAccount({ accessCode: formData.company_code });
         } catch (err) {
           console.error("Upgrade failed:", err);
           // Optional: alert('Codice non valido'); 

@@ -59,7 +59,7 @@ export default function Messages() {
 
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   };
 
   /* Data Fetching */
@@ -438,7 +438,7 @@ export default function Messages() {
                         <Input
                           value={messageText}
                           onChange={(e) => setMessageText(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                          onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                           placeholder="Scrivi un messaggio..."
                           className="bg-[#343a40] border-[#f8f9fa]/20 text-[#f8f9fa] pr-12"
                         />
