@@ -4,12 +4,12 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import SEO from '../components/seo/SEO';
 import ElectricalSystemIcon from '../components/services/ElectricalSystemIcon';
-import { 
-  Layers, 
-  Palette, 
-  Home, 
-  Ruler, 
-  Paintbrush, 
+import {
+  Layers,
+  Palette,
+  Home,
+  Ruler,
+  Paintbrush,
   Wrench,
   ArrowRight,
   Check
@@ -66,25 +66,26 @@ export default function Servizi() {
 
   return (
     <div>
-      <SEO 
+      <SEO
         title="Servizi - IwHome | Infissi e Ristrutturazioni Complete"
         description="Infissi su misura, ristrutturazioni chiavi in mano, impianti certificati. Servizio completo dalla progettazione alla realizzazione. Scopri tutti i nostri servizi."
+        structuredData={{}}
       />
 
       {/* Hero */}
       <section className="relative py-20 lg:py-32 bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] overflow-hidden">
         <motion.div
 
-                  style={{ y, willChange: 'transform' }}
-                  className="absolute inset-0"
-                >
-                  <img
-                    src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1920&q=80"
-                    alt="Services"
-                    className="w-full h-full object-cover opacity-20"
-                    loading="lazy"
-                    decoding="async"
-                  />
+          style={{ y, willChange: 'transform' }}
+          className="absolute inset-0"
+        >
+          <img
+            src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1920&q=80"
+            alt="Services"
+            className="w-full h-full object-cover opacity-20"
+            loading="lazy"
+            decoding="async"
+          />
         </motion.div>
 
         <motion.div
@@ -105,7 +106,7 @@ export default function Servizi() {
               <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef]">servizi</span>
             </h1>
             <p className="text-[#dee2e6] max-w-2xl text-lg">
-              Dalla scelta dei materiali al design su misura, fino alla realizzazione 
+              Dalla scelta dei materiali al design su misura, fino alla realizzazione
               e installazione: ti seguiamo in ogni fase del progetto.
             </p>
           </motion.div>
@@ -130,9 +131,8 @@ export default function Servizi() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8 }}
-                className={`grid grid-cols-1 lg:grid-cols-2 gap-12 items-center ${
-                  index % 2 === 1 ? 'lg:flex-row-reverse' : ''
-                }`}
+                className={`grid grid-cols-1 lg:grid-cols-2 gap-12 items-center ${index % 2 === 1 ? 'lg:flex-row-reverse' : ''
+                  }`}
               >
                 <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
                   <div className="flex items-center gap-6 mb-6">
@@ -150,9 +150,9 @@ export default function Servizi() {
                       transition={{ duration: 0.6, delay: 0.2 }}
                       className="relative"
                     >
-                      <motion.span 
+                      <motion.span
                         className="text-7xl lg:text-8xl font-light bg-gradient-to-br from-[#f8f9fa] via-[#e9ecef] to-[#dee2e6] bg-clip-text text-transparent"
-                        animate={{ 
+                        animate={{
                           backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
                         }}
                         transition={{ duration: 3, repeat: Infinity }}
@@ -181,7 +181,7 @@ export default function Servizi() {
                       </li>
                     ))}
                   </ul>
-                  <Link to={createPageUrl('Preventivo')}>
+                  <Link to={createPageUrl('Calcolatore')}>
                     <motion.button
                       whileHover={{ scale: 1.05, boxShadow: '0 20px 60px rgba(248, 249, 250, 0.3)' }}
                       whileTap={{ scale: 0.95 }}
@@ -239,11 +239,11 @@ export default function Servizi() {
               Pronto a iniziare il tuo <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef]">progetto</span>?
             </h2>
             <p className="text-[#dee2e6] mb-8 max-w-2xl mx-auto">
-              Calcola un preventivo stimato online o prenota un appuntamento 
+              Calcola un preventivo stimato online o prenota un appuntamento
               nel nostro showroom per una consulenza personalizzata.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to={createPageUrl('Preventivo')}>
+              <Link to={createPageUrl('Calcolatore')}>
                 <motion.button
                   whileHover={{ scale: 1.05, boxShadow: '0 20px 60px rgba(248, 249, 250, 0.3)' }}
                   whileTap={{ scale: 0.95 }}

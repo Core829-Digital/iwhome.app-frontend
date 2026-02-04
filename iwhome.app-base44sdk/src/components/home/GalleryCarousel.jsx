@@ -5,7 +5,6 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 const images = [
   'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/65d445a5d_gallery-1.jpg',
   'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/ca1a4b708_gallery-4.jpg',
-  'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/336469847_gallery-51.jpg',
   'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/8fd84c0f9_gallery-5.jpg',
   'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/d452179f1_gallery-6.jpg',
   'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/a50050fa3_gallery-7.jpg',
@@ -14,11 +13,7 @@ const images = [
   'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/8066fc0e3_gallery-10.jpg',
   'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/508e1e578_gallery-11.jpg',
   'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/a3525bd44_gallery-12.jpg',
-  'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/0283f61ec_img1-g.jpg',
-  'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/5cd783b75_img2-g.jpg',
-  'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/78adbbf3a_img3-g.jpg',
   'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/d71c5f8f3_minimalistic-25-g.jpg',
-  'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/5f3b218e0_minimalistic-26-g.jpg',
 ];
 
 export default function GalleryCarousel() {
@@ -170,11 +165,10 @@ export default function GalleryCarousel() {
                     setDirection(i > current ? 1 : -1);
                     setCurrent(i);
                   }}
-                  className={`rounded-full transition-all duration-500 ${
-                    i === current
-                      ? 'w-8 h-2 bg-[#000000]'
-                      : 'w-2 h-2 bg-[#000000]/30 hover:bg-[#000000]/60'
-                  }`}
+                  className={`rounded-full transition-all duration-500 ${i === current
+                    ? 'w-8 h-2 bg-[#000000]'
+                    : 'w-2 h-2 bg-[#000000]/30 hover:bg-[#000000]/60'
+                    }`}
                 />
               ))}
             </div>

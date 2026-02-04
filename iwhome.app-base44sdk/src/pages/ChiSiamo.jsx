@@ -6,27 +6,27 @@ import SEO from '../components/seo/SEO';
 import { Check, Users, Award, Clock, ArrowRight } from 'lucide-react';
 
 const values = [
-  { 
-    icon: Check, 
-    title: 'Qualità', 
+  {
+    icon: Check,
+    title: 'Qualità',
     description: 'Solo materiali certificati e di prima scelta',
     details: 'Selezioniamo esclusivamente fornitori certificati e materiali testati. Ogni prodotto viene controllato per garantire standard elevati di durata, sicurezza ed efficienza energetica.'
   },
-  { 
-    icon: Users, 
-    title: 'Esperienza', 
+  {
+    icon: Users,
+    title: 'Esperienza',
     description: 'Team di professionisti con anni di esperienza',
     details: 'Il nostro team vanta oltre 10 anni di esperienza nel settore. Ogni progetto è seguito da tecnici specializzati che conoscono le migliori soluzioni per ogni esigenza.'
   },
-  { 
-    icon: Award, 
-    title: 'Garanzia', 
+  {
+    icon: Award,
+    title: 'Garanzia',
     description: 'Lavori garantiti e assistenza post-vendita',
     details: 'Offriamo garanzia completa su tutti i nostri lavori e materiali. Il nostro servizio di assistenza post-vendita resta sempre disponibile per qualsiasi necessità.'
   },
-  { 
-    icon: Clock, 
-    title: 'Puntualità', 
+  {
+    icon: Clock,
+    title: 'Puntualità',
     description: 'Rispetto dei tempi e delle scadenze concordate',
     details: 'La pianificazione accurata e il coordinamento professionale ci permettono di rispettare sempre i tempi concordati, senza compromessi sulla qualità del risultato finale.'
   },
@@ -38,10 +38,11 @@ export default function ChiSiamo() {
 
   return (
     <div>
-      <SEO 
+      <SEO
         title="Chi Siamo - IwHome | Esperti in Ristrutturazioni e Infissi dal 2010"
         description="Scopri IwHome: oltre 10 anni di esperienza in ristrutturazioni e infissi. Team qualificato, materiali certificati PVC, alluminio e legno, garanzia totale. Il tuo partner di fiducia per la casa."
         keywords="chi siamo iwhome, azienda ristrutturazioni reggio emilia, esperti infissi, materiali certificati, showroom infissi, professionisti edilizia"
+        structuredData={{}}
       />
 
       {/* Hero Section */}
@@ -105,19 +106,19 @@ export default function ChiSiamo() {
               </h2>
               <div className="space-y-4 text-[#dee2e6] leading-relaxed">
                 <p>
-                  Ci occupiamo di progettare e realizzare ambienti che uniscono stile e comfort, 
+                  Ci occupiamo di progettare e realizzare ambienti che uniscono stile e comfort,
                   con soluzioni pensate per durare nel tempo e adattarsi perfettamente al tuo modo di vivere.
                 </p>
                 <p>
-                  Dalla scelta dei materiali al design su misura, fino alla realizzazione e installazione: 
+                  Dalla scelta dei materiali al design su misura, fino alla realizzazione e installazione:
                   ti seguiamo in ogni fase del progetto per creare spazi funzionali, eleganti e pensati per durare.
                 </p>
                 <p>
-                  Il nostro showroom è il luogo ideale per toccare con mano la qualità dei materiali 
+                  Il nostro showroom è il luogo ideale per toccare con mano la qualità dei materiali
                   e delle finiture, e per confrontarti con il nostro team di esperti.
                 </p>
               </div>
-              <Link to={createPageUrl('Contatti')}>
+              <a href="/home#dove-siamo">
                 <motion.button
                   whileHover={{ scale: 1.05, boxShadow: '0 20px 60px rgba(248, 249, 250, 0.3)' }}
                   whileTap={{ scale: 0.95 }}
@@ -126,7 +127,7 @@ export default function ChiSiamo() {
                   Contattaci
                   <ArrowRight size={18} />
                 </motion.button>
-              </Link>
+              </a>
             </motion.div>
 
             <motion.div
@@ -182,7 +183,7 @@ export default function ChiSiamo() {
               Cosa ci <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef]">distingue</span>
             </h2>
             <p className="text-[#dee2e6] max-w-3xl mx-auto text-lg">
-              In IwHome, la qualità e la professionalità non sono solo obiettivi, ma la base di ogni nostro progetto. 
+              In IwHome, la qualità e la professionalità non sono solo obiettivi, ma la base di ogni nostro progetto.
               Crediamo nel valore del lavoro ben fatto, nell'eccellenza dei materiali e nel rapporto di fiducia con i nostri clienti.
             </p>
           </motion.div>
@@ -226,9 +227,9 @@ export default function ChiSiamo() {
               Il nostro impegno per l'<span className="font-medium">eccellenza</span>
             </h3>
             <p className="text-[#dee2e6] max-w-3xl mx-auto leading-relaxed">
-              Ogni dettaglio conta. Dalla consulenza iniziale alla realizzazione finale, 
-              ci impegniamo a superare le aspettative con soluzioni innovative, materiali di prima qualità 
-              e un'attenzione maniacale ai dettagli. La vostra soddisfazione è la nostra migliore pubblicità, 
+              Ogni dettaglio conta. Dalla consulenza iniziale alla realizzazione finale,
+              ci impegniamo a superare le aspettative con soluzioni innovative, materiali di prima qualità
+              e un'attenzione maniacale ai dettagli. La vostra soddisfazione è la nostra migliore pubblicità,
               e per questo mettiamo passione e professionalità in ogni singolo progetto che realizziamo.
             </p>
           </motion.div>

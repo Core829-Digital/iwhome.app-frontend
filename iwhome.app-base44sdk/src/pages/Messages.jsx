@@ -34,7 +34,8 @@ import {
   Check,
   CheckCheck,
   UserPlus,
-  Clock
+  Clock,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function Messages() {
@@ -47,6 +48,12 @@ export default function Messages() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [uploadType, setUploadType] = useState('file');
   const [isEphemeral, setIsEphemeral] = useState(false);
+
+  // Verification states
+  const [verifyModalOpen, setVerifyModalOpen] = useState(false);
+  const [accessCode, setAccessCode] = useState('');
+  const [contactFilter, setContactFilter] = useState('all');
+
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -70,6 +77,22 @@ export default function Messages() {
   const sendMessageMutation = useMutation(api.chat.sendMessage);
   const likeMutation = useMutation(api.chat.likeMessage);
   const createChannelMutation = useMutation(api.chat.createChannel);
+  const verifyAccountMutation = useMutation(api.users.verifyAccount);
+
+  const handleVerifyAccount = async () => {
+    try {
+      const result = await verifyAccountMutation({ accessCode });
+      if (result.success) {
+        alert(result.message);
+        setVerifyModalOpen(false);
+        setAccessCode('');
+        // Refresh logic if needed, but react query should handle it
+        window.location.reload();
+      }
+    } catch (e) {
+      alert("Codice non valido o errore server");
+    }
+  };
 
   useEffect(() => {
     scrollToBottom();
@@ -206,28 +229,7 @@ export default function Messages() {
     </div>;
   }
 
-  if (!convexUser?.is_company) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-        <VerticalMenu />
-        <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe flex items-center justify-center">
-          <div className="text-center p-8 bg-[#343a40]/50 backdrop-blur-xl rounded-2xl border border-[#f8f9fa]/20 max-w-md mx-4">
-            <div className="w-16 h-16 bg-[#f8f9fa]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MessageSquare size={32} className="text-[#adb5bd]" />
-            </div>
-            <h2 className="text-xl font-medium text-[#f8f9fa] mb-2">Accesso Riservato</h2>
-            <p className="text-[#dee2e6] mb-6">La messaggistica è riservata agli account aziendali e ai collaboratori.</p>
-            <Button
-              className="bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529]"
-              onClick={() => window.location.href = '/settings'}
-            >
-              Vai alle Impostazioni
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
@@ -242,12 +244,21 @@ export default function Messages() {
             <div className="lg:col-span-1 bg-[#343a40]/30 backdrop-blur-xl rounded-xl lg:rounded-2xl border border-[#f8f9fa]/20 overflow-hidden flex flex-col max-h-full">
               <div className="p-3 sm:p-4 lg:p-6 border-b border-[#f8f9fa]/10 flex items-center justify-between flex-shrink-0">
                 <h2 className="text-base sm:text-lg lg:text-xl font-medium text-[#f8f9fa]">Conversazioni</h2>
-                <button
-                  onClick={() => setShowContactsList(true)}
-                  className="p-2 rounded-lg hover:bg-[#f8f9fa]/10 transition-all"
-                >
-                  <UserPlus size={20} className="text-[#f8f9fa]" />
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setVerifyModalOpen(true)}
+                    className="p-2 rounded-lg hover:bg-[#f8f9fa]/10 transition-all text-[#adb5bd] hover:text-[#f8f9fa]"
+                    title="Verifica Account"
+                  >
+                    <ShieldCheck size={20} />
+                  </button>
+                  <button
+                    onClick={() => setShowContactsList(true)}
+                    className="p-2 rounded-lg hover:bg-[#f8f9fa]/10 transition-all"
+                  >
+                    <UserPlus size={20} className="text-[#f8f9fa]" />
+                  </button>
+                </div>
               </div>
               <div className="overflow-y-auto flex-1">
                 {conversations.length === 0 ? (
@@ -526,9 +537,29 @@ export default function Messages() {
                   </button>
                 </div>
 
+                <div className="flex gap-2 mb-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setContactFilter('all')}
+                    className={`text-xs ${contactFilter === 'all' ? 'bg-[#f8f9fa]/20 text-white' : 'text-[#adb5bd]'}`}
+                  >
+                    Tutti
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setContactFilter('company')}
+                    className={`text-xs ${contactFilter === 'company' ? 'bg-blue-500/20 text-blue-400' : 'text-[#adb5bd]'}`}
+                  >
+                    Aziende
+                  </Button>
+                </div>
+
                 <div className="space-y-2">
                   {allUsers
                     .filter(u => u.email !== user?.primaryEmailAddress?.emailAddress)
+                    .filter(u => contactFilter === 'all' || (contactFilter === 'company' && (u.is_company || u.role === 'admin')))
                     .map((contact) => (
                       <button
                         key={contact._id}
@@ -574,6 +605,29 @@ export default function Messages() {
                 }}
                 className="bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] file:bg-[#f8f9fa]/10 file:text-[#f8f9fa]"
               />
+            </div>
+          </DialogContent>
+        </Dialog>
+        {/* Verify Account Modal */}
+        <Dialog open={verifyModalOpen} onOpenChange={setVerifyModalOpen}>
+          <DialogContent className="bg-[#343a40] border-[#f8f9fa]/20 text-[#f8f9fa]">
+            <DialogHeader>
+              <DialogTitle>Verifica Account</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <p className="text-sm text-[#adb5bd]">Inserisci il codice di accesso per verificare il tuo account o attivare le funzionalità aziendali.</p>
+              <Input
+                placeholder="Inserisci codice..."
+                value={accessCode}
+                onChange={(e) => setAccessCode(e.target.value)}
+                className="bg-[#212529] border-[#495057] text-[#f8f9fa]"
+              />
+              <Button
+                onClick={handleVerifyAccount}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Verifica Codice
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

@@ -94,12 +94,14 @@ export default function ServicesSection() {
                     >
                       <service.icon size={24} className="text-[#f8f9fa] group-hover:text-[#f8f9fa]" />
                     </motion.div>
-                    <motion.div
-                      whileHover={{ scale: 1.2, rotate: 45 }}
-                      className="w-10 h-10 rounded-full bg-[#f8f9fa]/10 flex items-center justify-center cursor-pointer flex-shrink-0"
-                    >
-                      <ArrowUpRight size={18} className="text-[#f8f9fa]" />
-                    </motion.div>
+                    <Link to={createPageUrl('Servizi')}>
+                      <motion.div
+                        whileHover={{ scale: 1.2, rotate: 45 }}
+                        className="w-10 h-10 rounded-full bg-[#f8f9fa]/10 flex items-center justify-center cursor-pointer flex-shrink-0"
+                      >
+                        <ArrowUpRight size={18} className="text-[#f8f9fa]" />
+                      </motion.div>
+                    </Link>
                   </div>
                   <h3 className="text-xl font-medium text-[#f8f9fa] mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#f8f9fa] group-hover:to-[#e9ecef] transition-all">
                     {service.title}

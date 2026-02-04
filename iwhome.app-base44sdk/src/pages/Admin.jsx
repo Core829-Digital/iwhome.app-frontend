@@ -108,9 +108,7 @@ export default function Admin() {
     };
 
     // Access Control (Simple client-side for now, should be backend verified)
-    // Assuming 'admin' role linked to specific email or field
-    // Here we use role === 'admin' check if available, or just check specific email for dev
-    const isAdmin = convexUser?.role === 'admin' || user?.primaryEmailAddress?.emailAddress === 'info@iwhome.it' || user?.primaryEmailAddress?.emailAddress === 'contact.core829@gmail.com';
+    const isAdmin = convexUser?.role === 'admin';
 
     if (convexUser === undefined) return <div className="min-h-screen grid place-items-center bg-[#212529] text-white">Caricamento...</div>;
 

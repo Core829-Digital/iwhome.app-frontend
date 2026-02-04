@@ -25,9 +25,9 @@ export default function MyAppointments() {
   const updateAppointment = useMutation(api.appointments.update);
   const deleteAppointment = useMutation(api.appointments.deleteAppointment);
 
-  const handleCreateEvent = (data) => {
+  const handleCreateEvent = async (data) => {
     if (!user) return;
-    createAppointment({
+    await createAppointment({
       ...data,
       email: user.primaryEmailAddress?.emailAddress,
       full_name: user.fullName || "User",
@@ -99,7 +99,7 @@ export default function MyAppointments() {
                 onClick={() => setViewMode('calendar')}
                 className={viewMode === 'calendar'
                   ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                  : 'border-[#f8f9fa]/20 text-[#f8f9fa] hover:bg-[#f8f9fa]/10'}
+                  : 'border-[#f8f9fa]/30 bg-[#495057]/50 text-[#f8f9fa] hover:bg-[#495057] hover:text-white'}
               >
                 <Calendar size={16} className="mr-2" />
                 Calendario
@@ -109,7 +109,7 @@ export default function MyAppointments() {
                 onClick={() => setViewMode('list')}
                 className={viewMode === 'list'
                   ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                  : 'border-[#f8f9fa]/20 text-[#f8f9fa] hover:bg-[#f8f9fa]/10'}
+                  : 'border-[#f8f9fa]/30 bg-[#495057]/50 text-[#f8f9fa] hover:bg-[#495057] hover:text-white'}
               >
                 <List size={16} className="mr-2" />
                 Lista

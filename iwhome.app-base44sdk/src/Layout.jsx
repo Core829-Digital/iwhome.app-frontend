@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import GlobalSearch from './components/dashboard/GlobalSearch';
 import { useUser, useClerk } from "@clerk/clerk-react";
+import NotificationBell from './components/dashboard/NotificationBell';
 
 export default function Layout({ children, currentPageName }) {
   const [scrolled, setScrolled] = useState(false);
@@ -148,6 +149,14 @@ export default function Layout({ children, currentPageName }) {
                 >
                   <Search size={scrolled ? 18 : 20} />
                 </button>
+
+                {/* Notification Bell */}
+                {user && (
+                  <div className="mr-2">
+                    <NotificationBell user={user} />
+                  </div>
+                )}
+
                 {user ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

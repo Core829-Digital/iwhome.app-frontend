@@ -36,7 +36,7 @@ export default function InteractiveCalendar({ appointments, onCreateEvent, onUpd
   const dateRange = eachDayOfInterval({ start: startDate, end: endDate });
 
   const getAppointmentsForDate = (date) => {
-    return appointments.filter(apt => 
+    return appointments.filter(apt =>
       isSameDay(new Date(apt.appointment_date), date)
     );
   };
@@ -78,13 +78,17 @@ export default function InteractiveCalendar({ appointments, onCreateEvent, onUpd
   };
 
   const handleSaveEvent = async () => {
-    if (selectedAppointment) {
-      await onUpdateEvent(selectedAppointment.id, eventFormData);
-    } else {
-      await onCreateEvent(eventFormData);
+    try {
+      if (selectedAppointment) {
+        await onUpdateEvent(selectedAppointment.id, eventFormData);
+      } else {
+        await onCreateEvent(eventFormData);
+      }
+      setShowEventDialog(false);
+      setSelectedAppointment(null);
+    } catch (error) {
+      alert("Errore: " + error.message);
     }
-    setShowEventDialog(false);
-    setSelectedAppointment(null);
   };
 
   const handleDownloadICS = (appointment) => {
@@ -183,26 +187,23 @@ export default function InteractiveCalendar({ appointments, onCreateEvent, onUpd
                 key={idx}
                 whileHover={{ scale: 1.02 }}
                 onClick={() => handleDateClick(date)}
-                className={`min-h-[100px] p-2 border-r border-b border-[#f8f9fa]/5 cursor-pointer transition-all ${
-                  !isCurrentMonth ? 'bg-[#343a40]/20' : 'bg-transparent hover:bg-[#495057]/30'
-                } ${isToday ? 'ring-2 ring-blue-500' : ''} ${isSelected ? 'bg-[#495057]/50' : ''}`}
+                className={`min-h-[100px] p-2 border-r border-b border-[#f8f9fa]/5 cursor-pointer transition-all ${!isCurrentMonth ? 'bg-[#343a40]/20' : 'bg-transparent hover:bg-[#495057]/30'
+                  } ${isToday ? 'ring-2 ring-blue-500' : ''} ${isSelected ? 'bg-[#495057]/50' : ''}`}
               >
-                <div className={`text-sm font-medium mb-1 ${
-                  !isCurrentMonth ? 'text-[#6c757d]' : isToday ? 'text-blue-400' : 'text-[#f8f9fa]'
-                }`}>
+                <div className={`text-sm font-medium mb-1 ${!isCurrentMonth ? 'text-[#6c757d]' : isToday ? 'text-blue-400' : 'text-[#f8f9fa]'
+                  }`}>
                   {format(date, 'd')}
                 </div>
-                
+
                 <div className="space-y-1">
                   {dayAppointments.map((apt) => (
                     <div
                       key={apt.id}
-                      className={`text-xs p-1 rounded truncate ${
-                        apt.status === 'confirmed' ? 'bg-green-500/20 text-green-300' :
+                      className={`text-xs p-1 rounded truncate ${apt.status === 'confirmed' ? 'bg-green-500/20 text-green-300' :
                         apt.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
-                        apt.status === 'cancelled' ? 'bg-red-500/20 text-red-300' :
-                        'bg-blue-500/20 text-blue-300'
-                      }`}
+                          apt.status === 'cancelled' ? 'bg-red-500/20 text-red-300' :
+                            'bg-blue-500/20 text-blue-300'
+                        }`}
                     >
                       {apt.appointment_time} - {apt.full_name}
                     </div>
@@ -250,12 +251,11 @@ export default function InteractiveCalendar({ appointments, onCreateEvent, onUpd
                       <div className="flex items-center gap-2 mb-2">
                         <Clock size={16} className="text-[#adb5bd]" />
                         <span className="text-[#f8f9fa] font-medium">{apt.appointment_time}</span>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          apt.status === 'confirmed' ? 'bg-green-500/20 text-green-300' :
+                        <span className={`text-xs px-2 py-1 rounded-full ${apt.status === 'confirmed' ? 'bg-green-500/20 text-green-300' :
                           apt.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
-                          apt.status === 'cancelled' ? 'bg-red-500/20 text-red-300' :
-                          'bg-blue-500/20 text-blue-300'
-                        }`}>
+                            apt.status === 'cancelled' ? 'bg-red-500/20 text-red-300' :
+                              'bg-blue-500/20 text-blue-300'
+                          }`}>
                           {apt.status}
                         </span>
                       </div>
@@ -312,7 +312,7 @@ export default function InteractiveCalendar({ appointments, onCreateEvent, onUpd
               {selectedAppointment ? 'Modifica Evento' : 'Nuovo Evento'}
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4 mt-4">
             <div>
               <Label className="text-[#dee2e6]">Nome Completo</Label>

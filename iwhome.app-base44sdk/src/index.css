@@ -110,6 +110,7 @@ button:focus-visible {
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -152,7 +153,30 @@ button:focus-visible {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Fix for Radix UI scroll locking causing layout shifts in fixed header */
+body[data-scroll-locked] header {
+  padding-right: var(--removed-body-scroll-bar-size) !important;
+}
+
+/* Prevent body scroll when dialog/dropdown is open - Radix UI specific */
+html:has([data-radix-popper-content-wrapper]),
+html:has([data-state="open"][role="dialog"]) {
+  overflow: hidden !important;
+}
+
+/* Ensure the body doesn't shift when scrollbar is hidden */
+body[data-scroll-locked] {
+  margin-right: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Fix for fixed elements during scroll lock */
+body[data-scroll-locked] .fixed {
+  padding-right: var(--removed-body-scroll-bar-size, 0px);
 }

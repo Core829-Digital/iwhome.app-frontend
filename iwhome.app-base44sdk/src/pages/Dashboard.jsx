@@ -181,46 +181,38 @@ export default function Dashboard() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6 lg:mb-8">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <Card className="bg-gradient-to-br from-blue-600 to-blue-700 border-0 shadow-lg hover:shadow-xl transition-all">
-                <CardHeader className="flex flex-row items-center justify-between pb-1 p-4">
-                  <CardTitle className="text-xs font-medium text-white/80">Preventivi</CardTitle>
-                  <FileText className="h-4 w-4 text-white flex-shrink-0" />
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="text-2xl font-light text-white">{stats.totalQuotes}</div>
-                  <p className="text-xs text-white/60 mt-0.5 hidden sm:block">Form richieste</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-              <Card className="bg-gradient-to-br from-cyan-600 to-cyan-700 border-0 shadow-lg hover:shadow-xl transition-all">
-                <CardHeader className="flex flex-row items-center justify-between pb-1 p-4">
-                  <CardTitle className="text-xs font-medium text-white/80">Prev. Doc</CardTitle>
-                  <FileText className="h-4 w-4 text-white flex-shrink-0" />
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="text-2xl font-light text-white">{stats.totalPreventivi}</div>
-                  <p className="text-xs text-white/60 mt-0.5 hidden sm:block">File caricati</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-              <Card className="bg-gradient-to-br from-green-600 to-green-700 border-0 shadow-lg hover:shadow-xl transition-all">
-                <CardHeader className="flex flex-row items-center justify-between pb-1 p-4">
-                  <CardTitle className="text-xs font-medium text-white/80">Appuntamenti</CardTitle>
-                  <Calendar className="h-4 w-4 text-white flex-shrink-0" />
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="text-2xl font-light text-white">{stats.totalAppointments}</div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6 lg:mb-8">
             <Link to={createPageUrl('Documents')} className="block h-full">
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                <Card className="bg-gradient-to-br from-blue-600 to-blue-700 border-0 shadow-lg hover:shadow-xl transition-all cursor-pointer h-full">
+                  <CardHeader className="flex flex-row items-center justify-between pb-1 p-4">
+                    <CardTitle className="text-xs font-medium text-white/80">Preventivi</CardTitle>
+                    <FileText className="h-4 w-4 text-white flex-shrink-0" />
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="text-2xl font-light text-white">{stats.totalQuotes}</div>
+                    <p className="text-xs text-white/60 mt-0.5 hidden sm:block">Form richieste</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Link>
+
+            <Link to={createPageUrl('MyAppointments')} className="block h-full">
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="h-full">
+                <Card className="bg-gradient-to-br from-green-600 to-green-700 border-0 shadow-lg hover:shadow-xl transition-all cursor-pointer h-full">
+                  <CardHeader className="flex flex-row items-center justify-between pb-1 p-4">
+                    <CardTitle className="text-xs font-medium text-white/80">Appuntamenti</CardTitle>
+                    <Calendar className="h-4 w-4 text-white flex-shrink-0" />
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="text-2xl font-light text-white">{stats.totalAppointments}</div>
+                    <p className="text-xs text-white/60 mt-0.5 hidden sm:block">Prenotazioni</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Link>
+
+            <Link to={createPageUrl('Preventivi')} className="block h-full">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -265,15 +257,15 @@ export default function Dashboard() {
 
           {/* Tabs */}
           <Tabs defaultValue="quotes" className="space-y-4 sm:space-y-6">
-            <TabsList className="bg-[#343a40] border border-[#f8f9fa]/20 w-full grid grid-cols-3">
-              <TabsTrigger value="quotes" className="data-[state=active]:bg-[#f8f9fa]/20 text-xs sm:text-sm">
-                Form
+            <TabsList className="bg-white border border-[#f8f9fa]/20 w-full grid grid-cols-3">
+              <TabsTrigger value="quotes" className="data-[state=active]:bg-[#f8f9fa] data-[state=active]:text-black text-xs sm:text-sm text-gray-500">
+                Richieste Preventivi
               </TabsTrigger>
-              <TabsTrigger value="preventivi-docs" className="data-[state=active]:bg-[#f8f9fa]/20 text-xs sm:text-sm">
-                Docs
+              <TabsTrigger value="preventivi-docs" className="data-[state=active]:bg-[#f8f9fa] data-[state=active]:text-black text-xs sm:text-sm text-gray-500">
+                Documenti
               </TabsTrigger>
-              <TabsTrigger value="appointments" className="data-[state=active]:bg-[#f8f9fa]/20 text-xs sm:text-sm">
-                Appunt.
+              <TabsTrigger value="appointments" className="data-[state=active]:bg-[#f8f9fa] data-[state=active]:text-black text-xs sm:text-sm text-gray-500">
+                I Miei Appuntamenti
               </TabsTrigger>
             </TabsList>
 
@@ -297,7 +289,7 @@ export default function Dashboard() {
                           placeholder="Nome, email, ID..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-9 bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa]"
+                          className="pl-9 bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#adb5bd]"
                         />
                       </div>
                     </div>
@@ -475,6 +467,7 @@ export default function Dashboard() {
           </Tabs>
         </div>
       </div>
-    </div>
+
+    </div >
   );
 }

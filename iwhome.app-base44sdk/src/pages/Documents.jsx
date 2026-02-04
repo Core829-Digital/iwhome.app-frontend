@@ -1,14 +1,12 @@
 /// <reference types="vite/client" />
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
-import { useUser, useClerk } from "@clerk/clerk-react";
+import { useUser } from "@clerk/clerk-react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-
 import {
   Select,
   SelectContent,
@@ -28,14 +26,73 @@ import AnimatedBackground from '../components/dashboard/AnimatedBackground';
 import {
   FileText,
   Upload,
-  Share2,
-  Download,
   Trash2,
   Eye,
   Plus,
   Search,
-  Filter
+  X,
+  Download,
+  Loader2
 } from 'lucide-react';
+
+// PDF Viewer Component that fetches the proper URL
+function PDFViewer({ storageUrl, onClose }) {
+  // Get proper URL from the storage ID
+  const fileUrl = useQuery(api.files.getFileUrl, { storageId: storageUrl || "" });
+
+  if (!storageUrl) return null;
+
+  return (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="bg-[#343a40] border-[#f8f9fa]/20 text-[#f8f9fa] max-w-5xl h-[85vh] flex flex-col p-0 overflow-hidden">
+        <DialogHeader className="p-4 border-b border-[#f8f9fa]/10 bg-[#212529]/50 flex flex-row items-center justify-between">
+          <DialogTitle>Visualizza Documento</DialogTitle>
+          <div className="flex gap-2">
+            {fileUrl && (
+              <a href={fileUrl} target="_blank" rel="noopener noreferrer" download>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-[#f8f9fa] hover:bg-[#f8f9fa]/10"
+                >
+                  <Download size={20} />
+                </Button>
+              </a>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onClose(false)}
+              className="text-[#f8f9fa] hover:bg-[#f8f9fa]/10"
+            >
+              <X size={20} />
+            </Button>
+          </div>
+        </DialogHeader>
+        <div className="flex-1 bg-white flex items-center justify-center">
+          {fileUrl === undefined ? (
+            <div className="flex flex-col items-center gap-3 text-gray-500">
+              <Loader2 className="animate-spin" size={32} />
+              <p>Caricamento documento...</p>
+            </div>
+          ) : fileUrl === null ? (
+            <div className="flex flex-col items-center gap-3 text-gray-500">
+              <FileText size={48} />
+              <p>Impossibile caricare il documento</p>
+              <p className="text-sm text-gray-400">Il file potrebbe non esistere più</p>
+            </div>
+          ) : (
+            <iframe
+              src={fileUrl}
+              className="w-full h-full border-0"
+              title="Document Viewer"
+            />
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function Documents() {
   const { user } = useUser();
@@ -50,25 +107,22 @@ export default function Documents() {
   });
   const [isUploading, setIsUploading] = useState(false);
 
+  // PDF Viewer State - now stores the file_url/storageId
+  const [selectedDocUrl, setSelectedDocUrl] = useState(null);
+
   const documentsQuery = useQuery(api.documents.getByUser, { email: user?.primaryEmailAddress?.emailAddress || "" });
   const documents = documentsQuery || [];
   const isLoading = documentsQuery === undefined;
   const createDocument = useMutation(api.documents.create);
   const deleteDocument = useMutation(api.documents.deleteDocument);
-
-
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
   const handleUpload = async () => {
     if (!uploadData.file || !uploadData.title) return;
-
     setIsUploading(true);
 
     try {
-      // 1. Get Upload URL
       const postUrl = await generateUploadUrl();
-
-      // 2. Upload File
       const result = await fetch(postUrl, {
         method: "POST",
         headers: { "Content-Type": uploadData.file.type },
@@ -77,24 +131,6 @@ export default function Documents() {
 
       if (!result.ok) throw new Error("Upload failed");
       const { storageId } = await result.json();
-
-      // 3. Save Document Record
-      // Note: In real Convex apps with Storage, you usually store the storageId.
-      // But preserving `file_url` for now as per schema. In Convex, `getFileUrl` usually runs on backend or frontend query.
-      // Let's store storageId in file_url for parsing later OR we should update schema to have storageId?
-      // Schema has file_url: v.string().
-      // For now, let's construct the URL manually or assume we get it. 
-      // Actually convex cloud URLs are usually: https://<deployment>.convex.cloud/api/storage/<storageId>
-      // We will construct it here for immediate display, but ideally usage should be storageId.
-      // Let's assume we just store the generic URL format.
-
-      const file_url = `${import.meta.env.VITE_CONVEX_URL.replace('.cloud', '.site')}/getImage?storageId=${storageId}`;
-      // Wait, standard convex storage access is via `convex.site` or HTTP functions.
-      // Simpler: Just store the storageId in a new field if possible, or put storageId in file_url if the app handles it?
-      // The current app expects a clickable URL. 
-      // Let's use the standard Convex HTTP action approach or just the raw URL if we knew the format.
-      // The format is `https://${deploymentName}.convex.cloud/api/storage/${storageId}`
-
       const storageUrl = `${import.meta.env.VITE_CONVEX_URL}/api/storage/${storageId}`;
 
       if (user?.primaryEmailAddress?.emailAddress) {
@@ -102,7 +138,7 @@ export default function Documents() {
           title: uploadData.title,
           description: uploadData.description,
           category: uploadData.category,
-          file_url: storageUrl, // Storing queryable URL
+          file_url: storageUrl,
           file_name: uploadData.file.name,
           file_type: uploadData.file.type,
           file_size: uploadData.file.size,
@@ -114,7 +150,6 @@ export default function Documents() {
 
       setUploadModalOpen(false);
       setUploadData({ title: '', description: '', category: 'altro', file: null });
-
     } catch (error) {
       console.error("Upload failed:", error);
       alert("Errore durante il caricamento del file.");
@@ -131,7 +166,7 @@ export default function Documents() {
   });
 
   if (!user) {
-    return <div className="min-h-screen flex items-center justify-center">
+    return <div className="min-h-screen flex items-center justify-center bg-[#212529]">
       <div className="text-[#f8f9fa]">Caricamento...</div>
     </div>;
   }
@@ -139,73 +174,80 @@ export default function Documents() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
       <AnimatedBackground />
-
       <VerticalMenu />
+
+      {/* PDF Viewer Component */}
+      {selectedDocUrl && (
+        <PDFViewer
+          storageUrl={selectedDocUrl}
+          onClose={() => setSelectedDocUrl(null)}
+        />
+      )}
 
       <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
+
           {/* Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
             <div>
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-medium text-[#f8f9fa] mb-1">I Miei Documenti</h1>
-              <p className="text-xs sm:text-sm text-[#dee2e6]">Gestisci e condividi i tuoi file</p>
+              <p className="text-xs sm:text-sm text-[#dee2e6]">Gestisci preventivi, contratti e documenti</p>
             </div>
-
             <Dialog open={uploadModalOpen} onOpenChange={setUploadModalOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529] hover:shadow-xl">
-                  <Plus size={18} className="mr-2" />
+                <Button className="bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529] shadow-lg hover:shadow-xl transition-all">
+                  <Plus size={16} className="mr-2" />
                   Carica Documento
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-gradient-to-br from-[#495057] to-[#6c757d] border-[#f8f9fa]/20 text-[#f8f9fa]">
+              <DialogContent className="bg-[#343a40] border-[#f8f9fa]/20 text-[#f8f9fa]">
                 <DialogHeader>
-                  <DialogTitle className="text-[#f8f9fa]">Carica Nuovo Documento</DialogTitle>
+                  <DialogTitle>Carica Nuovo Documento</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 mt-4">
-                  <div>
-                    <Label className="text-[#f8f9fa]">Titolo *</Label>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label className="text-[#f8f9fa]">Titolo</Label>
                     <Input
                       value={uploadData.title}
-                      onChange={(e) => setUploadData({ ...uploadData, title: e.target.value })}
-                      className="bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa]"
+                      onChange={e => setUploadData({ ...uploadData, title: e.target.value })}
+                      className="bg-[#495057]/50 border-[#f8f9fa]/20 text-[#f8f9fa]"
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label className="text-[#f8f9fa]">Descrizione</Label>
-                    <Textarea
+                    <Input
                       value={uploadData.description}
-                      onChange={(e) => setUploadData({ ...uploadData, description: e.target.value })}
-                      className="bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa]"
+                      onChange={e => setUploadData({ ...uploadData, description: e.target.value })}
+                      className="bg-[#495057]/50 border-[#f8f9fa]/20 text-[#f8f9fa]"
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label className="text-[#f8f9fa]">Categoria</Label>
-                    <Select value={uploadData.category} onValueChange={(v) => setUploadData({ ...uploadData, category: v })}>
-                      <SelectTrigger className="bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa]">
+                    <Select value={uploadData.category} onValueChange={v => setUploadData({ ...uploadData, category: v })}>
+                      <SelectTrigger className="bg-[#495057]/50 border-[#f8f9fa]/20 text-[#f8f9fa]">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#495057] border-[#f8f9fa]/20">
-                        <SelectItem value="preventivo">Preventivo</SelectItem>
-                        <SelectItem value="contratto">Contratto</SelectItem>
-                        <SelectItem value="fattura">Fattura</SelectItem>
-                        <SelectItem value="progetto">Progetto</SelectItem>
-                        <SelectItem value="altro">Altro</SelectItem>
+                      <SelectContent className="bg-[#343a40] border-[#f8f9fa]/20">
+                        <SelectItem value="preventivo" className="text-[#f8f9fa] focus:bg-[#495057] focus:text-white cursor-pointer">Preventivo</SelectItem>
+                        <SelectItem value="contratto" className="text-[#f8f9fa] focus:bg-[#495057] focus:text-white cursor-pointer">Contratto</SelectItem>
+                        <SelectItem value="fattura" className="text-[#f8f9fa] focus:bg-[#495057] focus:text-white cursor-pointer">Fattura</SelectItem>
+                        <SelectItem value="progetto" className="text-[#f8f9fa] focus:bg-[#495057] focus:text-white cursor-pointer">Progetto</SelectItem>
+                        <SelectItem value="altro" className="text-[#f8f9fa] focus:bg-[#495057] focus:text-white cursor-pointer">Altro</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label className="text-[#f8f9fa]">File *</Label>
+                  <div className="space-y-2">
+                    <Label className="text-[#f8f9fa]">File</Label>
                     <Input
                       type="file"
-                      onChange={(e) => setUploadData({ ...uploadData, file: e.target.files[0] })}
-                      className="bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] file:bg-[#f8f9fa]/10 file:text-[#f8f9fa]"
+                      onChange={e => setUploadData({ ...uploadData, file: e.target.files[0] })}
+                      className="bg-[#495057]/50 border-[#f8f9fa]/20 text-[#f8f9fa] file:bg-[#f8f9fa] file:text-[#212529] file:border-0 file:rounded file:mr-4"
                     />
                   </div>
                   <Button
                     onClick={handleUpload}
                     disabled={isUploading || !uploadData.file || !uploadData.title}
-                    className="w-full bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529]"
+                    className="w-full bg-[#f8f9fa] text-[#212529] hover:bg-[#e9ecef]"
                   >
                     {isUploading ? 'Caricamento...' : 'Carica'}
                   </Button>
@@ -215,32 +257,29 @@ export default function Documents() {
           </div>
 
           {/* Filters */}
-          <div className="bg-[#343a40]/30 backdrop-blur-xl rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6 border border-[#f8f9fa]/20 hover:bg-[#343a40]/40 transition-all duration-300">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#adb5bd]" size={18} />
-                <Input
-                  placeholder="Cerca documenti..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa]"
-                />
-              </div>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa]">
-                  <Filter size={18} className="mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-[#495057] border-[#f8f9fa]/20">
-                  <SelectItem value="all">Tutte le Categorie</SelectItem>
-                  <SelectItem value="preventivo">Preventivo</SelectItem>
-                  <SelectItem value="contratto">Contratto</SelectItem>
-                  <SelectItem value="fattura">Fattura</SelectItem>
-                  <SelectItem value="progetto">Progetto</SelectItem>
-                  <SelectItem value="altro">Altro</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#adb5bd]" size={18} />
+              <Input
+                placeholder="Cerca documenti..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="pl-10 bg-[#343a40]/50 backdrop-blur-sm border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#6c757d]"
+              />
             </div>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-[200px] bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa]">
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#343a40] border-[#f8f9fa]/20">
+                <SelectItem value="all" className="text-[#f8f9fa] focus:bg-[#495057] focus:text-white cursor-pointer">Tutte le Categorie</SelectItem>
+                <SelectItem value="preventivo" className="text-[#f8f9fa] focus:bg-[#495057] focus:text-white cursor-pointer">Preventivo</SelectItem>
+                <SelectItem value="contratto" className="text-[#f8f9fa] focus:bg-[#495057] focus:text-white cursor-pointer">Contratto</SelectItem>
+                <SelectItem value="fattura" className="text-[#f8f9fa] focus:bg-[#495057] focus:text-white cursor-pointer">Fattura</SelectItem>
+                <SelectItem value="progetto" className="text-[#f8f9fa] focus:bg-[#495057] focus:text-white cursor-pointer">Progetto</SelectItem>
+                <SelectItem value="altro" className="text-[#f8f9fa] focus:bg-[#495057] focus:text-white cursor-pointer">Altro</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Documents Grid */}
@@ -280,9 +319,8 @@ export default function Documents() {
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      variant="outline"
-                      onClick={() => window.open(doc.file_url, '_blank')}
-                      className="flex-1 bg-[#f8f9fa] text-[#212529] hover:bg-[#e9ecef] transition-colors font-medium"
+                      onClick={() => setSelectedDocUrl(doc.file_url)}
+                      className="flex-1 bg-[#495057] text-[#f8f9fa] hover:bg-[#6c757d] transition-colors font-medium border border-[#f8f9fa]/20"
                     >
                       <Eye size={14} className="mr-1" />
                       Vedi

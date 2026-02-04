@@ -15,10 +15,10 @@ import {
   Share2,
   Calendar,
   Users,
-  Building
+  Building,
+  HardHat
 } from 'lucide-react';
 import { useUser, useClerk } from '@clerk/clerk-react';
-import NotificationBell from './NotificationBell'; // Verify path
 
 // Helper function to create page URLs (simplified for now)
 const createPageUrl = (page) => {
@@ -31,7 +31,8 @@ const createPageUrl = (page) => {
     MyAppointments: '/MyAppointments',
     Settings: '/Settings',
     CompanyDashboard: '/CompanyDashboard',
-    AdminAppointments: '/AdminAppointments'
+
+    CantieriDashboard: '/CantieriDashboard'
   };
   return routes[page] || '/Dashboard';
 };
@@ -85,9 +86,10 @@ const getMenuItems = (user) => {
 
   if (user?.role === 'admin') {
     baseItems.splice(4, 0, {
-      name: 'Gestione',
-      page: 'AdminAppointments',
-      icon: Users,
+
+      name: 'Gestione Cantieri',
+      page: 'CantieriDashboard',
+      icon: HardHat,
       subItems: []
     });
   }
@@ -183,12 +185,7 @@ export default function VerticalMenu() {
                 </div>
               </motion.div>
             )}
-            {/* Notification Bell in Header */}
-            {user && !isCollapsed && (
-              <div className="mr-2">
-                <NotificationBell user={user} />
-              </div>
-            )}
+            {/* Notification Bell Moved to Header */}
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="hidden lg:block p-1.5 hover:bg-[#f8f9fa]/10 rounded-lg transition-all"
