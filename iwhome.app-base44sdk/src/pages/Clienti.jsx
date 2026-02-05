@@ -13,11 +13,14 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
 import VerticalMenu from '../components/dashboard/VerticalMenu';
 import AnimatedBackground from '../components/dashboard/AnimatedBackground';
 import {
     Users, UserPlus, Search, Mail, Phone, MapPin, Building2,
-    FileText, Briefcase, MoreVertical, Edit, Archive, ExternalLink
+    FileText, Briefcase, MoreVertical, Edit, Archive, ExternalLink, AlertCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -33,6 +36,7 @@ export default function Clienti() {
     });
 
     const clients = useQuery(api.clients.list) || [];
+    const registeredUsers = useQuery(api.users.list) || []; // All registered users
     const createClient = useMutation(api.clients.create);
     const updateClient = useMutation(api.clients.update);
     const archiveClient = useMutation(api.clients.archive);
@@ -40,6 +44,10 @@ export default function Clienti() {
     const convexUser = useQuery(api.users.getByEmail, {
         email: user?.primaryEmailAddress?.emailAddress || ""
     });
+
+    // Get users who are not already clients (for dropdown)
+    const clientEmails = clients.map(c => c.email);
+    const availableUsers = registeredUsers.filter(u => !clientEmails.includes(u.email));
 
     const filteredClients = clients.filter(c => {
         const matchesSearch = c.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -94,7 +102,7 @@ export default function Clienti() {
         </div>;
     }
 
-    if (convexUser?.role !== "admin") {
+    if (convexUser?.role !== "admin" && convexUser?.role !== "ceo") {
         return <div className="min-h-screen flex items-center justify-center bg-[#212529]">
             <div className="text-center">
                 <h2 className="text-xl text-[#f8f9fa] mb-2">Accesso Negato</h2>
@@ -233,10 +241,46 @@ export default function Clienti() {
                                     className="bg-[#495057] border-[#6c757d]" />
                             </div>
                             <div className="space-y-2">
-                                <Label>Email *</Label>
-                                <Input type="email" value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    className="bg-[#495057] border-[#6c757d]" />
+                                <Label>Utente Registrato *</Label>
+                                {selectedClient ? (
+                                    // In edit mode, just show the email (can't change)
+                                    <Input type="email" value={formData.email} disabled
+                                        className="bg-[#495057] border-[#6c757d] opacity-70" />
+                                ) : (
+                                    // In create mode, show dropdown of available users
+                                    <>
+                                        <Select
+                                            value={formData.email}
+                                            onValueChange={(email) => {
+                                                const selectedUser = registeredUsers.find(u => u.email === email);
+                                                setFormData({
+                                                    ...formData,
+                                                    email: email,
+                                                    full_name: selectedUser?.fullName || formData.full_name
+                                                });
+                                            }}
+                                        >
+                                            <SelectTrigger className="bg-[#495057] border-[#6c757d]">
+                                                <SelectValue placeholder="Seleziona utente..." />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-[#495057] border-[#6c757d]">
+                                                {availableUsers.length === 0 ? (
+                                                    <div className="p-2 text-[#adb5bd] text-sm">Nessun utente disponibile</div>
+                                                ) : (
+                                                    availableUsers.map(u => (
+                                                        <SelectItem key={u.email} value={u.email}>
+                                                            {u.fullName || u.email} ({u.role})
+                                                        </SelectItem>
+                                                    ))
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-xs text-[#adb5bd] flex items-center gap-1">
+                                            <AlertCircle size={12} />
+                                            Il cliente deve essere collegato a un account registrato
+                                        </p>
+                                    </>
+                                )}
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">

@@ -17,6 +17,8 @@ import {
 import GlobalSearch from './components/dashboard/GlobalSearch';
 import { useUser, useClerk } from "@clerk/clerk-react";
 import NotificationBell from './components/dashboard/NotificationBell';
+import { useQuery } from "convex/react";
+import { api } from "../../../Backend/convex/_generated/api";
 
 export default function Layout({ children, currentPageName }) {
   const [scrolled, setScrolled] = useState(false);
@@ -26,11 +28,17 @@ export default function Layout({ children, currentPageName }) {
   const { user: clerkUser } = useUser();
   const { openSignIn, signOut } = useClerk();
 
+  // Fetch Convex User for profile image and accurate role
+  const convexUser = useQuery(api.users.getByEmail, {
+    email: clerkUser?.primaryEmailAddress?.emailAddress || ""
+  });
+
   const user = clerkUser ? {
     email: clerkUser.primaryEmailAddress?.emailAddress,
     full_name: clerkUser.fullName,
-    role: clerkUser.publicMetadata?.role,
-    is_company: clerkUser.publicMetadata?.is_company,
+    role: convexUser?.role || clerkUser.publicMetadata?.role,
+    is_company: convexUser?.is_company || clerkUser.publicMetadata?.is_company,
+    profile_image: convexUser?.profile_image
   } : null;
 
   useEffect(() => {
@@ -161,9 +169,13 @@ export default function Layout({ children, currentPageName }) {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button className="flex items-center gap-2 text-white hover:bg-white/10 rounded-full px-3 py-1.5 transition-all">
-                        <div className={`rounded-full bg-gradient-to-br from-white/20 to-white/10 flex items-center justify-center transition-all duration-300 ${scrolled ? 'w-7 h-7' : 'w-8 h-8'
+                        <div className={`rounded-full bg-gradient-to-br from-white/20 to-white/10 flex items-center justify-center transition-all duration-300 overflow-hidden border border-white/20 ${scrolled ? 'w-7 h-7' : 'w-8 h-8'
                           }`}>
-                          <User size={scrolled ? 14 : 16} />
+                          {user.profile_image ? (
+                            <img src={user.profile_image} alt="Profile" className="w-full h-full object-cover" />
+                          ) : (
+                            <User size={scrolled ? 14 : 16} />
+                          )}
                         </div>
                         <span className={`hidden xl:block transition-all duration-300 ${scrolled ? 'text-xs' : 'text-sm'}`}>
                           {user.full_name || user.email}

@@ -108,7 +108,7 @@ export default function Admin() {
     };
 
     // Access Control (Simple client-side for now, should be backend verified)
-    const isAdmin = convexUser?.role === 'admin';
+    const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
 
     if (convexUser === undefined) return <div className="min-h-screen grid place-items-center bg-[#212529] text-white">Caricamento...</div>;
 

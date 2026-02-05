@@ -70,7 +70,10 @@ export default function Messages() {
   const allUsers = useQuery(api.users.list) || [];
 
   const messages = useQuery(api.chat.listMessages,
-    selectedConversation ? { channel_id: selectedConversation._id } : "skip"
+    selectedConversation ? {
+      channel_id: selectedConversation._id,
+      is_admin_chat: selectedConversation.is_admin_chat || false
+    } : "skip"
   ) || [];
 
   /* Mutations */
@@ -146,6 +149,7 @@ export default function Messages() {
       sender_email: myEmail,
       sender_name: myName,
       content: messageText,
+      is_admin_chat: selectedConversation.is_admin_chat || false,
       is_ephemeral: isEphemeral,
       ephemeral_expires_at: ephemeralExpiresAt,
       message_type: 'text'
@@ -229,7 +233,23 @@ export default function Messages() {
     </div>;
   }
 
+  // Access control - only Admin, CEO, and Client can access Messages
+  const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
+  const isClient = convexUser?.role === 'client';
 
+  if (!isAdmin && !isClient) {
+    return (
+      <div className="min-h-screen bg-[#212529] flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl text-[#f8f9fa] mb-2">Accesso Limitato</h2>
+          <p className="text-[#adb5bd]">Prenota un appuntamento per sbloccare la chat con l'amministrazione.</p>
+          <a href="/MyAppointments" className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Prenota Appuntamento
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">

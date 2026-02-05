@@ -346,7 +346,26 @@ export default function CantieriDashboard() {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
-    if (!user) return <div className="min-h-screen grid place-items-center bg-[#212529] text-white">Caricamento...</div>;
+    // Convex user for role check
+    const convexUser = useQuery(api.users.getByEmail, { email: userEmail });
+
+    // Loading state
+    if (!user || convexUser === undefined) {
+        return <div className="min-h-screen grid place-items-center bg-[#212529] text-white">Caricamento...</div>;
+    }
+
+    // Access control - only Admin/CEO can access CantieriDashboard
+    const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
+    if (!isAdmin) {
+        return (
+            <div className="min-h-screen bg-[#212529] flex items-center justify-center">
+                <div className="text-center">
+                    <h2 className="text-xl text-[#f8f9fa] mb-2">Accesso Negato</h2>
+                    <p className="text-[#adb5bd]">Solo gli amministratori possono accedere alla gestione cantieri.</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">

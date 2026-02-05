@@ -39,12 +39,13 @@ export default function ClientChat() {
     const userName = user?.fullName || userEmail;
 
     // Queries
+    const convexUser = useQuery(api.users.getByEmail, { email: userEmail });
     const adminConversations = useQuery(api.conversations.listAdminConversations, {}) || [];
     const clientConversations = useQuery(api.conversations.listClientConversations, { client_email: userEmail }) || [];
-    const clientsList = useQuery(api.clients.list, {}) || [];
+    const clientsList = useQuery(api.clients.listForChat, {}) || [];
 
-    // Determine if user is admin
-    const isAdmin = adminConversations.length > 0 || userEmail.includes("admin") || userEmail.includes("ceo");
+    // Determine if user is admin (using Convex role as source of truth)
+    const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
     const conversations = isAdmin ? adminConversations : clientConversations;
 
     // Query messages
@@ -243,6 +244,27 @@ export default function ClientChat() {
         const secs = seconds % 60;
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
+
+    // Loading state
+    if (convexUser === undefined) {
+        return (
+            <div className="min-h-screen bg-[#212529] flex items-center justify-center">
+                <div className="text-[#f8f9fa]">Caricamento...</div>
+            </div>
+        );
+    }
+
+    // Access control - only Admin/CEO can access ClientChat
+    if (!isAdmin) {
+        return (
+            <div className="min-h-screen bg-[#212529] flex items-center justify-center">
+                <div className="text-center">
+                    <h2 className="text-xl text-[#f8f9fa] mb-2">Accesso Negato</h2>
+                    <p className="text-[#adb5bd]">Solo gli amministratori possono accedere alla Chat Clienti.</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#212529] flex">

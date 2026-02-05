@@ -42,6 +42,7 @@ const createPageUrl = (page) => {
 };
 
 const getMenuItems = (user) => {
+  // 1. Basic items available to everyone (User, Client, Admin)
   const baseItems = [
     {
       name: 'Dashboard',
@@ -60,12 +61,6 @@ const getMenuItems = (user) => {
       ]
     },
     {
-      name: 'Messaggi',
-      page: 'Messages',
-      icon: MessageSquare,
-      subItems: []
-    },
-    {
       name: 'Appuntamenti',
       page: 'MyAppointments',
       icon: Calendar,
@@ -79,6 +74,58 @@ const getMenuItems = (user) => {
     }
   ];
 
+  // 2. Client & Admin only items
+  if (user?.role === 'client' || user?.role === 'admin' || user?.role === 'ceo') {
+    // Insert Messages after Documents (index 2)
+    baseItems.splice(2, 0, {
+      name: 'Messaggi',
+      page: 'Messages',
+      icon: MessageSquare,
+      subItems: []
+    });
+  }
+
+  // 3. Admin only items
+  if (user?.role === 'admin' || user?.role === 'ceo') {
+    // Insert Admin items after Messages (or at the end of the main block)
+    // Current indices after splice: Dashboard(0), Docs(1), Messages(2), Appointments(3), Settings(4)
+    // We want Admin items to appear before Settings usually, or grouped. 
+    // Let's add them before 'Impostazioni' (last item) or specifically ordered.
+
+    // Admin specific pages: CantieriDashboard, Clienti, ClientChat, Preventivi
+    const adminItems = [
+      {
+        name: 'Gestione Cantieri',
+        page: 'CantieriDashboard',
+        icon: HardHat,
+        subItems: []
+      },
+      {
+        name: 'Clienti',
+        page: 'Clienti',
+        icon: Users,
+        subItems: []
+      },
+      {
+        name: 'Chat Clienti',
+        page: 'ClientChat',
+        icon: MessagesSquare,
+        subItems: []
+      },
+      {
+        name: 'Preventivi',
+        page: 'Preventivi',
+        icon: Receipt,
+        subItems: []
+      }
+    ];
+
+    // Find index of Settings to insert before it
+    const settingsIndex = baseItems.findIndex(item => item.page === 'Settings');
+    baseItems.splice(settingsIndex, 0, ...adminItems);
+  }
+
+  // Legacy Company Dashboard check (preserving existing logic just in case)
   if (user?.is_company && user?.company_role === 'admin') {
     baseItems.splice(1, 0, {
       name: 'Azienda',
@@ -88,37 +135,12 @@ const getMenuItems = (user) => {
     });
   }
 
-  if (user?.role === 'admin') {
-    baseItems.splice(4, 0, {
-
-      name: 'Gestione Cantieri',
-      page: 'CantieriDashboard',
-      icon: HardHat,
-      subItems: []
-    });
-    baseItems.splice(5, 0, {
-      name: 'Clienti',
-      page: 'Clienti',
-      icon: Users,
-      subItems: []
-    });
-    baseItems.splice(6, 0, {
-      name: 'Chat Clienti',
-      page: 'ClientChat',
-      icon: MessagesSquare,
-      subItems: []
-    });
-    baseItems.splice(7, 0, {
-      name: 'Preventivi',
-      page: 'Preventivi',
-      icon: Receipt,
-      subItems: []
-    });
-  }
-
   return baseItems;
 };
 
+
+import { useQuery } from "convex/react";
+import { api } from "../../../../../Backend/convex/_generated/api";
 
 export default function VerticalMenu() {
   const location = useLocation();
@@ -127,14 +149,18 @@ export default function VerticalMenu() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // Map Clerk user to match props expected by getMenuItems
+  // Fetch user role from Convex database (source of truth for roles)
+  const convexUser = useQuery(api.users.getByEmail, {
+    email: clerkUser?.primaryEmailAddress?.emailAddress || ""
+  });
+
+  // Map user data for getMenuItems - using Convex role instead of Clerk metadata
   const user = clerkUser ? {
     email: clerkUser.primaryEmailAddress?.emailAddress,
     full_name: clerkUser.fullName,
-    // Note: custom claims like is_company or role should come from session publicMetadata in a real app
-    // For migration, we might default these or pull from metadata if set up
-    role: clerkUser.publicMetadata?.role,
-    is_company: clerkUser.publicMetadata?.is_company,
+    role: convexUser?.role || 'user', // Get role from Convex, default to 'user'
+    is_company: convexUser?.is_company || false,
+    profile_image: convexUser?.profile_image,
   } : null;
 
   // Auto-close menu on mobile when clicking a link
@@ -143,6 +169,7 @@ export default function VerticalMenu() {
       setIsMobileOpen(false);
     }
   }, [location]);
+
 
   const menuItems = getMenuItems(user);
 
@@ -194,8 +221,12 @@ export default function VerticalMenu() {
                 animate={{ opacity: 1 }}
                 className="flex items-center gap-3"
               >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
-                  {user?.full_name?.[0] || user?.email?.[0] || 'U'}
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold overflow-hidden border border-[#f8f9fa]/20 shadow-md">
+                  {user?.profile_image ? (
+                    <img src={user.profile_image} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    user?.full_name?.[0] || user?.email?.[0] || 'U'
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-[#f8f9fa] truncate">

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import VerticalMenu from '../components/dashboard/VerticalMenu';
 import { Card } from '@/components/ui/card';
-import { User, Mail, Phone, Building, Save, Check } from 'lucide-react';
+import { User, Mail, Phone, Building, Save, Check, Camera, Briefcase } from 'lucide-react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
 
@@ -16,12 +16,19 @@ export default function Settings() {
     full_name: '',
     phone: '',
     company_name: '',
-    company_code: ''
+    company_code: '',
+    work_sector: ''
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // Profile Image State
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+
   const verifyAccount = useMutation(api.users.verifyAccount);
+  const updateProfile = useMutation(api.users.updateProfile);
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const convexUser = useQuery(api.users.getByEmail, { email: user?.primaryEmailAddress?.emailAddress || "" });
 
   useEffect(() => {
@@ -30,10 +37,26 @@ export default function Settings() {
         full_name: user.fullName || '',
         phone: `${user.unsafeMetadata?.phone || ''}`,
         company_name: `${user.unsafeMetadata?.company_name || ''}`,
-        company_code: `${user.unsafeMetadata?.company_code || ''}`
+        company_code: `${user.unsafeMetadata?.company_code || ''}`,
+        work_sector: convexUser?.work_sector || ''
       });
+      if (convexUser?.profile_image) {
+        setImagePreview(convexUser.profile_image);
+      }
     }
-  }, [user]);
+  }, [user, convexUser]);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -52,6 +75,28 @@ export default function Settings() {
       }
 
       // Salva le modifiche
+
+      // Upload Profile Image if selected
+      let profileImageId = undefined;
+      if (selectedImage) {
+        const postUrl = await generateUploadUrl();
+        const result = await fetch(postUrl, {
+          method: "POST",
+          headers: { "Content-Type": selectedImage.type },
+          body: selectedImage,
+        });
+        const { storageId } = await result.json();
+        profileImageId = storageId;
+      }
+
+      // Update Convex Profile
+      await updateProfile({
+        fullName: formData.full_name,
+        work_sector: formData.work_sector,
+        profile_image: profileImageId
+      });
+
+      // Update Clerk Profile
       await user.update({
         firstName: formData.full_name.split(' ')[0],
         lastName: formData.full_name.split(' ').slice(1).join(' '),
@@ -109,6 +154,35 @@ export default function Settings() {
                   Informazioni Account
                 </h2>
 
+                {/* Profile Image */}
+                <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-[#f8f9fa]/10">
+                  <div className="relative group cursor-pointer">
+                    <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-[#f8f9fa]/20 bg-[#212529]">
+                      {imagePreview ? (
+                        <img src={imagePreview} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[#adb5bd]">
+                          <User size={40} />
+                        </div>
+                      )}
+                    </div>
+                    <label htmlFor="profile-image" className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer">
+                      <Camera className="text-white" size={24} />
+                    </label>
+                    <input
+                      type="file"
+                      id="profile-image"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageChange}
+                    />
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <h3 className="text-[#f8f9fa] font-medium">Foto Profilo</h3>
+                    <p className="text-sm text-[#adb5bd]">Clicca sull'immagine per cambiarla</p>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label className="text-[#f8f9fa]">Email</Label>
                   <div className="relative">
@@ -148,6 +222,20 @@ export default function Settings() {
                   </div>
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <Label className="text-[#f8f9fa]">Settore Lavorativo</Label>
+                <div className="relative">
+                  <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-[#adb5bd]" size={18} />
+                  <Input
+                    value={formData.work_sector || ''}
+                    onChange={(e) => setFormData({ ...formData, work_sector: e.target.value })}
+                    placeholder="Es: Architettura, Edilizia, Privato"
+                    className="pl-10 bg-[#495057]/30 backdrop-blur-sm border-[#f8f9fa]/20 text-[#f8f9fa] focus:bg-[#495057]/50 transition-all"
+                  />
+                </div>
+              </div>
+
 
               {/* Company Info */}
               <div className="pt-6 border-t border-[#f8f9fa]/10 space-y-6">
@@ -220,6 +308,6 @@ export default function Settings() {
           </motion.div>
         </div>
       </div>
-    </div>
+    </div >
   );
 }
