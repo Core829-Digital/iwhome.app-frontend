@@ -15,7 +15,12 @@ import {
     Shield,
     Eye,
     Trash2,
-    Plus
+    Plus,
+    Ban,
+    CheckCircle,
+    AlertTriangle,
+    UserCog,
+    Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +49,9 @@ export default function Admin() {
     const createDocument = useMutation(api.documents.create);
     const deleteDocument = useMutation(api.documents.deleteDocument);
     const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+    const updateRoleMutation = useMutation(api.users.updateRole);
+    const blockUserMutation = useMutation(api.users.blockUser);
+    const deleteUserMutation = useMutation(api.users.deleteUser);
 
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
     const [uploadData, setUploadData] = useState({
@@ -53,6 +61,50 @@ export default function Admin() {
         file: null
     });
     const [isUploading, setIsUploading] = useState(false);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [blockReason, setBlockReason] = useState('');
+    const [actionLoading, setActionLoading] = useState(false);
+
+    // Admin action handlers
+    const handleRoleChange = async (userId, newRole) => {
+        setActionLoading(true);
+        try {
+            await updateRoleMutation({ userId, role: newRole });
+        } catch (error) {
+            alert(error.message || 'Errore nel cambio ruolo');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleBlockToggle = async (userId, currentlyBlocked) => {
+        setActionLoading(true);
+        try {
+            await blockUserMutation({
+                userId,
+                blocked: !currentlyBlocked,
+                reason: !currentlyBlocked ? (blockReason || undefined) : undefined,
+            });
+            setBlockReason('');
+        } catch (error) {
+            alert(error.message || 'Errore nel blocco utente');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleDeleteUser = async (userId) => {
+        setActionLoading(true);
+        try {
+            await deleteUserMutation({ userId });
+            setSelectedUser(null);
+            setDeleteConfirmOpen(false);
+        } catch (error) {
+            alert(error.message || 'Errore eliminazione utente');
+        } finally {
+            setActionLoading(false);
+        }
+    };
 
     // Filter Users
     const filteredUsers = allUsers.filter(u =>
@@ -137,9 +189,19 @@ export default function Admin() {
                 <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
 
                     {/* Header */}
-                    <div className="mb-8">
-                        <h1 className="text-3xl font-light text-[#f8f9fa] mb-2">Pannello Admin</h1>
-                        <p className="text-[#dee2e6]">Gestione utenti e documenti</p>
+                    <div className="mb-8 flex flex-col sm:flex-row sm:items-end gap-4 justify-between">
+                        <div>
+                            <h1 className="text-3xl font-light text-[#f8f9fa] mb-2">Pannello Admin</h1>
+                            <p className="text-[#dee2e6]">Gestione utenti, ruoli e documenti</p>
+                        </div>
+                        <div className="flex gap-3">
+                            <div className="px-3 py-1.5 rounded-lg bg-[#495057]/40 border border-[#f8f9fa]/10 text-xs text-[#dee2e6] flex items-center gap-2">
+                                <Users size={14} /> {allUsers.length} utenti
+                            </div>
+                            <div className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400 flex items-center gap-2">
+                                <Ban size={14} /> {allUsers.filter(u => u.blocked).length} bloccati
+                            </div>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -166,15 +228,19 @@ export default function Admin() {
                                             className={`p-4 border-b border-[#f8f9fa]/5 cursor-pointer hover:bg-[#f8f9fa]/5 transition-colors ${selectedUser?._id === u._id ? 'bg-[#f8f9fa]/10 border-l-4 border-l-blue-500' : ''}`}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-medium">
-                                                    {u.fullName?.[0] || u.email[0].toUpperCase()}
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium ${u.blocked ? 'bg-gradient-to-br from-red-600 to-red-800' : 'bg-gradient-to-br from-blue-500 to-purple-500'}`}>
+                                                    {u.blocked ? <Ban size={16} /> : (u.fullName?.[0] || u.email[0].toUpperCase())}
                                                 </div>
                                                 <div className="overflow-hidden">
-                                                    <h4 className="font-medium text-[#f8f9fa] truncate">{u.fullName || 'Utente'}</h4>
+                                                    <h4 className={`font-medium truncate ${u.blocked ? 'text-red-300 line-through' : 'text-[#f8f9fa]'}`}>{u.fullName || 'Utente'}</h4>
                                                     <p className="text-xs text-[#adb5bd] truncate">{u.email}</p>
-                                                    {u.is_company && <span className="text-[10px] bg-green-500/20 text-green-300 px-1.5 py-0.5 rounded mt-1 inline-block">AZIENDA</span>}
+                                                    <div className="flex gap-1 mt-1 flex-wrap">
+                                                        {u.is_company && <span className="text-[10px] bg-green-500/20 text-green-300 px-1.5 py-0.5 rounded inline-block">AZIENDA</span>}
+                                                        {u.role && <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded inline-block">{u.role.toUpperCase()}</span>}
+                                                        {u.blocked && <span className="text-[10px] bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded inline-block">BLOCCATO</span>}
+                                                    </div>
                                                 </div>
-                                                <ChevronRight className="ml-auto text-[#adb5bd]" size={16} />
+                                                <ChevronRight className="ml-auto text-[#adb5bd] flex-shrink-0" size={16} />
                                             </div>
                                         </div>
                                     ))}
@@ -205,6 +271,128 @@ export default function Admin() {
                                             </CardContent>
                                         </Card>
                                     </div>
+
+                                    {/* User Management Controls */}
+                                    <Card className="bg-[#343a40]/30 backdrop-blur-xl border border-[#f8f9fa]/20">
+                                        <CardHeader className="p-6 pb-2">
+                                            <CardTitle className="text-[#f8f9fa] flex items-center gap-2">
+                                                <UserCog size={20} />
+                                                Gestione Utente
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="p-6 space-y-5">
+                                            {/* Role Management */}
+                                            <div className="space-y-2">
+                                                <Label className="text-[#dee2e6] text-sm">Ruolo Utente</Label>
+                                                <div className="flex gap-3">
+                                                    <Select
+                                                        value={selectedUser.role || 'user'}
+                                                        onValueChange={(v) => handleRoleChange(selectedUser._id, v)}
+                                                        disabled={actionLoading || selectedUser.role === 'ceo'}
+                                                    >
+                                                        <SelectTrigger className="bg-[#495057]/50 border-[#f8f9fa]/20 text-[#f8f9fa] flex-1">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent className="bg-[#343a40] border-[#f8f9fa]/20 text-[#f8f9fa]">
+                                                            <SelectItem value="user">Utente Base</SelectItem>
+                                                            <SelectItem value="client">Cliente</SelectItem>
+                                                            <SelectItem value="operaio">Operaio</SelectItem>
+                                                            <SelectItem value="company">Azienda</SelectItem>
+                                                            <SelectItem value="admin">Amministratore</SelectItem>
+                                                            <SelectItem value="ceo">CEO</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            </div>
+
+                                            {/* Block / Unblock */}
+                                            <div className="space-y-2">
+                                                <Label className="text-[#dee2e6] text-sm">Accesso Utente</Label>
+                                                {selectedUser.role !== 'admin' && selectedUser.role !== 'ceo' ? (
+                                                    <div className="space-y-3">
+                                                        {!selectedUser.blocked && (
+                                                            <Input
+                                                                placeholder="Motivo blocco (opzionale)..."
+                                                                value={blockReason}
+                                                                onChange={(e) => setBlockReason(e.target.value)}
+                                                                className="bg-[#495057]/50 border-[#f8f9fa]/20 text-[#f8f9fa]"
+                                                            />
+                                                        )}
+                                                        <Button
+                                                            onClick={() => handleBlockToggle(selectedUser._id, selectedUser.blocked)}
+                                                            disabled={actionLoading}
+                                                            className={selectedUser.blocked
+                                                                ? 'w-full bg-green-600 hover:bg-green-700 text-white'
+                                                                : 'w-full bg-orange-600 hover:bg-orange-700 text-white'
+                                                            }
+                                                        >
+                                                            {selectedUser.blocked ? (
+                                                                <><CheckCircle size={16} className="mr-2" /> Sblocca Utente</>
+                                                            ) : (
+                                                                <><Ban size={16} className="mr-2" /> Blocca Utente</>
+                                                            )}
+                                                        </Button>
+                                                        {selectedUser.blocked && selectedUser.blocked_reason && (
+                                                            <p className="text-xs text-red-400 bg-red-500/10 p-2 rounded">
+                                                                <AlertTriangle size={12} className="inline mr-1" />
+                                                                Motivo: {selectedUser.blocked_reason}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs text-[#adb5bd] italic">Gli amministratori non possono essere bloccati.</p>
+                                                )}
+                                            </div>
+
+                                            {/* Delete User */}
+                                            <div className="pt-4 border-t border-[#f8f9fa]/10">
+                                                <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+                                                    <DialogTrigger asChild>
+                                                        <Button
+                                                            variant="destructive"
+                                                            className="w-full bg-red-900/40 hover:bg-red-800/60 border border-red-500/30 text-red-300"
+                                                            disabled={selectedUser.role === 'admin' || selectedUser.role === 'ceo'}
+                                                        >
+                                                            <Trash2 size={16} className="mr-2" />
+                                                            Elimina Account
+                                                        </Button>
+                                                    </DialogTrigger>
+                                                    <DialogContent className="bg-[#343a40] border-[#f8f9fa]/20 text-[#f8f9fa]">
+                                                        <DialogHeader>
+                                                            <DialogTitle className="flex items-center gap-2 text-red-400">
+                                                                <AlertTriangle size={20} />
+                                                                Conferma Eliminazione
+                                                            </DialogTitle>
+                                                        </DialogHeader>
+                                                        <div className="py-4 space-y-4">
+                                                            <p className="text-[#dee2e6]">
+                                                                Stai per eliminare l'account di <strong className="text-[#f8f9fa]">{selectedUser.fullName || selectedUser.email}</strong>.
+                                                            </p>
+                                                            <p className="text-sm text-red-400 bg-red-500/10 p-3 rounded-lg">
+                                                                ⚠️ Questa azione è irreversibile. Tutti i dati dell'utente verranno eliminati.
+                                                            </p>
+                                                            <div className="flex gap-3">
+                                                                <Button
+                                                                    variant="outline"
+                                                                    className="flex-1 border-[#f8f9fa]/20 text-[#f8f9fa] hover:bg-[#f8f9fa]/10"
+                                                                    onClick={() => setDeleteConfirmOpen(false)}
+                                                                >
+                                                                    Annulla
+                                                                </Button>
+                                                                <Button
+                                                                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                                                                    onClick={() => handleDeleteUser(selectedUser._id)}
+                                                                    disabled={actionLoading}
+                                                                >
+                                                                    {actionLoading ? 'Eliminazione...' : 'Elimina Definitivamente'}
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    </DialogContent>
+                                                </Dialog>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
 
                                     {/* Documents Manager */}
                                     <Card className="bg-[#343a40]/30 backdrop-blur-xl border border-[#f8f9fa]/20">

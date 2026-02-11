@@ -58,7 +58,6 @@ export default function MyAppointments() {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'confirmed': return <CheckCircle className="text-green-400" size={20} />;
-      case 'pending': return <AlertCircle className="text-yellow-400" size={20} />;
       case 'cancelled': return <XCircle className="text-red-400" size={20} />;
       default: return <Clock className="text-[#adb5bd]" size={20} />;
     }
@@ -67,7 +66,6 @@ export default function MyAppointments() {
   const getStatusText = (status) => {
     switch (status) {
       case 'confirmed': return 'Confermato';
-      case 'pending': return 'In Attesa';
       case 'cancelled': return 'Annullato';
       case 'completed': return 'Completato';
       default: return status;
@@ -161,8 +159,13 @@ export default function MyAppointments() {
                       </span>
                       {apt.status !== 'cancelled' && apt.status !== 'completed' && (
                         <button
-                          onClick={() => handleDeleteEvent(apt._id)}
+                          onClick={() => {
+                            if (window.confirm("Sei sicuro di voler eliminare questo appuntamento?")) {
+                              handleDeleteEvent(apt._id);
+                            }
+                          }}
                           className="p-1 rounded-lg hover:bg-red-500/20 text-red-400 transition-all"
+                          title="Elimina"
                         >
                           <X size={16} />
                         </button>
@@ -191,13 +194,17 @@ export default function MyAppointments() {
                     </div>
                   )}
 
-                  {apt.status === 'pending' && (
+                  {apt.status === 'confirmed' && (
                     <div className="mt-4 pt-4 border-t border-[#f8f9fa]/10 flex gap-2">
                       <Button
                         size="sm"
-                        variant="outline"
-                        onClick={() => handleCancelEvent(apt._id)}
-                        className="flex-1 border-red-500/30 text-red-400 hover:bg-red-500/10"
+                        variant="ghost"
+                        onClick={() => {
+                          if (window.confirm("Sei sicuro di voler annullare questo appuntamento?")) {
+                            handleCancelEvent(apt._id);
+                          }
+                        }}
+                        className="flex-1 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 border border-red-500/20"
                       >
                         Annulla Appuntamento
                       </Button>

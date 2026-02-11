@@ -42,6 +42,23 @@ export const AuthProvider = ({ children }) => {
     }
   }, [isAuthenticated, clerkUser, storeUser]);
 
+  // OWASP: Check if user is blocked
+  const convexUser = useQuery(
+    api.users.getByEmail,
+    isAuthenticated && user?.email ? { email: user.email } : "skip"
+  );
+
+  useEffect(() => {
+    if (convexUser && convexUser.blocked) {
+      setAuthError({
+        type: 'user_blocked',
+        message: convexUser.blocked_reason || "Il tuo account è stato bloccato dall'amministratore."
+      });
+    } else if (convexUser && !convexUser.blocked && authError?.type === 'user_blocked') {
+      setAuthError(null);
+    }
+  }, [convexUser]);
+
   const checkAppState = async () => {
     // No-op in new auth flow
   };

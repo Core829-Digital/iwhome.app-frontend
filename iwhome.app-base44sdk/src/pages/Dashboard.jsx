@@ -11,6 +11,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger
+} from '@/components/ui/dialog';
 import {
   FileText,
   Calendar,
@@ -39,6 +48,7 @@ import VerticalMenu from '../components/dashboard/VerticalMenu';
 import OnboardingModal from '../components/dashboard/OnboardingModal';
 import WelcomeModal from '../components/dashboard/WelcomeModal';
 import AnimatedBackground from '../components/dashboard/AnimatedBackground';
+import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 
@@ -51,6 +61,11 @@ export default function Dashboard() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [activeDevices, setActiveDevices] = useState(1);
+
+  // PDF Viewer State
+  const [pdfUrl, setPdfUrl] = useState(null);
+  const [pdfTitle, setPdfTitle] = useState('');
+  const [isPdfOpen, setIsPdfOpen] = useState(false);
 
   // Convex Queries
   const allQuotes = useQuery(api.quotes.get) || [];
@@ -68,7 +83,10 @@ export default function Dashboard() {
   const myAppointments = useQuery(api.appointments.get) || [];
   const allAppointments = useQuery(api.appointments.getAll) || [];
 
-  const appointments = isAdmin ? allAppointments : myAppointments;
+  // Filter out pending appointments if any still exist, or treat them as confirmed
+  const appointmentsSource = isAdmin ? allAppointments : myAppointments;
+  const appointments = appointmentsSource; // Show all appointments including legacy pending
+
   // Documents
   const myDocs = useQuery(api.documents.get) || [];
   const allDocs = useQuery(api.documents.getAll) || [];
@@ -160,7 +178,7 @@ export default function Dashboard() {
     totalQuotes: quotes.length,
     pendingQuotes: quotes.filter(q => q.status === 'draft' || q.status === 'sent').length,
     totalAppointments: appointments.length,
-    pendingAppointments: appointments.filter(a => a.status === 'pending').length,
+    // pendingAppointments removed
     totalDocuments: documents.length,
     totalPreventivi: preventivi.length,
     totalMessages: conversations.length
@@ -188,6 +206,15 @@ export default function Dashboard() {
         <WelcomeModal user={user} onClose={() => setShowWelcome(false)} />
       )}
 
+      {/* PDF Viewer for Documents */}
+      {/* Universal PDF Viewer */}
+      <UniversalPdfViewer
+        isOpen={isPdfOpen}
+        onClose={() => setIsPdfOpen(false)}
+        url={pdfUrl}
+        title={pdfTitle}
+      />
+
       <VerticalMenu />
 
       <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
@@ -206,15 +233,70 @@ export default function Dashboard() {
                   </span>
                 </p>
               </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] hover:bg-[#343a40] hover:text-white transition-all">
+                      <Filter size={16} className="mr-2 text-cyan-400" /> Personalizza
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-[#343a40] border-[#f8f9fa]/10 text-[#f8f9fa]">
+                    <DialogHeader>
+                      <DialogTitle>Gestione Widget Dashboard</DialogTitle>
+                      <DialogDescription className="text-[#adb5bd]">Seleziona quali widget visualizzare sulla tua dashboard.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid grid-cols-2 gap-4 py-4">
+                      {[
+                        { id: 'clients', label: 'Clienti Attivi' },
+                        { id: 'cantieri', label: 'Cantieri' },
+                        { id: 'revenue', label: 'Revenue' },
+                        { id: 'today', label: 'Appuntamenti Oggi' },
+                        { id: 'messages', label: 'Messaggi Non Letti' },
+                        { id: 'quotes', label: 'Preventivi in Attesa' },
+                        { id: 'kanban', label: 'Stato Cantieri (Kanban)' },
+                        { id: 'activity', label: 'Attività Recente' }
+                      ].map((widget) => {
+                        const isHidden = (localStorage.getItem('admin_hidden_widgets') || '').includes(widget.id);
+                        return (
+                          <div key={widget.id} className="flex items-center space-x-2">
+                            {/* ... Checkbox logic is same as before, simplified for brevity in this chunk if possible, or just copy it ... */}
+                            <Checkbox
+                              id={widget.id}
+                              checked={!isHidden}
+                              onCheckedChange={(checked) => {
+                                let hidden = (localStorage.getItem('admin_hidden_widgets') || '').split(',').filter(Boolean);
+                                if (!checked) {
+                                  hidden.push(widget.id);
+                                } else {
+                                  hidden = hidden.filter(id => id !== widget.id);
+                                }
+                                localStorage.setItem('admin_hidden_widgets', hidden.join(','));
+                                window.location.reload();
+                              }}
+                            />
+                            <label htmlFor={widget.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
+                              {widget.label}
+                            </label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+
               {activeDevices > 1 && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 border border-blue-500/30 rounded-lg"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 rounded-lg"
                 >
-                  <Monitor size={16} className="text-blue-400" />
-                  <span className="text-sm text-blue-300">
-                    {activeDevices} dispositivi attivi
+                  <Monitor size={14} className="text-blue-400" />
+                  <span className="text-xs text-blue-300">
+                    {activeDevices} attivi
                   </span>
                 </motion.div>
               )}
@@ -222,86 +304,70 @@ export default function Dashboard() {
           </div>
 
           {/* Stats - Conditional Rendering */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6 lg:mb-8">
-
-            {/* Admin sees Quotes Stats */}
-            {isAdmin && (
-              <Link to={createPageUrl('Preventivi')} className="block h-full">
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                  <Card className="bg-gradient-to-br from-blue-600 to-blue-700 border-0 shadow-lg hover:shadow-xl transition-all cursor-pointer h-full">
+          {/* Stats - Conditional Rendering - Generic Row HIDDEN for Admin to reduce clutter */}
+          {!isAdmin && (
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6 lg:mb-8">
+              {/* Everyone sees Appointments */}
+              <Link to={createPageUrl('MyAppointments')} className="block h-full">
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="h-full">
+                  <Card className="bg-gradient-to-br from-green-600 to-green-700 border-0 shadow-lg hover:shadow-xl transition-all cursor-pointer h-full">
                     <CardHeader className="flex flex-row items-center justify-between pb-1 p-4">
-                      <CardTitle className="text-xs font-medium text-white/80">Preventivi Globali</CardTitle>
-                      <FileText className="h-4 w-4 text-white flex-shrink-0" />
+                      <CardTitle className="text-xs font-medium text-white/80">Appuntamenti</CardTitle>
+                      <Calendar className="h-4 w-4 text-white flex-shrink-0" />
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
-                      <div className="text-2xl font-light text-white">{stats.totalQuotes}</div>
-                      <p className="text-xs text-white/60 mt-0.5 hidden sm:block">Richieste totali</p>
+                      <div className="text-2xl font-light text-white">{stats.totalAppointments}</div>
+                      <p className="text-xs text-white/60 mt-0.5 hidden sm:block">Programmati</p>
                     </CardContent>
                   </Card>
                 </motion.div>
               </Link>
-            )}
 
-            {/* Everyone sees Appointments */}
-            <Link to={createPageUrl('MyAppointments')} className="block h-full">
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="h-full">
-                <Card className="bg-gradient-to-br from-green-600 to-green-700 border-0 shadow-lg hover:shadow-xl transition-all cursor-pointer h-full">
-                  <CardHeader className="flex flex-row items-center justify-between pb-1 p-4">
-                    <CardTitle className="text-xs font-medium text-white/80">Appuntamenti</CardTitle>
-                    <Calendar className="h-4 w-4 text-white flex-shrink-0" />
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    <div className="text-2xl font-light text-white">{stats.totalAppointments}</div>
-                    <p className="text-xs text-white/60 mt-0.5 hidden sm:block">Programmati</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </Link>
-
-            {/* Everyone sees Documents */}
-            <Link to={createPageUrl('Documents')} className="block h-full">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-                whileHover={{ y: -4 }}
-                className="h-full"
-              >
-                <Card className="bg-gradient-to-br from-purple-600 to-purple-700 border-0 shadow-xl hover:shadow-2xl transition-all cursor-pointer h-full">
-                  <CardHeader className="flex flex-row items-center justify-between pb-1 p-4">
-                    <CardTitle className="text-xs font-medium text-white/80">I Miei Documenti</CardTitle>
-                    <Upload className="h-4 w-4 text-white flex-shrink-0" />
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    <div className="text-2xl font-light text-white">{stats.totalDocuments}</div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </Link>
-
-            {/* Admin and Client see Messages */}
-            {(isAdmin || isClient) && (
-              <Link to={createPageUrl('Messages')} className="block h-full">
+              {/* Everyone sees Documents */}
+              <Link to={createPageUrl('Documents')} className="block h-full">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
+                  transition={{ delay: 0.15 }}
                   whileHover={{ y: -4 }}
                   className="h-full"
                 >
-                  <Card className="bg-gradient-to-br from-orange-600 to-orange-700 border-0 shadow-xl hover:shadow-2xl transition-all cursor-pointer h-full">
+                  <Card className="bg-gradient-to-br from-purple-600 to-purple-700 border-0 shadow-xl hover:shadow-2xl transition-all cursor-pointer h-full">
                     <CardHeader className="flex flex-row items-center justify-between pb-1 p-4">
-                      <CardTitle className="text-xs font-medium text-white/80">Messaggi</CardTitle>
-                      <MessageSquare className="h-4 w-4 text-white flex-shrink-0" />
+                      <CardTitle className="text-xs font-medium text-white/80">I Miei Documenti</CardTitle>
+                      <Upload className="h-4 w-4 text-white flex-shrink-0" />
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
-                      <div className="text-2xl font-light text-white">{stats.totalMessages}</div>
+                      <div className="text-2xl font-light text-white">{stats.totalDocuments}</div>
                     </CardContent>
                   </Card>
                 </motion.div>
               </Link>
-            )}
-          </div>
+
+              {/* Client see Messages */}
+              {isClient && (
+                <Link to={createPageUrl('Messages')} className="block h-full">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    whileHover={{ y: -4 }}
+                    className="h-full"
+                  >
+                    <Card className="bg-gradient-to-br from-orange-600 to-orange-700 border-0 shadow-xl hover:shadow-2xl transition-all cursor-pointer h-full">
+                      <CardHeader className="flex flex-row items-center justify-between pb-1 p-4">
+                        <CardTitle className="text-xs font-medium text-white/80">Messaggi</CardTitle>
+                        <MessageSquare className="h-4 w-4 text-white flex-shrink-0" />
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0">
+                        <div className="text-2xl font-light text-white">{stats.totalMessages}</div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                </Link>
+              )}
+            </div>
+          )}
 
           {/* ADMIN PREMIUM SECTION */}
           {isAdmin && adminStats && (
@@ -310,188 +376,199 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               className="mb-6 lg:mb-8"
             >
+              {/* Widget Management moved to Header */}
+
+              {/* Quick Actions - High Relevance */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                <Link to={createPageUrl('Clienti')}>
+                  <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-lg shadow-emerald-900/20">
+                    <UserPlus className="h-4 w-4 mr-1" /> Nuovo Cliente
+                  </Button>
+                </Link>
+                <Link to={createPageUrl('Preventivi')}>
+                  <Button size="sm" className="bg-cyan-600 hover:bg-cyan-700 text-white border-0 shadow-lg shadow-cyan-900/20">
+                    <FileText className="h-4 w-4 mr-1" /> Crea Preventivo
+                  </Button>
+                </Link>
+                <Link to={createPageUrl('ClientChat')}>
+                  <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white border-0 shadow-lg shadow-purple-900/20">
+                    <MessageSquare className="h-4 w-4 mr-1" /> Chat
+                  </Button>
+                </Link>
+                <Link to={createPageUrl('CantieriDashboard')}>
+                  <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white border-0 shadow-lg shadow-amber-900/20">
+                    <Building2 className="h-4 w-4 mr-1" /> Cantieri
+                  </Button>
+                </Link>
+              </div>
+
+              {/* Premium Stats Grid */}
               {/* Premium Stats Grid */}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-4">
-                {/* Clienti */}
-                <Link to={createPageUrl('Clienti')}>
-                  <Card className="bg-gradient-to-br from-emerald-600/90 to-emerald-700/90 border-0 hover:scale-[1.02] transition-transform cursor-pointer backdrop-blur-xl">
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between">
-                        <Users className="h-5 w-5 text-white/80" />
-                        <span className="text-2xl font-light text-white">{adminStats.totalClients}</span>
-                      </div>
-                      <p className="text-xs text-white/70 mt-1">Clienti Attivi</p>
-                    </CardContent>
-                  </Card>
-                </Link>
+                {[
+                  {
+                    id: 'clients',
+                    to: 'Clienti',
+                    title: 'Clienti Attivi',
+                    value: adminStats.totalClients,
+                    icon: Users,
+                    gradient: 'from-emerald-600/90 to-emerald-700/90'
+                  },
+                  {
+                    id: 'cantieri',
+                    to: 'CantieriDashboard',
+                    title: 'Cantieri',
+                    value: adminStats.totalCantieri,
+                    icon: Building2,
+                    gradient: 'from-amber-600/90 to-amber-700/90'
+                  },
+                  {
+                    id: 'revenue',
+                    title: 'Revenue Totale',
+                    value: `€${(adminStats.totalRevenue / 1000).toFixed(0)}k`,
+                    icon: DollarSign,
+                    gradient: 'from-green-600/90 to-green-700/90',
+                    noLink: true
+                  },
+                  {
+                    id: 'today',
+                    to: 'MyAppointments',
+                    title: 'Oggi',
+                    value: adminStats.todayAppointments,
+                    icon: Calendar,
+                    gradient: 'from-blue-600/90 to-blue-700/90'
+                  },
+                  {
+                    id: 'messages',
+                    to: 'ClientChat',
+                    title: 'Non Letti',
+                    value: adminStats.unreadMessages,
+                    icon: Bell,
+                    gradient: adminStats.unreadMessages > 0 ? 'from-red-600/90 to-red-700/90' : 'from-purple-600/90 to-purple-700/90'
+                  },
+                  {
+                    id: 'quotes',
+                    to: 'Preventivi',
+                    title: 'In Attesa',
+                    value: adminStats.pendingQuotes,
+                    icon: FileText,
+                    gradient: 'from-cyan-600/90 to-cyan-700/90'
+                  }
+                ].map((stat) => {
+                  if ((localStorage.getItem('admin_hidden_widgets') || '').includes(stat.id)) return null;
 
-                {/* Cantieri */}
-                <Link to={createPageUrl('CantieriDashboard')}>
-                  <Card className="bg-gradient-to-br from-amber-600/90 to-amber-700/90 border-0 hover:scale-[1.02] transition-transform cursor-pointer backdrop-blur-xl">
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between">
-                        <Building2 className="h-5 w-5 text-white/80" />
-                        <span className="text-2xl font-light text-white">{adminStats.totalCantieri}</span>
-                      </div>
-                      <p className="text-xs text-white/70 mt-1">Cantieri</p>
-                    </CardContent>
-                  </Card>
-                </Link>
+                  const Content = (
+                    <Card className={`bg-gradient-to-br ${stat.gradient} border-0 hover:scale-[1.02] transition-transform cursor-pointer backdrop-blur-xl h-full`}>
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between">
+                          <stat.icon className="h-5 w-5 text-white/80" />
+                          <span className="text-xl lg:text-2xl font-light text-white">{stat.value}</span>
+                        </div>
+                        <p className="text-xs text-white/70 mt-1">{stat.title}</p>
+                      </CardContent>
+                    </Card>
+                  );
 
-                {/* Revenue */}
-                <Card className="bg-gradient-to-br from-green-600/90 to-green-700/90 border-0 backdrop-blur-xl">
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between">
-                      <DollarSign className="h-5 w-5 text-white/80" />
-                      <span className="text-xl font-light text-white">€{(adminStats.totalRevenue / 1000).toFixed(0)}k</span>
-                    </div>
-                    <p className="text-xs text-white/70 mt-1">Revenue Totale</p>
-                  </CardContent>
-                </Card>
-
-                {/* Oggi */}
-                <Link to={createPageUrl('MyAppointments')}>
-                  <Card className="bg-gradient-to-br from-blue-600/90 to-blue-700/90 border-0 hover:scale-[1.02] transition-transform cursor-pointer backdrop-blur-xl">
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between">
-                        <Calendar className="h-5 w-5 text-white/80" />
-                        <span className="text-2xl font-light text-white">{adminStats.todayAppointments}</span>
-                      </div>
-                      <p className="text-xs text-white/70 mt-1">Oggi</p>
-                    </CardContent>
-                  </Card>
-                </Link>
-
-                {/* Messaggi */}
-                <Link to={createPageUrl('ClientChat')}>
-                  <Card className={`bg-gradient-to-br ${adminStats.unreadMessages > 0 ? 'from-red-600/90 to-red-700/90' : 'from-purple-600/90 to-purple-700/90'} border-0 hover:scale-[1.02] transition-transform cursor-pointer backdrop-blur-xl`}>
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between">
-                        <Bell className="h-5 w-5 text-white/80" />
-                        <span className="text-2xl font-light text-white">{adminStats.unreadMessages}</span>
-                      </div>
-                      <p className="text-xs text-white/70 mt-1">Non Letti</p>
-                    </CardContent>
-                  </Card>
-                </Link>
-
-                {/* Preventivi */}
-                <Link to={createPageUrl('Preventivi')}>
-                  <Card className="bg-gradient-to-br from-cyan-600/90 to-cyan-700/90 border-0 hover:scale-[1.02] transition-transform cursor-pointer backdrop-blur-xl">
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between">
-                        <FileText className="h-5 w-5 text-white/80" />
-                        <span className="text-2xl font-light text-white">{adminStats.pendingQuotes}</span>
-                      </div>
-                      <p className="text-xs text-white/70 mt-1">In Attesa</p>
-                    </CardContent>
-                  </Card>
-                </Link>
+                  return stat.noLink ? (
+                    <div key={stat.id}>{Content}</div>
+                  ) : (
+                    <Link key={stat.id} to={createPageUrl(stat.to)}>
+                      {Content}
+                    </Link>
+                  );
+                })}
               </div>
 
               {/* Cantieri Progress + Activity Feed */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Cantieri Kanban Mini */}
-                <Card className="bg-[#343a40]/50 backdrop-blur-xl border-[#f8f9fa]/10">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm font-medium text-[#f8f9fa] flex items-center gap-2">
-                        <Hammer className="h-4 w-4" /> Stato Cantieri
-                      </CardTitle>
-                      <Link to={createPageUrl('CantieriDashboard')} className="text-xs text-blue-400 hover:underline flex items-center gap-1">
-                        Vedi tutti <ArrowRight className="h-3 w-3" />
-                      </Link>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-2">
-                    <div className="grid grid-cols-3 gap-2 mb-4">
-                      <div className="bg-yellow-500/20 rounded-lg p-2 text-center">
-                        <p className="text-lg font-medium text-yellow-400">{adminStats.cantieriByStatus?.in_lavorazione || 0}</p>
-                        <p className="text-[10px] text-yellow-300/70">In Lavorazione</p>
+                {!(localStorage.getItem('admin_hidden_widgets') || '').includes('kanban') && (
+                  <Card className="bg-[#343a40]/50 backdrop-blur-xl border-[#f8f9fa]/10">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-[#f8f9fa] flex items-center gap-2">
+                          <Hammer className="h-4 w-4" /> Stato Cantieri
+                        </CardTitle>
+                        <Link to={createPageUrl('CantieriDashboard')} className="text-xs text-blue-400 hover:underline flex items-center gap-1">
+                          Vedi tutti <ArrowRight className="h-3 w-3" />
+                        </Link>
                       </div>
-                      <div className="bg-blue-500/20 rounded-lg p-2 text-center">
-                        <p className="text-lg font-medium text-blue-400">{adminStats.cantieriByStatus?.posa_in_opera || 0}</p>
-                        <p className="text-[10px] text-blue-300/70">Posa Opera</p>
-                      </div>
-                      <div className="bg-green-500/20 rounded-lg p-2 text-center">
-                        <p className="text-lg font-medium text-green-400">{adminStats.cantieriByStatus?.completato || 0}</p>
-                        <p className="text-[10px] text-green-300/70">Completati</p>
-                      </div>
-                    </div>
-                    {/* Recent Cantieri with Progress */}
-                    <div className="space-y-2">
-                      {cantieriProgress.slice(0, 3).map((c) => (
-                        <div key={c._id} className="bg-[#495057]/30 rounded-lg p-2">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-xs text-[#f8f9fa] truncate max-w-[120px]">{c.nome_cantiere}</span>
-                            <Badge variant="outline" className="text-[8px] py-0 h-4">{c.status?.replace('_', ' ')}</Badge>
-                          </div>
-                          <div className="h-1 bg-[#495057] rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-blue-500 transition-all"
-                              style={{ width: `${c.progresso_in_lavorazione || 0}%` }}
-                            />
-                          </div>
+                    </CardHeader>
+                    <CardContent className="pt-2">
+                      <div className="grid grid-cols-3 gap-2 mb-4">
+                        <div className="bg-yellow-900/40 border border-yellow-500/30 rounded-lg p-2 text-center">
+                          <p className="text-lg font-medium text-yellow-500">{adminStats.cantieriByStatus?.in_lavorazione || 0}</p>
+                          <p className="text-[10px] text-yellow-200/90 font-medium">In Lavorazione</p>
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                        <div className="bg-blue-900/40 border border-blue-500/30 rounded-lg p-2 text-center">
+                          <p className="text-lg font-medium text-blue-500">{adminStats.cantieriByStatus?.posa_in_opera || 0}</p>
+                          <p className="text-[10px] text-blue-200/90 font-medium">Posa Opera</p>
+                        </div>
+                        <div className="bg-green-900/40 border border-green-500/30 rounded-lg p-2 text-center">
+                          <p className="text-lg font-medium text-green-500">{adminStats.cantieriByStatus?.completato || 0}</p>
+                          <p className="text-[10px] text-green-200/90 font-medium">Completati</p>
+                        </div>
+                      </div>
+                      {/* Recent Cantieri with Progress */}
+                      <div className="space-y-2">
+                        {cantieriProgress.slice(0, 3).map((c) => (
+                          <div key={c._id} className="bg-[#495057]/30 rounded-lg p-2">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-xs text-[#f8f9fa] truncate max-w-[120px]">{c.nome_cantiere}</span>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${c.status === 'completato' ? 'bg-green-500/30 text-green-300 border border-green-500/50' :
+                                c.status === 'in_lavorazione' ? 'bg-yellow-500/30 text-yellow-300 border border-yellow-500/50' :
+                                  c.status === 'posa_in_opera' ? 'bg-blue-500/30 text-blue-300 border border-blue-500/50' :
+                                    'bg-gray-500/30 text-gray-300 border border-gray-500/50'
+                                }`}>{c.status?.replace('_', ' ')}</span>
+                            </div>
+                            <div className="h-1 bg-[#495057] rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-blue-500 transition-all"
+                                style={{ width: `${c.progresso_in_lavorazione || 0}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Activity Feed */}
-                <Card className="bg-[#343a40]/50 backdrop-blur-xl border-[#f8f9fa]/10">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-[#f8f9fa] flex items-center gap-2">
-                      <Activity className="h-4 w-4" /> Attività Recente
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-2">
-                    <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
-                      {recentActivity.length === 0 ? (
-                        <p className="text-xs text-[#adb5bd] text-center py-4">Nessuna attività recente</p>
-                      ) : (
-                        recentActivity.map((act, i) => (
-                          <div key={i} className="flex items-start gap-2 bg-[#495057]/30 rounded-lg p-2">
-                            <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                              {act.action === 'created' && <Plus className="h-3 w-3 text-blue-400" />}
-                              {act.action === 'role_promoted' && <TrendingUp className="h-3 w-3 text-green-400" />}
-                              {!['created', 'role_promoted'].includes(act.action) && <Activity className="h-3 w-3 text-purple-400" />}
+                {!(localStorage.getItem('admin_hidden_widgets') || '').includes('activity') && (
+                  <Card className="bg-[#343a40]/50 backdrop-blur-xl border-[#f8f9fa]/10">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-[#f8f9fa] flex items-center gap-2">
+                        <Activity className="h-4 w-4" /> Attività Recente
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-2">
+                      <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                        {recentActivity.length === 0 ? (
+                          <p className="text-xs text-[#adb5bd] text-center py-4">Nessuna attività recente</p>
+                        ) : (
+                          recentActivity.map((act, i) => (
+                            <div key={i} className="flex items-start gap-2 bg-[#495057]/30 rounded-lg p-2">
+                              <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                                {act.action === 'created' && <Plus className="h-3 w-3 text-blue-400" />}
+                                {act.action === 'role_promoted' && <TrendingUp className="h-3 w-3 text-green-400" />}
+                                {!['created', 'role_promoted'].includes(act.action) && <Activity className="h-3 w-3 text-purple-400" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs text-[#f8f9fa] truncate">{act.entity_name || act.entity_type}</p>
+                                <p className="text-[10px] text-[#adb5bd]">{act.action} • {new Date(act.created_date).toLocaleDateString('it-IT')}</p>
+                              </div>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs text-[#f8f9fa] truncate">{act.entity_name || act.entity_type}</p>
-                              <p className="text-[10px] text-[#adb5bd]">{act.action} • {new Date(act.created_date).toLocaleDateString('it-IT')}</p>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                          ))
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
 
               {/* Quick Actions */}
-              <div className="flex flex-wrap gap-2 mt-4">
-                <Link to={createPageUrl('Clienti')}>
-                  <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                    <UserPlus className="h-4 w-4 mr-1" /> Nuovo Cliente
-                  </Button>
-                </Link>
-                <Link to={createPageUrl('Preventivi')}>
-                  <Button size="sm" className="bg-cyan-600 hover:bg-cyan-700 text-white">
-                    <FileText className="h-4 w-4 mr-1" /> Gestisci Preventivi
-                  </Button>
-                </Link>
-                <Link to={createPageUrl('ClientChat')}>
-                  <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white">
-                    <MessageSquare className="h-4 w-4 mr-1" /> Chat Clienti
-                  </Button>
-                </Link>
-                <Link to={createPageUrl('CantieriDashboard')}>
-                  <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
-                    <Building2 className="h-4 w-4 mr-1" /> Cantieri
-                  </Button>
-                </Link>
-              </div>
+              {/* Quick Actions Moved Up */}
             </motion.div>
           )}
 
@@ -675,10 +752,14 @@ export default function Dashboard() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => window.open(doc.file_url, '_blank')}
-                            className="border-[#f8f9fa]/30 text-[#f8f9fa] hover:bg-[#f8f9fa]/10"
+                            onClick={() => {
+                              setPdfUrl(doc.file_url);
+                              setPdfTitle(doc.title);
+                              setIsPdfOpen(true);
+                            }}
+                            className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold border-0 transition-all shadow-md hover:shadow-cyan-500/20"
                           >
-                            <Eye size={14} className="mr-1" />
+                            <Eye size={16} className="mr-1.5" />
                             Visualizza
                           </Button>
                         </div>
@@ -703,8 +784,12 @@ export default function Dashboard() {
                         </p>
                         <p className="text-xs text-[#adb5bd]">{apt.project_type}</p>
                       </div>
-                      <div className="text-sm px-3 py-1 rounded-full bg-[#f8f9fa]/10 text-[#dee2e6]">
-                        {apt.status}
+                      <div className={`text-sm px-3 py-1 rounded-full font-medium ${(apt.status === 'confirmed' || apt.status === 'pending') ? 'bg-green-500/30 text-green-300 border border-green-500/40' :
+                        apt.status === 'cancelled' ? 'bg-red-500/30 text-red-300 border border-red-500/40' :
+                          'bg-blue-500/30 text-blue-300 border border-blue-500/40'
+                        }`}>
+                        {(apt.status === 'confirmed' || apt.status === 'pending') ? 'Confermato' :
+                          apt.status === 'cancelled' ? 'Annullato' : apt.status}
                       </div>
                     </div>
                   </CardContent>
@@ -714,7 +799,6 @@ export default function Dashboard() {
           </Tabs>
         </div>
       </div>
-
-    </div >
+    </div>
   );
 }

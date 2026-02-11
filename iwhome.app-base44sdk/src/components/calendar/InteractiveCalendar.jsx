@@ -80,7 +80,7 @@ export default function InteractiveCalendar({ appointments, onCreateEvent, onUpd
   const handleSaveEvent = async () => {
     try {
       if (selectedAppointment) {
-        await onUpdateEvent(selectedAppointment.id, eventFormData);
+        await onUpdateEvent(selectedAppointment._id, eventFormData);
       } else {
         await onCreateEvent(eventFormData);
       }
@@ -104,7 +104,7 @@ export default function InteractiveCalendar({ appointments, onCreateEvent, onUpd
       'VERSION:2.0',
       'PRODID:-//IwHome//Appointment//IT',
       'BEGIN:VEVENT',
-      `UID:${appointment.id}@iwhome.it`,
+      `UID:${appointment._id}@iwhome.it`,
       `DTSTAMP:${formatICSDate(new Date())}`,
       `DTSTART:${formatICSDate(startDate)}`,
       `DTEND:${formatICSDate(endDate)}`,
@@ -119,7 +119,7 @@ export default function InteractiveCalendar({ appointments, onCreateEvent, onUpd
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `appuntamento-${appointment.id}.ics`;
+    link.download = `appuntamento-${appointment._id}.ics`;
     link.click();
     URL.revokeObjectURL(link.href);
   };
@@ -198,7 +198,7 @@ export default function InteractiveCalendar({ appointments, onCreateEvent, onUpd
                 <div className="space-y-1">
                   {dayAppointments.map((apt) => (
                     <div
-                      key={apt.id}
+                      key={apt._id}
                       className={`text-xs p-1 rounded truncate ${apt.status === 'confirmed' ? 'bg-green-500/20 text-green-300' :
                         apt.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
                           apt.status === 'cancelled' ? 'bg-red-500/20 text-red-300' :
@@ -241,7 +241,7 @@ export default function InteractiveCalendar({ appointments, onCreateEvent, onUpd
             ) : (
               getAppointmentsForDate(selectedDate).map((apt) => (
                 <motion.div
-                  key={apt.id}
+                  key={apt._id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   className="bg-[#495057]/50 rounded-xl p-4 border border-[#f8f9fa]/10"
@@ -290,7 +290,7 @@ export default function InteractiveCalendar({ appointments, onCreateEvent, onUpd
                       <Button
                         size="icon"
                         variant="ghost"
-                        onClick={() => onDeleteEvent(apt.id)}
+                        onClick={(e) => { e.stopPropagation(); if (window.confirm('Sei sicuro di voler eliminare questo appuntamento?')) { onDeleteEvent(apt._id); } }}
                         className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                       >
                         <Trash2 size={16} />
@@ -391,7 +391,7 @@ export default function InteractiveCalendar({ appointments, onCreateEvent, onUpd
               <Button
                 variant="outline"
                 onClick={() => setShowEventDialog(false)}
-                className="border-[#f8f9fa]/20 text-[#f8f9fa] hover:bg-[#f8f9fa]/10"
+                className="bg-[#343a40] border-[#6c757d] text-[#f8f9fa] hover:bg-[#495057] hover:text-white"
               >
                 Annulla
               </Button>

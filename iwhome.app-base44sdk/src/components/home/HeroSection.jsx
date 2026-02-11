@@ -1,31 +1,43 @@
 import React from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '../../utils';
 import { ArrowRight, ChevronDown } from 'lucide-react';
+import { useUser, useClerk } from '@clerk/clerk-react';
 
 export default function HeroSection() {
   const { scrollY } = useScroll();
   const [isMobile, setIsMobile] = React.useState(false);
-  
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
+  const navigate = useNavigate();
+
   React.useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-  
+
   const opacity = useTransform(scrollY, [0, 200], [1, 0]);
   const scale = useTransform(scrollY, [0, 200], [1, 0.8]);
   const y = useTransform(scrollY, [0, 200], [0, isMobile ? 50 : 100]);
-  
+
   // Logo scroll effect - independent scroll follow until button position
   const logoY = useTransform(scrollY, [0, 700], [0, isMobile ? 300 : 600]);
   const logoOpacity = useTransform(scrollY, [0, 650, 700], [1, 1, 0]);
   const logoScale = useTransform(scrollY, [0, 700], [1, 0.5]);
-  
+
   // Design word disappears faster
   const designOpacity = useTransform(scrollY, [0, 120], [1, 0]);
+
+  const handleAreaPrivata = () => {
+    if (isSignedIn) {
+      navigate(createPageUrl('Dashboard'));
+    } else {
+      openSignIn({ redirectUrl: createPageUrl('Dashboard') });
+    }
+  };
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -132,60 +144,59 @@ export default function HeroSection() {
 
         <motion.div style={{ opacity, scale, y }}>
 
-        <motion.h1
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="text-5xl md:text-7xl lg:text-8xl font-light text-[#f8f9fa] mb-12 tracking-tight leading-relaxed"
-          style={{ overflow: 'visible' }}
-        >
-          Materiali.
-          <motion.span 
-            style={{ opacity: designOpacity }}
-            className="block text-transparent bg-clip-text bg-gradient-to-r from-[#f8f9fa] via-[#e9ecef] to-[#dee2e6] py-4"
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="text-5xl md:text-7xl lg:text-8xl font-light text-[#f8f9fa] mb-12 tracking-tight leading-relaxed"
+            style={{ overflow: 'visible' }}
           >
-            Design.
-          </motion.span>
-          Casa.
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          className="text-[#e9ecef]/80 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
-        >
-          Tu ci dici come, noi realizziamo il progetto.
-          <br />
-          Soluzioni complete per trasformare i tuoi spazi.
-        </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.8 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center"
-        >
-          <Link to={createPageUrl('Calcolatore')}>
-            <motion.button
-              whileHover={{ scale: 1.05, boxShadow: '0 20px 60px rgba(248, 249, 250, 0.3)' }}
-              whileTap={{ scale: 0.95 }}
-              className="group px-8 py-4 bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529] rounded-full font-medium flex items-center gap-2 justify-center transition-all duration-300 shadow-xl"
+            Materiali.
+            <motion.span
+              style={{ opacity: designOpacity }}
+              className="block text-transparent bg-clip-text bg-gradient-to-r from-[#f8f9fa] via-[#e9ecef] to-[#dee2e6] py-4"
             >
-              Calcola Preventivo
-              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-            </motion.button>
-          </Link>
-          <Link to={createPageUrl('Appuntamenti')}>
+              Design.
+            </motion.span>
+            Casa.
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+            className="text-[#e9ecef]/80 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
+          >
+            Tu ci dici come, noi realizziamo il progetto.
+            <br />
+            Soluzioni complete per trasformare i tuoi spazi.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
+            className="flex flex-col sm:flex-row gap-4 justify-center"
+          >
+            <Link to={createPageUrl('Calcolatore')}>
+              <motion.button
+                whileHover={{ scale: 1.05, boxShadow: '0 20px 60px rgba(248, 249, 250, 0.3)' }}
+                whileTap={{ scale: 0.95 }}
+                className="group px-8 py-4 bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529] rounded-full font-medium flex items-center gap-2 justify-center transition-all duration-300 shadow-xl"
+              >
+                Calcola Preventivo
+                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              </motion.button>
+            </Link>
             <motion.button
+              onClick={handleAreaPrivata}
               whileHover={{ scale: 1.05, backgroundColor: '#343a40' }}
               whileTap={{ scale: 0.95 }}
               className="px-8 py-4 border-2 border-[#f8f9fa]/30 text-[#f8f9fa] rounded-full font-medium backdrop-blur-sm transition-all duration-300"
             >
-              Prenota Appuntamento
+              Area Privata
             </motion.button>
-          </Link>
-        </motion.div>
+          </motion.div>
         </motion.div>
       </div>
 

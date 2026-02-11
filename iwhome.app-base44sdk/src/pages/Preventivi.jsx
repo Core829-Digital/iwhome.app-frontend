@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import {
-    FileText, Download, Search, CheckCircle, XCircle, Clock, HardHat, Link2, Unlink
+    FileText, Download, Search, CheckCircle, XCircle, Clock, HardHat, Link2, Unlink, Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import VerticalMenu from '../components/dashboard/VerticalMenu';
 import AnimatedBackground from '../components/dashboard/AnimatedBackground';
 
@@ -37,10 +38,15 @@ export default function Preventivi() {
 
     // Query cantieri for linking
     const cantieri = useQuery(api.cantieri.listCantieri, { company_email: userEmail }) || [];
+    const clientsList = useQuery(api.clients.list) || []; // Fetch clients
 
     // Mutations
     const linkToCantiereMutation = useMutation(api.quotes.linkToCantiere);
     const unlinkFromCantiereMutation = useMutation(api.quotes.unlinkFromCantiere);
+    const linkToClientMutation = useMutation(api.quotes.linkToClient);
+    const unlinkFromClientMutation = useMutation(api.quotes.unlinkFromClient);
+
+    const [selectedClient, setSelectedClient] = useState(undefined);
 
     const getStatusBadge = (status) => {
         switch (status) {
@@ -60,6 +66,11 @@ export default function Preventivi() {
         return cantieri.find(c => c._id === cantiereId);
     };
 
+    const getClientInfo = (clientId) => {
+        if (!clientId) return null;
+        return clientsList.find(c => c._id === clientId);
+    };
+
     const handleLink = async () => {
         if (!selectedQuote || !selectedCantiere) return;
         await linkToCantiereMutation({
@@ -71,8 +82,23 @@ export default function Preventivi() {
         setSelectedCantiere(undefined);
     };
 
+    const handleLinkClient = async () => {
+        if (!selectedQuote || !selectedClient) return;
+        await linkToClientMutation({
+            quote_id: selectedQuote._id,
+            client_id: selectedClient
+        });
+        setLinkModalOpen(false);
+        setSelectedQuote(null);
+        setSelectedClient(undefined);
+    };
+
     const handleUnlink = async (quoteId) => {
         await unlinkFromCantiereMutation({ quote_id: quoteId });
+    };
+
+    const handleUnlinkClient = async (quoteId) => {
+        await unlinkFromClientMutation({ quote_id: quoteId });
     };
 
     const filteredQuotes = quotes.filter(quote => {
@@ -171,7 +197,7 @@ export default function Preventivi() {
                     <Dialog open={linkModalOpen} onOpenChange={setLinkModalOpen}>
                         <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md">
                             <DialogHeader>
-                                <DialogTitle className="text-[#f8f9fa]">Collega a Cantiere</DialogTitle>
+                                <DialogTitle className="text-[#f8f9fa]">Collega Preventivo</DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
                                 {selectedQuote && (
@@ -182,25 +208,60 @@ export default function Preventivi() {
                                     </div>
                                 )}
 
-                                <Select value={selectedCantiere} onValueChange={setSelectedCantiere}>
-                                    <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
-                                        <SelectValue placeholder="Seleziona cantiere..." />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-[#343a40] border-[#495057]">
-                                        {cantieri.map(cantiere => (
-                                            <SelectItem key={cantiere._id} value={cantiere._id} className="text-[#f8f9fa] focus:bg-[#495057]">
-                                                <div className="flex items-center gap-2">
-                                                    <HardHat size={14} />
-                                                    {cantiere.nome_cantiere}
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Tabs defaultValue="cantiere" className="w-full">
+                                    <TabsList className="grid w-full grid-cols-2 bg-[#495057]">
+                                        <TabsTrigger value="cantiere">Cantiere</TabsTrigger>
+                                        <TabsTrigger value="cliente">Cliente</TabsTrigger>
+                                    </TabsList>
 
-                                <Button onClick={handleLink} disabled={!selectedCantiere} className="w-full bg-blue-600 hover:bg-blue-700">
-                                    <Link2 size={16} className="mr-2" /> Collega
-                                </Button>
+                                    <TabsContent value="cantiere" className="space-y-4 mt-4">
+                                        <div className="space-y-2">
+                                            <label className="text-sm text-[#dee2e6]">Seleziona Cantiere</label>
+                                            <Select value={selectedCantiere} onValueChange={setSelectedCantiere}>
+                                                <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
+                                                    <SelectValue placeholder="Seleziona cantiere..." />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-[#343a40] border-[#495057]">
+                                                    {cantieri.map(cantiere => (
+                                                        <SelectItem key={cantiere._id} value={cantiere._id} className="text-[#f8f9fa] focus:bg-[#495057]">
+                                                            <div className="flex items-center gap-2">
+                                                                <HardHat size={14} />
+                                                                {cantiere.nome_cantiere}
+                                                            </div>
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <Button onClick={handleLink} disabled={!selectedCantiere} className="w-full bg-blue-600 hover:bg-blue-700">
+                                            <Link2 size={16} className="mr-2" /> Collega Cantiere
+                                        </Button>
+                                    </TabsContent>
+
+                                    <TabsContent value="cliente" className="space-y-4 mt-4">
+                                        <div className="space-y-2">
+                                            <label className="text-sm text-[#dee2e6]">Seleziona Cliente</label>
+                                            <Select value={selectedClient} onValueChange={setSelectedClient}>
+                                                <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
+                                                    <SelectValue placeholder="Seleziona cliente..." />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-[#343a40] border-[#495057]">
+                                                    {clientsList.filter(c => c.status === 'active').map(client => (
+                                                        <SelectItem key={client._id} value={client._id} className="text-[#f8f9fa] focus:bg-[#495057]">
+                                                            <div className="flex items-center gap-2">
+                                                                <span>{client.full_name}</span>
+                                                                {client.company_name && <span className="text-[#adb5bd] text-xs">({client.company_name})</span>}
+                                                            </div>
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <Button onClick={handleLinkClient} disabled={!selectedClient} className="w-full bg-blue-600 hover:bg-blue-700">
+                                            <Link2 size={16} className="mr-2" /> Collega Cliente
+                                        </Button>
+                                    </TabsContent>
+                                </Tabs>
                             </div>
                         </DialogContent>
                     </Dialog>
@@ -216,6 +277,7 @@ export default function Preventivi() {
                         ) : (
                             filteredQuotes.map((quote) => {
                                 const linkedCantiere = getCantiereInfo(quote.cantiere_id);
+                                const linkedClient = getClientInfo(quote.client_id);
                                 return (
                                     <motion.div
                                         key={quote._id}
@@ -236,6 +298,12 @@ export default function Preventivi() {
                                                                 <Badge variant="secondary" className="bg-purple-500/20 text-purple-400 border-none">
                                                                     <HardHat size={12} className="mr-1" />
                                                                     {linkedCantiere.nome_cantiere}
+                                                                </Badge>
+                                                            )}
+                                                            {linkedClient && (
+                                                                <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-none">
+                                                                    <Users size={12} className="mr-1" />
+                                                                    {linkedClient.full_name}
                                                                 </Badge>
                                                             )}
                                                         </div>
@@ -270,26 +338,40 @@ export default function Preventivi() {
 
                                                         {/* Admin linking controls */}
                                                         {isAdmin && (
-                                                            linkedCantiere ? (
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    onClick={() => handleUnlink(quote._id)}
-                                                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
-                                                                >
-                                                                    <Unlink size={16} className="mr-1" /> Scollega
-                                                                </Button>
-                                                            ) : (
-                                                                <Button
-                                                                    variant="outline"
-                                                                    onClick={() => {
-                                                                        setSelectedQuote(quote);
-                                                                        setLinkModalOpen(true);
-                                                                    }}
-                                                                    className="text-purple-400 border-purple-500/30 hover:bg-purple-500/20"
-                                                                >
-                                                                    <Link2 size={16} className="mr-1" /> Collega a Cantiere
-                                                                </Button>
-                                                            )
+                                                            <>
+                                                                {linkedCantiere ? (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        onClick={() => handleUnlink(quote._id)}
+                                                                        className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                                                                    >
+                                                                        <Unlink size={16} className="mr-1" /> Scollega Cantiere
+                                                                    </Button>
+                                                                ) : null}
+
+                                                                {linkedClient ? (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        onClick={() => handleUnlinkClient(quote._id)}
+                                                                        className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                                                                    >
+                                                                        <Unlink size={16} className="mr-1" /> Scollega Client
+                                                                    </Button>
+                                                                ) : null}
+
+                                                                {!linkedCantiere || !linkedClient ? (
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        onClick={() => {
+                                                                            setSelectedQuote(quote);
+                                                                            setLinkModalOpen(true);
+                                                                        }}
+                                                                        className="text-purple-400 border-purple-500/30 hover:bg-purple-500/20"
+                                                                    >
+                                                                        <Link2 size={16} className="mr-1" /> Collega
+                                                                    </Button>
+                                                                ) : null}
+                                                            </>
                                                         )}
 
                                                         <Button variant="ghost" className="text-[#adb5bd] hover:text-[#f8f9fa]">

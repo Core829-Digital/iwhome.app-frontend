@@ -40,6 +40,7 @@ export default function Clienti() {
     const createClient = useMutation(api.clients.create);
     const updateClient = useMutation(api.clients.update);
     const archiveClient = useMutation(api.clients.archive);
+    const unarchiveClient = useMutation(api.clients.unarchive);
 
     const convexUser = useQuery(api.users.getByEmail, {
         email: user?.primaryEmailAddress?.emailAddress || ""
@@ -212,10 +213,22 @@ export default function Clienti() {
                                                     onClick={(e) => { e.stopPropagation(); openEditModal(client); }}>
                                                     <Edit size={14} className="mr-1" /> Modifica
                                                 </Button>
-                                                <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300"
-                                                    onClick={(e) => { e.stopPropagation(); handleArchive(client._id); }}>
-                                                    <Archive size={14} className="mr-1" /> Archivia
-                                                </Button>
+                                                {client.status === 'archived' ? (
+                                                    <Button size="sm" variant="ghost" className="text-green-400 hover:text-green-300"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (confirm("Ripristinare questo cliente?")) {
+                                                                unarchiveClient({ id: client._id });
+                                                            }
+                                                        }}>
+                                                        <Archive size={14} className="mr-1" /> Ripristina
+                                                    </Button>
+                                                ) : (
+                                                    <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300"
+                                                        onClick={(e) => { e.stopPropagation(); handleArchive(client._id); }}>
+                                                        <Archive size={14} className="mr-1" /> Archivia
+                                                    </Button>
+                                                )}
                                             </div>
                                         </CardContent>
                                     </Card>

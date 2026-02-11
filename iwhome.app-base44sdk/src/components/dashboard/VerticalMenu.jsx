@@ -18,7 +18,8 @@ import {
   Building,
   HardHat,
   MessagesSquare,
-  Receipt
+  Receipt,
+  Shield
 } from 'lucide-react';
 import { useUser, useClerk } from '@clerk/clerk-react';
 
@@ -36,7 +37,8 @@ const createPageUrl = (page) => {
     ClientChat: '/ClientChat',
     CantieriDashboard: '/CantieriDashboard',
     Clienti: '/Clienti',
-    Preventivi: '/Preventivi'
+    Preventivi: '/Preventivi',
+    Admin: '/Admin'
   };
   return routes[page] || '/Dashboard';
 };
@@ -116,6 +118,12 @@ const getMenuItems = (user) => {
         name: 'Preventivi',
         page: 'Preventivi',
         icon: Receipt,
+        subItems: []
+      },
+      {
+        name: 'Pannello Admin',
+        page: 'Admin',
+        icon: Shield,
         subItems: []
       }
     ];

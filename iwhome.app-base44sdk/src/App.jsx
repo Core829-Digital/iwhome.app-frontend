@@ -8,6 +8,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { ClerkProvider, useAuth as useClerkAuth } from "@clerk/clerk-react";
+import { itIT } from "@clerk/localizations";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
 
@@ -23,7 +24,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   : <>{children}</>;
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, logout } = useAuth();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -38,6 +39,24 @@ const AuthenticatedApp = () => {
   if (authError) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
+    } else if (authError.type === 'user_blocked') {
+      return (
+        <div className="fixed inset-0 flex items-center justify-center bg-[#212529]">
+          <div className="text-center p-8 bg-[#343a40]/50 backdrop-blur-xl rounded-2xl border border-red-500/30 max-w-md">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/20 flex items-center justify-center">
+              <span className="text-3xl">🚫</span>
+            </div>
+            <h1 className="text-2xl font-bold text-[#f8f9fa] mb-2">Account Bloccato</h1>
+            <p className="text-[#dee2e6] mb-4">{authError.message}</p>
+            <button
+              onClick={() => logout()}
+              className="px-6 py-2 bg-[#f8f9fa] text-[#212529] rounded-lg font-medium hover:bg-[#e9ecef] transition-colors"
+            >
+              Esci
+            </button>
+          </div>
+        </div>
+      );
     } else if (authError.type === 'auth_required') {
       // Redirect to login automatically
       navigateToLogin();
@@ -73,7 +92,7 @@ const AuthenticatedApp = () => {
 function App() {
 
   return (
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} localization={itIT}>
       <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>
         <AuthProvider>
           <Router>

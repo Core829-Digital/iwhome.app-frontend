@@ -21,6 +21,28 @@ const categories = [
   { id: 'novita', name: 'Novità' },
 ];
 
+const categoryFallbackImages = {
+  ristrutturazioni: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&q=80',
+  finestre: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&q=80',
+  materiali: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&q=80',
+  design: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=800&q=80',
+  guide: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&q=80',
+  novita: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80',
+  default: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80'
+};
+
+const getFallbackImage = (category, index) => {
+  const indexFallbacks = [
+    'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80',
+    'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&q=80',
+    'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800&q=80',
+    'https://images.unsplash.com/photo-1618219908412-a29a1bb7b86e?w=800&q=80',
+    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80',
+    'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=800&q=80',
+  ];
+  return categoryFallbackImages[category] || indexFallbacks[index % indexFallbacks.length] || categoryFallbackImages.default;
+};
+
 export default function Blog() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -146,9 +168,12 @@ export default function Blog() {
                 >
                   <div className="relative h-48 overflow-hidden">
                     <img
-                      src={post.featured_image || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80'}
+                      src={post.featured_image || getFallbackImage(post.category, index)}
                       alt={post.title}
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => { e.target.src = categoryFallbackImages.default; }}
                     />
                     <div className="absolute top-4 left-4">
                       <span className="px-3 py-1 bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529] rounded-full text-xs font-medium">

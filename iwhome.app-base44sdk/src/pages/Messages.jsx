@@ -35,7 +35,8 @@ import {
   CheckCheck,
   UserPlus,
   Clock,
-  ShieldCheck
+  ShieldCheck,
+  Search
 } from 'lucide-react';
 
 export default function Messages() {
@@ -53,6 +54,7 @@ export default function Messages() {
   const [verifyModalOpen, setVerifyModalOpen] = useState(false);
   const [accessCode, setAccessCode] = useState('');
   const [contactFilter, setContactFilter] = useState('all');
+  const [contactSearchTerm, setContactSearchTerm] = useState('');
 
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -403,6 +405,9 @@ export default function Messages() {
                                   ⏱️
                                 </span>
                               )}
+                              <span className="text-[10px] text-[#adb5bd] ml-auto">
+                                {new Date(msg._creationTime).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}, {new Date(msg._creationTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
                             </div>
                           </div>
                         </motion.div>
@@ -547,7 +552,7 @@ export default function Messages() {
                 onClick={(e) => e.stopPropagation()}
                 className="bg-[#343a40]/95 backdrop-blur-xl border border-[#f8f9fa]/20 rounded-3xl p-6 max-w-md w-full mx-4 max-h-[70vh] overflow-y-auto"
               >
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-medium text-[#f8f9fa]">Seleziona Contatto</h3>
                   <button
                     onClick={() => setShowContactsList(false)}
@@ -555,6 +560,17 @@ export default function Messages() {
                   >
                     <X size={20} className="text-[#f8f9fa]" />
                   </button>
+                </div>
+
+                {/* Contact Search */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#adb5bd]" />
+                  <Input
+                    placeholder="Cerca contatto..."
+                    value={contactSearchTerm}
+                    onChange={(e) => setContactSearchTerm(e.target.value)}
+                    className="pl-9 bg-[#212529] border-[#495057] text-[#f8f9fa] placeholder:text-[#6c757d]"
+                  />
                 </div>
 
                 <div className="flex gap-2 mb-4">
@@ -579,7 +595,12 @@ export default function Messages() {
                 <div className="space-y-2">
                   {allUsers
                     .filter(u => u.email !== user?.primaryEmailAddress?.emailAddress)
-                    .filter(u => contactFilter === 'all' || (contactFilter === 'company' && (u.is_company || u.role === 'admin')))
+                    .filter(u => {
+                      const matchesFilter = contactFilter === 'all' || (contactFilter === 'company' && (u.is_company || u.role === 'admin'));
+                      const matchesSearch = (u.fullName?.toLowerCase() || '').includes(contactSearchTerm.toLowerCase()) ||
+                        u.email.toLowerCase().includes(contactSearchTerm.toLowerCase());
+                      return matchesFilter && matchesSearch;
+                    })
                     .map((contact) => (
                       <button
                         key={contact._id}

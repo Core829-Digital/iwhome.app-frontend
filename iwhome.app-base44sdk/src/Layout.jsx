@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Phone, Mail, MapPin, Instagram, Facebook, Linkedin, User, LogOut, LayoutDashboard, Search } from 'lucide-react';
+import { Menu, X, Phone, Mail, MapPin, Instagram, Facebook, Linkedin, User, LogOut, LayoutDashboard } from 'lucide-react';
 import ChatWidget from './components/chat/ChatWidget';
 import PageTransition from './components/PageTransition';
 import GDPRBanner from './components/GDPRBanner';
@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import GlobalSearch from './components/dashboard/GlobalSearch';
+
 import { useUser, useClerk } from "@clerk/clerk-react";
 import NotificationBell from './components/dashboard/NotificationBell';
 import { useQuery } from "convex/react";
@@ -24,7 +24,7 @@ export default function Layout({ children, currentPageName }) {
   const [scrolled, setScrolled] = useState(false);
   const [atTop, setAtTop] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+
   const { user: clerkUser } = useUser();
   const { openSignIn, signOut } = useClerk();
 
@@ -60,7 +60,6 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Chi Siamo', page: 'ChiSiamo' },
     { name: 'Servizi', page: 'Servizi' },
     { name: 'Calcolatore', page: 'Calcolatore' },
-    { name: 'Appuntamenti', page: 'Appuntamenti' },
     { name: 'Blog', page: 'Blog' },
   ];
 
@@ -149,14 +148,16 @@ export default function Layout({ children, currentPageName }) {
 
               {/* User Menu Desktop */}
               <div className="hidden lg:flex items-center gap-2 flex-shrink-0 ml-auto">
-                <button
-                  onClick={() => setShowGlobalSearch(true)}
+                <a
+                  href="https://www.instagram.com/iwhomere/"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className={`p-2 rounded-lg hover:bg-white/10 transition-all ${scrolled ? 'text-white/80' : 'text-white'
                     }`}
-                  title="Ricerca globale"
+                  title="Seguici su Instagram"
                 >
-                  <Search size={scrolled ? 18 : 20} />
-                </button>
+                  <Instagram size={scrolled ? 18 : 20} />
+                </a>
 
                 {/* Notification Bell */}
                 {user && (
@@ -302,12 +303,7 @@ export default function Layout({ children, currentPageName }) {
         {/* GDPR Banner */}
         <GDPRBanner />
 
-        {/* Global Search Modal */}
-        <AnimatePresence>
-          {showGlobalSearch && user && (
-            <GlobalSearch user={user} onClose={() => setShowGlobalSearch(false)} />
-          )}
-        </AnimatePresence>
+
       </div>
 
       {/* Footer */}
@@ -332,13 +328,13 @@ export default function Layout({ children, currentPageName }) {
                 soluzioni pensate per durare nel tempo.
               </p>
               <div className="flex gap-4">
-                <a href="#" className="w-10 h-10 rounded-full bg-[#f8f9fa]/5 flex items-center justify-center hover:bg-[#gunmetal] hover:scale-110 transition-all duration-300">
+                <a href="https://www.instagram.com/iwhomere/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#f8f9fa]/5 flex items-center justify-center hover:bg-[#f8f9fa]/15 hover:scale-110 transition-all duration-300">
                   <Instagram size={18} className="text-[#e9ecef]/70 hover:text-[#f8f9fa]" />
                 </a>
-                <a href="#" className="w-10 h-10 rounded-full bg-[#f8f9fa]/5 flex items-center justify-center hover:bg-[#gunmetal] hover:scale-110 transition-all duration-300">
+                <a href="#" className="w-10 h-10 rounded-full bg-[#f8f9fa]/5 flex items-center justify-center hover:bg-[#f8f9fa]/15 hover:scale-110 transition-all duration-300">
                   <Facebook size={18} className="text-[#e9ecef]/70 hover:text-[#f8f9fa]" />
                 </a>
-                <a href="#" className="w-10 h-10 rounded-full bg-[#f8f9fa]/5 flex items-center justify-center hover:bg-[#gunmetal] hover:scale-110 transition-all duration-300">
+                <a href="#" className="w-10 h-10 rounded-full bg-[#f8f9fa]/5 flex items-center justify-center hover:bg-[#f8f9fa]/15 hover:scale-110 transition-all duration-300">
                   <Linkedin size={18} className="text-[#e9ecef]/70 hover:text-[#f8f9fa]" />
                 </a>
               </div>

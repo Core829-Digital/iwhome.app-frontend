@@ -4,7 +4,12 @@ import { Check } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const Checkbox = React.forwardRef(({ className, ...props }, ref) => (
+/**
+ * @typedef {import('@radix-ui/react-checkbox').CheckboxProps & { className?: string, id?: string }} CheckboxProps
+ */
+
+/** @type {React.ForwardRefExoticComponent<CheckboxProps & React.RefAttributes<HTMLButtonElement>>} */
+const Checkbox = React.forwardRef(({ className, id, ...props }, ref) => (
   <CheckboxPrimitive.Root
     ref={ref}
     className={cn(

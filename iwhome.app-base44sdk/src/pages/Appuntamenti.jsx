@@ -80,7 +80,7 @@ export default function Appuntamenti() {
       appointment_date: format(selectedDate, 'yyyy-MM-dd'),
       appointment_time: selectedTime,
       project_type: projectType,
-      status: 'pending' // Note: backend defaults to confirmed unless we change it
+      status: 'confirmed'
     };
 
     try {
@@ -134,7 +134,7 @@ export default function Appuntamenti() {
             Abbiamo ricevuto la tua richiesta di appuntamento.
           </p>
           <p className="text-sm text-[#adb5bd] mb-8">
-            Ti invieremo una conferma via email entro 24 ore.
+            Riceverai una email di conferma a breve.
           </p>
           <Button
             onClick={() => window.location.href = '/'}
@@ -553,7 +553,7 @@ export default function Appuntamenti() {
                 width="100%"
                 height="400"
                 style={{ border: 0 }}
-                allowFullScreen=""
+                allowFullScreen
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
                 className="w-full h-[400px]"

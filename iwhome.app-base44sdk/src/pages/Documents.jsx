@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import VerticalMenu from '../components/dashboard/VerticalMenu';
 import AnimatedBackground from '../components/dashboard/AnimatedBackground';
+import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
 import {
   FileText,
   Upload,
@@ -34,65 +35,6 @@ import {
   Download,
   Loader2
 } from 'lucide-react';
-
-// PDF Viewer Component that fetches the proper URL
-function PDFViewer({ storageUrl, onClose }) {
-  // Get proper URL from the storage ID
-  const fileUrl = useQuery(api.files.getFileUrl, { storageId: storageUrl || "" });
-
-  if (!storageUrl) return null;
-
-  return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="bg-[#343a40] border-[#f8f9fa]/20 text-[#f8f9fa] max-w-5xl h-[85vh] flex flex-col p-0 overflow-hidden">
-        <DialogHeader className="p-4 border-b border-[#f8f9fa]/10 bg-[#212529]/50 flex flex-row items-center justify-between">
-          <DialogTitle>Visualizza Documento</DialogTitle>
-          <div className="flex gap-2">
-            {fileUrl && (
-              <a href={fileUrl} target="_blank" rel="noopener noreferrer" download>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-[#f8f9fa] hover:bg-[#f8f9fa]/10"
-                >
-                  <Download size={20} />
-                </Button>
-              </a>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onClose(false)}
-              className="text-[#f8f9fa] hover:bg-[#f8f9fa]/10"
-            >
-              <X size={20} />
-            </Button>
-          </div>
-        </DialogHeader>
-        <div className="flex-1 bg-white flex items-center justify-center">
-          {fileUrl === undefined ? (
-            <div className="flex flex-col items-center gap-3 text-gray-500">
-              <Loader2 className="animate-spin" size={32} />
-              <p>Caricamento documento...</p>
-            </div>
-          ) : fileUrl === null ? (
-            <div className="flex flex-col items-center gap-3 text-gray-500">
-              <FileText size={48} />
-              <p>Impossibile caricare il documento</p>
-              <p className="text-sm text-gray-400">Il file potrebbe non esistere più</p>
-            </div>
-          ) : (
-            <iframe
-              src={fileUrl}
-              className="w-full h-full border-0"
-              title="Document Viewer"
-            />
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 export default function Documents() {
   const { user } = useUser();
@@ -107,8 +49,9 @@ export default function Documents() {
   });
   const [isUploading, setIsUploading] = useState(false);
 
-  // PDF Viewer State - now stores the file_url/storageId
+  // PDF Viewer State
   const [selectedDocUrl, setSelectedDocUrl] = useState(null);
+  const [selectedDocTitle, setSelectedDocTitle] = useState('');
 
   const documentsQuery = useQuery(api.documents.getByUser, { email: user?.primaryEmailAddress?.emailAddress || "" });
   const documents = documentsQuery || [];
@@ -131,7 +74,8 @@ export default function Documents() {
 
       if (!result.ok) throw new Error("Upload failed");
       const { storageId } = await result.json();
-      const storageUrl = `${import.meta.env.VITE_CONVEX_URL}/api/storage/${storageId}`;
+      // Store ONLY the storageId, let the backend generate the signed URL
+      const storageUrl = storageId;
 
       if (user?.primaryEmailAddress?.emailAddress) {
         await createDocument({
@@ -176,13 +120,13 @@ export default function Documents() {
       <AnimatedBackground />
       <VerticalMenu />
 
-      {/* PDF Viewer Component */}
-      {selectedDocUrl && (
-        <PDFViewer
-          storageUrl={selectedDocUrl}
-          onClose={() => setSelectedDocUrl(null)}
-        />
-      )}
+      {/* Universal PDF Viewer */}
+      <UniversalPdfViewer
+        isOpen={!!selectedDocUrl}
+        onClose={() => setSelectedDocUrl(null)}
+        url={selectedDocUrl}
+        title={selectedDocTitle}
+      />
 
       <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
@@ -319,7 +263,10 @@ export default function Documents() {
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      onClick={() => setSelectedDocUrl(doc.file_url)}
+                      onClick={() => {
+                        setSelectedDocUrl(doc.file_url);
+                        setSelectedDocTitle(doc.title);
+                      }}
                       className="flex-1 bg-[#495057] text-[#f8f9fa] hover:bg-[#6c757d] transition-colors font-medium border border-[#f8f9fa]/20"
                     >
                       <Eye size={14} className="mr-1" />
