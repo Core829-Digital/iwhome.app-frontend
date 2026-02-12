@@ -117,6 +117,7 @@ export default function PdfEditor() {
   });
 
   const createTemplateMutation = useMutation({
+    /** @param {any} data */
     mutationFn: async (data) => {
       return await base44.entities.PDFTemplate.create({
         company_email: user.email,
@@ -128,11 +129,17 @@ export default function PdfEditor() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pdf-templates'] });
       setIsCreating(false);
-      setTemplateData({ template_name: '', elements: [] });
+      setTemplateData({
+        template_name: '',
+        template_type: 'custom',
+        elements: [],
+        fields: []
+      });
     }
   });
 
   const updateTemplateMutation = useMutation({
+    /** @param {{id: string, data: any}} params */
     mutationFn: async ({ id, data }) => {
       return await base44.entities.PDFTemplate.update(id, {
         template_name: data.template_name,
@@ -154,6 +161,7 @@ export default function PdfEditor() {
   });
 
   const createSignatureMutation = useMutation({
+    /** @param {any} data */
     mutationFn: async (data) => {
       return await base44.entities.QuoteSignature.create(data);
     },
@@ -163,6 +171,7 @@ export default function PdfEditor() {
   });
 
   const updateSignatureMutation = useMutation({
+    /** @param {{id: string, data: any}} params */
     mutationFn: async ({ id, data }) => {
       return await base44.entities.QuoteSignature.update(id, data);
     },
@@ -603,8 +612,8 @@ export default function PdfEditor() {
               <button
                 onClick={() => setActiveTab('editor')}
                 className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === 'editor'
-                    ? 'text-[#f8f9fa] border-b-2 border-blue-500'
-                    : 'text-[#adb5bd] hover:text-[#f8f9fa]'
+                  ? 'text-[#f8f9fa] border-b-2 border-blue-500'
+                  : 'text-[#adb5bd] hover:text-[#f8f9fa]'
                   }`}
               >
                 Editor
@@ -612,8 +621,8 @@ export default function PdfEditor() {
               <button
                 onClick={() => setActiveTab('prodotti')}
                 className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === 'prodotti'
-                    ? 'text-[#f8f9fa] border-b-2 border-green-500'
-                    : 'text-[#adb5bd] hover:text-[#f8f9fa]'
+                  ? 'text-[#f8f9fa] border-b-2 border-green-500'
+                  : 'text-[#adb5bd] hover:text-[#f8f9fa]'
                   }`}
               >
                 Prodotti
@@ -621,8 +630,8 @@ export default function PdfEditor() {
               <button
                 onClick={() => setActiveTab('firme')}
                 className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === 'firme'
-                    ? 'text-[#f8f9fa] border-b-2 border-purple-500'
-                    : 'text-[#adb5bd] hover:text-[#f8f9fa]'
+                  ? 'text-[#f8f9fa] border-b-2 border-purple-500'
+                  : 'text-[#adb5bd] hover:text-[#f8f9fa]'
                   }`}
               >
                 Firme ({signatures.length})
@@ -630,8 +639,8 @@ export default function PdfEditor() {
               <button
                 onClick={() => setActiveTab('catalogo')}
                 className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === 'catalogo'
-                    ? 'text-[#f8f9fa] border-b-2 border-orange-500'
-                    : 'text-[#adb5bd] hover:text-[#f8f9fa]'
+                  ? 'text-[#f8f9fa] border-b-2 border-orange-500'
+                  : 'text-[#adb5bd] hover:text-[#f8f9fa]'
                   }`}
               >
                 <Package size={16} className="inline mr-1" />
@@ -860,8 +869,8 @@ export default function PdfEditor() {
                                 {sig.numero_preventivo}
                               </h3>
                               <span className={`text-xs px-2 py-1 rounded ${sig.status === 'signed' ? 'bg-green-500/20 text-green-400' :
-                                  sig.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
-                                    'bg-yellow-500/20 text-yellow-400'
+                                sig.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
+                                  'bg-yellow-500/20 text-yellow-400'
                                 }`}>
                                 {getStatusText(sig.status)}
                               </span>
