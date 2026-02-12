@@ -30,7 +30,7 @@ export default function Settings() {
   const [imagePreview, setImagePreview] = useState(null);
 
   // Track initial values to detect real changes
-  const initialValuesRef = useRef({});
+  const initialValuesRef = useRef({ company_code: '' });
 
   const verifyAccount = useMutation(api.users.verifyAccount);
   const updateProfile = useMutation(api.users.updateProfile);

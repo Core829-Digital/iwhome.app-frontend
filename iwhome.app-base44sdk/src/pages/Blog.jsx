@@ -173,7 +173,7 @@ export default function Blog() {
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                       loading="lazy"
                       decoding="async"
-                      onError={(e) => { e.target.src = categoryFallbackImages.default; }}
+                      onError={(e) => { e.currentTarget.src = categoryFallbackImages.default; }}
                     />
                     <div className="absolute top-4 left-4">
                       <span className="px-3 py-1 bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529] rounded-full text-xs font-medium">
