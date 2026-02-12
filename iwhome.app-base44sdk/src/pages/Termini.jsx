@@ -133,8 +133,8 @@ export default function Termini() {
               Per domande sui presenti Termini di Servizio, contattaci a:
             </p>
             <ul className="list-none pl-0 space-y-2">
-              <li><strong>Email:</strong> info@iwhome.it</li>
-              <li><strong>Sede:</strong> Showroom IwHome, Italia</li>
+              <li><strong>Email:</strong> info@iwhome.it / amministrazione@iwhome.it</li>
+              <li><strong>Sede:</strong> Via Emilio All'angelo 22/F, Reggio Emilia (RE) - 42124</li>
             </ul>
           </div>
         </div>

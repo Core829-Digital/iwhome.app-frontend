@@ -32,7 +32,7 @@ export default function Privacy() {
 
             <h2 className="text-2xl font-medium text-[#212529] mt-8 mb-4">Titolare del Trattamento dei Dati</h2>
             <p>IwHome</p>
-            <p><strong>Indirizzo email del Titolare:</strong> info@iwhome.it</p>
+            <p><strong>Indirizzo email del Titolare:</strong> info@iwhome.it / amministrazione@iwhome.it</p>
 
             <h2 className="text-2xl font-medium text-[#212529] mt-8 mb-4">Tipologie di Dati raccolti</h2>
             <p>

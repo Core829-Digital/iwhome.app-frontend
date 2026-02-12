@@ -5,7 +5,7 @@ import { MapPin, Clock, Phone, Mail } from 'lucide-react';
 
 export default function MapSection() {
   const [mapUrl, setMapUrl] = useState('');
-  const address = 'Via Montefiorino 10/E, Reggio Emilia, Italia';
+  const address = "Via Emilio All'angelo 22/F, Reggio Emilia, Italia";
 
   useEffect(() => {
     const encodedAddress = encodeURIComponent(address);
@@ -74,6 +74,7 @@ export default function MapSection() {
               <div>
                 <h3 className="text-[#f8f9fa] font-medium mb-1">Indirizzo</h3>
                 <p className="text-[#dee2e6] text-sm">{address}</p>
+                <p className="text-[#dee2e6] text-xs mt-1 opacity-70">CAP 42124</p>
               </div>
             </motion.div>
 
@@ -102,8 +103,9 @@ export default function MapSection() {
               </div>
               <div>
                 <h3 className="text-[#f8f9fa] font-medium mb-1">Contatti</h3>
-                <p className="text-[#dee2e6] text-sm">+39 340 292 1052</p>
-                <p className="text-[#dee2e6] text-sm">info@iwhome.it</p>
+                <p className="text-[#dee2e6] text-sm">+39 389 182 0808</p>
+                <p className="text-[#dee2e6] text-sm mt-1">info@iwhome.it</p>
+                <p className="text-[#dee2e6] text-sm">amministrazione@iwhome.it</p>
               </div>
             </motion.div>
           </motion.div>

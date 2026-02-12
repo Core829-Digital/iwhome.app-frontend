@@ -173,13 +173,13 @@ export default function PdfEditor() {
 
   const generateQuoteNumber = async () => {
     const year = new Date().getFullYear();
-    
+
     // Get or create counter for current year
     const counters = await base44.entities.QuoteCounter.filter({
       company_email: user.email,
       anno: year
     });
-    
+
     let counter;
     if (counters.length === 0) {
       counter = await base44.entities.QuoteCounter.create({
@@ -194,7 +194,7 @@ export default function PdfEditor() {
       });
       counter.ultimo_numero += 1;
     }
-    
+
     const numeroProgressivo = String(counter.ultimo_numero).padStart(3, '0');
     return `PREV-${year}-${numeroProgressivo}`;
   };
@@ -278,21 +278,21 @@ export default function PdfEditor() {
         { id: Date.now() + 2, name: 'garanzia', label: 'Garanzia', type: 'text', defaultValue: '2 anni' },
         { id: Date.now() + 3, name: 'termini_condizioni', label: 'Termini e Condizioni', type: 'textarea', defaultValue: 'Come da preventivo allegato' }
       ];
-      
+
       setTemplateData({
         template_name: template.name,
         template_type: type,
         elements: template.elements,
         fields: defaultFields
       });
-      
+
       // Initialize custom fields with defaults
       const initialData = {};
       defaultFields.forEach(field => {
         initialData[field.name] = field.defaultValue || '';
       });
       setCustomFieldsData(initialData);
-      
+
       setIsCreating(true);
     }
   };
@@ -358,19 +358,19 @@ export default function PdfEditor() {
   const replaceVariables = (text) => {
     if (!text) return text;
     let result = text;
-    
+
     // Replace standard fields
     Object.keys(previewData).forEach(key => {
       const regex = new RegExp(`{{${key}}}`, 'g');
       result = result.replace(regex, previewData[key] || '');
     });
-    
+
     // Replace custom fields
     Object.keys(customFieldsData).forEach(key => {
       const regex = new RegExp(`{{${key}}}`, 'g');
       result = result.replace(regex, customFieldsData[key] || '');
     });
-    
+
     return result;
   };
 
@@ -384,17 +384,17 @@ export default function PdfEditor() {
 
     // Generate automatic quote number
     const numeroPreventivo = await generateQuoteNumber();
-    
+
     // Calculate expiration date
     const dataScadenza = new Date();
     dataScadenza.setDate(dataScadenza.getDate() + giorniValidita);
 
     // Generate PDF
     const doc = new jsPDF();
-    
+
     doc.setFontSize(20);
     doc.text('PREVENTIVO', 105, 20, { align: 'center' });
-    
+
     templateData.elements.forEach(element => {
       if (element.type === 'text') {
         doc.setFontSize(element.style.fontSize || 12);
@@ -409,7 +409,7 @@ export default function PdfEditor() {
 
     const pdfBlob = doc.output('blob');
     const file = new File([pdfBlob], `preventivo_${previewData.numero_preventivo}.pdf`, { type: 'application/pdf' });
-    
+
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
     const { subtotale, iva, totale } = calculateTotals();
@@ -454,11 +454,11 @@ export default function PdfEditor() {
 
   const generatePDF = () => {
     const doc = new jsPDF();
-    
+
     // Logo e intestazione
     doc.setFontSize(20);
     doc.text('PREVENTIVO', 105, 20, { align: 'center' });
-    
+
     // Elementi del template con dati dinamici
     templateData.elements.forEach(element => {
       if (element.type === 'text') {
@@ -479,7 +479,7 @@ export default function PdfEditor() {
         doc.text('Totale', element.x + 160, startY);
         doc.setFont(undefined, 'normal');
         doc.line(element.x, startY + 2, element.x + element.width, startY + 2);
-        
+
         // Riga esempio
         doc.text('Prodotto esempio', element.x, startY + 10);
         doc.text('1', element.x + 80, startY + 10);
@@ -487,18 +487,18 @@ export default function PdfEditor() {
         doc.text('€ 0.00', element.x + 160, startY + 10);
       }
     });
-    
+
     // Totale
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
     doc.text('TOTALE: € _______', 20, 270);
     doc.setFont(undefined, 'normal');
-    
+
     // Footer
     doc.setFontSize(8);
-    doc.text('IwHome - Via Montefiorino 10/E, Reggio Emilia', 105, 285, { align: 'center' });
-    doc.text('Tel: +39 340 292 1052 | info@iwhome.it', 105, 290, { align: 'center' });
-    
+    doc.text('IwHome - Via Emilio All\'angelo 22/F, Reggio Emilia - 42124', 105, 285, { align: 'center' });
+    doc.text('Tel: +39 389 182 0808 | info@iwhome.it | amministrazione@iwhome.it | P.IVA 03096130350', 105, 290, { align: 'center' });
+
     // Add company signature if exists
     if (companySignature) {
       doc.addImage(companySignature, 'PNG', 20, 255, 50, 20);
@@ -510,7 +510,7 @@ export default function PdfEditor() {
   };
 
   const getStatusIcon = (status) => {
-    switch(status) {
+    switch (status) {
       case 'pending': return <Clock size={16} className="text-yellow-500" />;
       case 'signed': return <CheckCircle size={16} className="text-green-500" />;
       case 'rejected': return <XCircle size={16} className="text-red-500" />;
@@ -519,7 +519,7 @@ export default function PdfEditor() {
   };
 
   const getStatusText = (status) => {
-    switch(status) {
+    switch (status) {
       case 'pending': return 'In attesa';
       case 'signed': return 'Firmato';
       case 'rejected': return 'Rifiutato';
@@ -547,14 +547,14 @@ export default function PdfEditor() {
       fields: template.fields || []
     };
     setTemplateData(loadedData);
-    
+
     // Initialize custom fields data with default values
     const initialCustomData = {};
     (loadedData.fields || []).forEach(field => {
       initialCustomData[field.name] = field.defaultValue || '';
     });
     setCustomFieldsData(initialCustomData);
-    
+
     setIsCreating(true);
   };
 
@@ -602,41 +602,37 @@ export default function PdfEditor() {
             <div className="flex gap-2 mb-6 border-b border-[#f8f9fa]/20">
               <button
                 onClick={() => setActiveTab('editor')}
-                className={`px-4 py-2 text-sm font-medium transition-all ${
-                  activeTab === 'editor'
+                className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === 'editor'
                     ? 'text-[#f8f9fa] border-b-2 border-blue-500'
                     : 'text-[#adb5bd] hover:text-[#f8f9fa]'
-                }`}
+                  }`}
               >
                 Editor
               </button>
               <button
                 onClick={() => setActiveTab('prodotti')}
-                className={`px-4 py-2 text-sm font-medium transition-all ${
-                  activeTab === 'prodotti'
+                className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === 'prodotti'
                     ? 'text-[#f8f9fa] border-b-2 border-green-500'
                     : 'text-[#adb5bd] hover:text-[#f8f9fa]'
-                }`}
+                  }`}
               >
                 Prodotti
               </button>
               <button
                 onClick={() => setActiveTab('firme')}
-                className={`px-4 py-2 text-sm font-medium transition-all ${
-                  activeTab === 'firme'
+                className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === 'firme'
                     ? 'text-[#f8f9fa] border-b-2 border-purple-500'
                     : 'text-[#adb5bd] hover:text-[#f8f9fa]'
-                }`}
+                  }`}
               >
                 Firme ({signatures.length})
               </button>
               <button
                 onClick={() => setActiveTab('catalogo')}
-                className={`px-4 py-2 text-sm font-medium transition-all ${
-                  activeTab === 'catalogo'
+                className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === 'catalogo'
                     ? 'text-[#f8f9fa] border-b-2 border-orange-500'
                     : 'text-[#adb5bd] hover:text-[#f8f9fa]'
-                }`}
+                  }`}
               >
                 <Package size={16} className="inline mr-1" />
                 Catalogo
@@ -646,113 +642,113 @@ export default function PdfEditor() {
 
           {!isCreating ? (
             <>
-            {/* Predefined Templates */}
-            <div className="mb-6">
-              <h2 className="text-lg font-medium text-[#f8f9fa] mb-4">Template Predefiniti</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Card 
-                  className="bg-[#343a40]/30 backdrop-blur-xl border-[#f8f9fa]/20 hover:bg-[#343a40]/50 transition-all cursor-pointer"
-                  onClick={() => loadPredefinedTemplate('finestre')}
-                >
-                  <CardContent className="p-4 text-center">
-                    <FileText size={32} className="text-blue-400 mx-auto mb-2" />
-                    <h3 className="text-sm font-medium text-[#f8f9fa]">Finestre</h3>
-                  </CardContent>
-                </Card>
-                <Card 
-                  className="bg-[#343a40]/30 backdrop-blur-xl border-[#f8f9fa]/20 hover:bg-[#343a40]/50 transition-all cursor-pointer"
-                  onClick={() => loadPredefinedTemplate('chiavi_in_mano')}
-                >
-                  <CardContent className="p-4 text-center">
-                    <FileText size={32} className="text-green-400 mx-auto mb-2" />
-                    <h3 className="text-sm font-medium text-[#f8f9fa]">Chiavi in Mano</h3>
-                  </CardContent>
-                </Card>
-                <Card 
-                  className="bg-[#343a40]/30 backdrop-blur-xl border-[#f8f9fa]/20 hover:bg-[#343a40]/50 transition-all cursor-pointer"
-                  onClick={() => loadPredefinedTemplate('ristrutturazione')}
-                >
-                  <CardContent className="p-4 text-center">
-                    <FileText size={32} className="text-purple-400 mx-auto mb-2" />
-                    <h3 className="text-sm font-medium text-[#f8f9fa]">Ristrutturazione</h3>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-
-            {/* Templates List */}
-            <div>
-              <h2 className="text-lg font-medium text-[#f8f9fa] mb-4">
-                I Miei Template
-                <Button
-                  onClick={() => setActiveTab('catalogo')}
-                  className="ml-4 bg-green-600 hover:bg-green-700"
-                  size="sm"
-                >
-                  <Package size={16} className="mr-2" />
-                  Gestisci Catalogo
-                </Button>
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-              {templates.map((template) => (
-                <motion.div
-                  key={template.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ y: -4 }}
-                >
-                  <Card className="bg-[#343a40]/30 backdrop-blur-xl border-[#f8f9fa]/20 hover:bg-[#343a40]/50 transition-all">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                            <FileText size={20} className="text-blue-400" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-base text-[#f8f9fa]">
-                              {template.template_name}
-                            </CardTitle>
-                            <p className="text-xs text-[#adb5bd] mt-1">
-                              {template.elements?.length || 0} elementi
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => loadTemplate(template)}
-                          className="flex-1 border-[#f8f9fa]/30 text-[#f8f9fa] hover:bg-[#f8f9fa]/10"
-                        >
-                          <Edit size={14} className="mr-1" />
-                          Modifica
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => deleteTemplateMutation.mutate(template.id)}
-                          className="border-red-500/30 text-red-400 hover:bg-red-500/10"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </div>
+              {/* Predefined Templates */}
+              <div className="mb-6">
+                <h2 className="text-lg font-medium text-[#f8f9fa] mb-4">Template Predefiniti</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <Card
+                    className="bg-[#343a40]/30 backdrop-blur-xl border-[#f8f9fa]/20 hover:bg-[#343a40]/50 transition-all cursor-pointer"
+                    onClick={() => loadPredefinedTemplate('finestre')}
+                  >
+                    <CardContent className="p-4 text-center">
+                      <FileText size={32} className="text-blue-400 mx-auto mb-2" />
+                      <h3 className="text-sm font-medium text-[#f8f9fa]">Finestre</h3>
                     </CardContent>
                   </Card>
-                </motion.div>
-              ))}
-
-              {templates.length === 0 && (
-                <div className="col-span-full text-center py-12">
-                  <FileText size={64} className="text-[#6c757d] mx-auto mb-4" />
-                  <p className="text-[#dee2e6] text-lg mb-2">Nessun template trovato</p>
-                  <p className="text-[#adb5bd] text-sm">Crea il tuo primo template per iniziare</p>
+                  <Card
+                    className="bg-[#343a40]/30 backdrop-blur-xl border-[#f8f9fa]/20 hover:bg-[#343a40]/50 transition-all cursor-pointer"
+                    onClick={() => loadPredefinedTemplate('chiavi_in_mano')}
+                  >
+                    <CardContent className="p-4 text-center">
+                      <FileText size={32} className="text-green-400 mx-auto mb-2" />
+                      <h3 className="text-sm font-medium text-[#f8f9fa]">Chiavi in Mano</h3>
+                    </CardContent>
+                  </Card>
+                  <Card
+                    className="bg-[#343a40]/30 backdrop-blur-xl border-[#f8f9fa]/20 hover:bg-[#343a40]/50 transition-all cursor-pointer"
+                    onClick={() => loadPredefinedTemplate('ristrutturazione')}
+                  >
+                    <CardContent className="p-4 text-center">
+                      <FileText size={32} className="text-purple-400 mx-auto mb-2" />
+                      <h3 className="text-sm font-medium text-[#f8f9fa]">Ristrutturazione</h3>
+                    </CardContent>
+                  </Card>
                 </div>
-              )}
               </div>
-            </div>
+
+              {/* Templates List */}
+              <div>
+                <h2 className="text-lg font-medium text-[#f8f9fa] mb-4">
+                  I Miei Template
+                  <Button
+                    onClick={() => setActiveTab('catalogo')}
+                    className="ml-4 bg-green-600 hover:bg-green-700"
+                    size="sm"
+                  >
+                    <Package size={16} className="mr-2" />
+                    Gestisci Catalogo
+                  </Button>
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+                  {templates.map((template) => (
+                    <motion.div
+                      key={template.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      whileHover={{ y: -4 }}
+                    >
+                      <Card className="bg-[#343a40]/30 backdrop-blur-xl border-[#f8f9fa]/20 hover:bg-[#343a40]/50 transition-all">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                <FileText size={20} className="text-blue-400" />
+                              </div>
+                              <div>
+                                <CardTitle className="text-base text-[#f8f9fa]">
+                                  {template.template_name}
+                                </CardTitle>
+                                <p className="text-xs text-[#adb5bd] mt-1">
+                                  {template.elements?.length || 0} elementi
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => loadTemplate(template)}
+                              className="flex-1 border-[#f8f9fa]/30 text-[#f8f9fa] hover:bg-[#f8f9fa]/10"
+                            >
+                              <Edit size={14} className="mr-1" />
+                              Modifica
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => deleteTemplateMutation.mutate(template.id)}
+                              className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+
+                  {templates.length === 0 && (
+                    <div className="col-span-full text-center py-12">
+                      <FileText size={64} className="text-[#6c757d] mx-auto mb-4" />
+                      <p className="text-[#dee2e6] text-lg mb-2">Nessun template trovato</p>
+                      <p className="text-[#adb5bd] text-sm">Crea il tuo primo template per iniziare</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </>
           ) : activeTab === 'catalogo' ? (
             /* Catalog Section */
@@ -817,7 +813,7 @@ export default function PdfEditor() {
                           </div>
                         </div>
                       ))}
-                      
+
                       <div className="border-t border-[#f8f9fa]/20 pt-3 mt-4">
                         <div className="space-y-2 text-right">
                           <div className="flex justify-between text-sm">
@@ -863,11 +859,10 @@ export default function PdfEditor() {
                               <h3 className="text-[#f8f9fa] font-medium">
                                 {sig.numero_preventivo}
                               </h3>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                sig.status === 'signed' ? 'bg-green-500/20 text-green-400' :
-                                sig.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
-                                'bg-yellow-500/20 text-yellow-400'
-                              }`}>
+                              <span className={`text-xs px-2 py-1 rounded ${sig.status === 'signed' ? 'bg-green-500/20 text-green-400' :
+                                  sig.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
+                                    'bg-yellow-500/20 text-yellow-400'
+                                }`}>
                                 {getStatusText(sig.status)}
                               </span>
                             </div>
@@ -1023,9 +1018,9 @@ export default function PdfEditor() {
                           {field.type === 'textarea' ? (
                             <Textarea
                               value={customFieldsData[field.name] || ''}
-                              onChange={(e) => setCustomFieldsData({ 
-                                ...customFieldsData, 
-                                [field.name]: e.target.value 
+                              onChange={(e) => setCustomFieldsData({
+                                ...customFieldsData,
+                                [field.name]: e.target.value
                               })}
                               className="bg-[#495057]/50 border-[#f8f9fa]/20 text-[#f8f9fa] text-sm"
                               placeholder={field.defaultValue || `Inserisci ${field.label.toLowerCase()}`}
@@ -1035,9 +1030,9 @@ export default function PdfEditor() {
                             <Input
                               type="number"
                               value={customFieldsData[field.name] || ''}
-                              onChange={(e) => setCustomFieldsData({ 
-                                ...customFieldsData, 
-                                [field.name]: e.target.value 
+                              onChange={(e) => setCustomFieldsData({
+                                ...customFieldsData,
+                                [field.name]: e.target.value
                               })}
                               className="bg-[#495057]/50 border-[#f8f9fa]/20 text-[#f8f9fa] text-sm"
                               placeholder={field.defaultValue || `0`}
@@ -1046,18 +1041,18 @@ export default function PdfEditor() {
                             <Input
                               type="date"
                               value={customFieldsData[field.name] || ''}
-                              onChange={(e) => setCustomFieldsData({ 
-                                ...customFieldsData, 
-                                [field.name]: e.target.value 
+                              onChange={(e) => setCustomFieldsData({
+                                ...customFieldsData,
+                                [field.name]: e.target.value
                               })}
                               className="bg-[#495057]/50 border-[#f8f9fa]/20 text-[#f8f9fa] text-sm"
                             />
                           ) : (
                             <Input
                               value={customFieldsData[field.name] || ''}
-                              onChange={(e) => setCustomFieldsData({ 
-                                ...customFieldsData, 
-                                [field.name]: e.target.value 
+                              onChange={(e) => setCustomFieldsData({
+                                ...customFieldsData,
+                                [field.name]: e.target.value
                               })}
                               className="bg-[#495057]/50 border-[#f8f9fa]/20 text-[#f8f9fa] text-sm"
                               placeholder={field.defaultValue || `Inserisci ${field.label.toLowerCase()}`}
@@ -1152,8 +1147,8 @@ export default function PdfEditor() {
                                 />
                               </div>
                               <div className="grid grid-cols-2 gap-2">
-                                <Select 
-                                  value={field.type} 
+                                <Select
+                                  value={field.type}
                                   onValueChange={(v) => updateField(field.id, { type: v })}
                                 >
                                   <SelectTrigger className="bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] text-xs h-7">
@@ -1196,60 +1191,60 @@ export default function PdfEditor() {
                         </div>
                       </div>
 
-                    <div className="flex gap-2 pt-4">
-                      <Button
-                        onClick={saveTemplate}
-                        disabled={!templateData.template_name}
-                        className="flex-1 bg-green-600 hover:bg-green-700"
-                      >
-                        <Save size={16} className="mr-2" />
-                        Salva
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => setIsCreating(false)}
-                        className="border-[#f8f9fa]/30 text-[#f8f9fa]"
-                      >
-                        Annulla
-                      </Button>
-                    </div>
+                      <div className="flex gap-2 pt-4">
+                        <Button
+                          onClick={saveTemplate}
+                          disabled={!templateData.template_name}
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                        >
+                          <Save size={16} className="mr-2" />
+                          Salva
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setIsCreating(false)}
+                          className="border-[#f8f9fa]/30 text-[#f8f9fa]"
+                        >
+                          Annulla
+                        </Button>
+                      </div>
 
-                    <div className="space-y-2">
-                      <Button
-                        onClick={() => setShowSignatureModal(true)}
-                        className="w-full bg-purple-600 hover:bg-purple-700"
-                      >
-                        <PenTool size={16} className="mr-2" />
-                        {companySignature ? 'Modifica Firma' : 'Aggiungi Firma'}
-                      </Button>
+                      <div className="space-y-2">
+                        <Button
+                          onClick={() => setShowSignatureModal(true)}
+                          className="w-full bg-purple-600 hover:bg-purple-700"
+                        >
+                          <PenTool size={16} className="mr-2" />
+                          {companySignature ? 'Modifica Firma' : 'Aggiungi Firma'}
+                        </Button>
 
-                      {companySignature && (
-                        <div className="bg-white rounded p-2">
-                          <p className="text-xs text-gray-600 mb-1">Anteprima firma:</p>
-                          <img src={companySignature} alt="Firma" className="h-12" />
-                        </div>
-                      )}
+                        {companySignature && (
+                          <div className="bg-white rounded p-2">
+                            <p className="text-xs text-gray-600 mb-1">Anteprima firma:</p>
+                            <img src={companySignature} alt="Firma" className="h-12" />
+                          </div>
+                        )}
 
-                      <Button
-                        onClick={() => setShowSendModal(true)}
-                        disabled={!templateData.template_name || !companySignature}
-                        className="w-full bg-green-600 hover:bg-green-700"
-                      >
-                        <Send size={16} className="mr-2" />
-                        Invia per Firma
-                      </Button>
+                        <Button
+                          onClick={() => setShowSendModal(true)}
+                          disabled={!templateData.template_name || !companySignature}
+                          className="w-full bg-green-600 hover:bg-green-700"
+                        >
+                          <Send size={16} className="mr-2" />
+                          Invia per Firma
+                        </Button>
 
-                      <Button
-                        onClick={generatePDF}
-                        disabled={!templateData.template_name}
-                        className="w-full bg-blue-600 hover:bg-blue-700"
-                      >
-                        <Download size={16} className="mr-2" />
-                        Scarica PDF
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                        <Button
+                          onClick={generatePDF}
+                          disabled={!templateData.template_name}
+                          className="w-full bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Download size={16} className="mr-2" />
+                          Scarica PDF
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
 
                   {/* Elements List */}
                   <Card className="bg-[#343a40]/30 backdrop-blur-xl border-[#f8f9fa]/20">
@@ -1285,7 +1280,7 @@ export default function PdfEditor() {
                                 <Input
                                   type="number"
                                   value={element.style?.fontSize || 12}
-                                  onChange={(e) => updateElement(element.id, { 
+                                  onChange={(e) => updateElement(element.id, {
                                     style: { ...element.style, fontSize: parseInt(e.target.value) }
                                   })}
                                   className="bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] text-xs h-6 w-16"
@@ -1293,7 +1288,7 @@ export default function PdfEditor() {
                                 />
                                 <Select
                                   value={element.style?.fontWeight || 'normal'}
-                                  onValueChange={(v) => updateElement(element.id, { 
+                                  onValueChange={(v) => updateElement(element.id, {
                                     style: { ...element.style, fontWeight: v }
                                   })}
                                 >
@@ -1357,11 +1352,11 @@ export default function PdfEditor() {
                           {templateData.elements.map((element) => (
                             <div key={element.id} className="pb-2">
                               {element.type === 'text' && (
-                                <p 
-                                  className="text-[#212529]" 
-                                  style={{ 
+                                <p
+                                  className="text-[#212529]"
+                                  style={{
                                     fontSize: element.style.fontSize,
-                                    fontWeight: element.style.fontWeight 
+                                    fontWeight: element.style.fontWeight
                                   }}
                                 >
                                   {replaceVariables(element.content)}

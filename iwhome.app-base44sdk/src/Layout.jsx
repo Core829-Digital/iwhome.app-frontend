@@ -386,15 +386,18 @@ export default function Layout({ children, currentPageName }) {
               <ul className="space-y-4">
                 <li className="flex items-center gap-3 text-[#e9ecef]/60 text-sm">
                   <Phone size={16} className="text-[#f8f9fa]" />
-                  <a href="tel:+393402921052" className="hover:text-[#f8f9fa] transition-colors">+39 340 292 1052</a>
+                  <a href="tel:+393891820808" className="hover:text-[#f8f9fa] transition-colors">+39 389 182 0808</a>
                 </li>
-                <li className="flex items-center gap-3 text-[#e9ecef]/60 text-sm">
-                  <Mail size={16} className="text-[#f8f9fa]" />
-                  <a href="mailto:info@iwhome.it" className="hover:text-[#f8f9fa] transition-colors">info@iwhome.it</a>
+                <li className="flex items-start gap-3 text-[#e9ecef]/60 text-sm">
+                  <Mail size={16} className="text-[#f8f9fa] mt-0.5" />
+                  <div className="flex flex-col">
+                    <a href="mailto:info@iwhome.it" className="hover:text-[#f8f9fa] transition-colors">info@iwhome.it</a>
+                    <a href="mailto:amministrazione@iwhome.it" className="hover:text-[#f8f9fa] transition-colors">amministrazione@iwhome.it</a>
+                  </div>
                 </li>
                 <li className="flex items-start gap-3 text-[#e9ecef]/60 text-sm">
                   <MapPin size={16} className="mt-0.5" />
-                  <span>Via Montefiorino 10/E<br />Reggio Emilia, Italia</span>
+                  <span>Via Emilio All'angelo 22/F<br />Reggio Emilia - 42124</span>
                 </li>
               </ul>
             </div>
@@ -402,9 +405,10 @@ export default function Layout({ children, currentPageName }) {
 
           {/* Bottom Bar */}
           <div className="border-t border-[#f8f9fa]/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-[#adb5bd] text-sm">
-              © {new Date().getFullYear()} IwHome. Tutti i diritti riservati.
-            </p>
+            <div className="text-[#adb5bd] text-sm flex flex-col md:items-start items-center">
+              <p>© {new Date().getFullYear()} IwHome. Tutti i diritti riservati.</p>
+              <p className="text-xs opacity-70 mt-1">P.IVA 03096130350</p>
+            </div>
             <p className="text-[#adb5bd] text-xs">
               Materiali. Design. Casa.
             </p>

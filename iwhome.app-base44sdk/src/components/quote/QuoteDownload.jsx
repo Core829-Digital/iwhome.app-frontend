@@ -14,72 +14,72 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
   const downloadPDF = async () => {
     const doc = new jsPDF();
     const quoteNumber = generateQuoteNumber();
-    
+
     // Colors - Minimal palette
     const primary = [33, 37, 41];
     const secondary = [108, 117, 125];
     const light = [248, 249, 250];
     const white = [255, 255, 255];
-    
+
     // Load logo image (black version)
     const logoImg = new Image();
     logoImg.crossOrigin = 'anonymous';
     logoImg.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/9dc587ed1_iwhomenero.png';
-    
+
     await new Promise((resolve) => {
       logoImg.onload = resolve;
       logoImg.onerror = resolve;
     });
-    
+
     // Clean header with branding
     doc.setFillColor(...white);
     doc.rect(0, 0, 210, 55, 'F');
-    
+
     // Logo - centered and larger for branding
     if (logoImg.complete) {
       doc.addImage(logoImg, 'PNG', 20, 12, 25, 25, '', 'FAST');
     }
-    
+
     // Brand name and tagline
     doc.setTextColor(...primary);
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     doc.text('IwHome', 50, 23);
-    
+
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...secondary);
     doc.text('Showroom | Materiali, Design, Casa', 50, 30);
-    
+
     // Quote info - right side, well spaced
     doc.setTextColor(...secondary);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.text(`Preventivo N. ${quoteNumber}`, 190, 23, { align: 'right' });
-    doc.text(new Date().toLocaleDateString('it-IT', { 
-      day: '2-digit', 
-      month: 'long', 
-      year: 'numeric' 
+    doc.text(new Date().toLocaleDateString('it-IT', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
     }), 190, 30, { align: 'right' });
-    
+
     // Elegant divider line
     doc.setDrawColor(...secondary);
     doc.setLineWidth(0.5);
     doc.line(20, 52, 190, 52);
-    
+
     let yPos = 68;
-    
+
     // Title section - minimal and clear
     doc.setTextColor(...primary);
     doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
     doc.text('Preventivo Indicativo', 20, yPos);
     yPos += 15;
-    
+
     // Quote type badge - well spaced
-    const quoteTypeText = quoteData.quote_type === 'finestre' ? 'Solo Infissi' : 
-                          quoteData.quote_type === 'chiavi_in_mano' ? 'Chiavi in Mano' : 
-                          'Progetto Completo';
+    const quoteTypeText = quoteData.quote_type === 'finestre' ? 'Solo Infissi' :
+      quoteData.quote_type === 'chiavi_in_mano' ? 'Chiavi in Mano' :
+        'Progetto Completo';
     doc.setFillColor(240, 240, 242);
     doc.roundedRect(20, yPos - 5, 55, 9, 2, 2, 'F');
     doc.setFontSize(9);
@@ -87,12 +87,12 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
     doc.setFont('helvetica', 'bold');
     doc.text(quoteTypeText, 47.5, yPos, { align: 'center' });
     yPos += 20;
-    
+
     // Technical Schema - Show once at the beginning
     const schemaImg = new Image();
     schemaImg.crossOrigin = 'anonymous';
     schemaImg.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/cdb44c5dd_ideal4000schemaz40blackandwhite.png';
-    
+
     await new Promise((resolve) => {
       schemaImg.onload = resolve;
       schemaImg.onerror = resolve;
@@ -114,7 +114,7 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
     // Window Configurations - Multiple windows support
     if (quoteData.window_config?.windows && quoteData.window_config.windows.length > 0) {
       const windows = quoteData.window_config.windows;
-      
+
       // Section title
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
@@ -146,24 +146,24 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
         doc.setFont('helvetica', 'bold');
         doc.text(`Finestra #${i + 1}`, 40, yPos + 2, { align: 'center' });
         yPos += 12;
-      
+
         // Window Preview Image and specs side by side
         if (wc.material === 'pvc' && wc.previewImage) {
           const windowImg = new Image();
           windowImg.crossOrigin = 'anonymous';
           windowImg.src = wc.previewImage;
-          
+
           await new Promise((resolve) => {
             windowImg.onload = resolve;
             windowImg.onerror = resolve;
           });
-          
+
           if (windowImg.complete) {
             // Left side: Window preview
             doc.setFillColor(250, 250, 252);
             doc.roundedRect(20, yPos, 55, 60, 2, 2, 'F');
             doc.addImage(windowImg, 'PNG', 23, yPos + 5, 50, 50, '', 'FAST');
-            
+
             // Right side: Specs
             const specsX = 82;
             let specsY = yPos + 2;
@@ -191,7 +191,7 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
               doc.setTextColor(...secondary);
               doc.setFont('helvetica', 'normal');
               doc.text(`${spec.label}:`, specsX, specsY);
-              
+
               doc.setTextColor(...primary);
               doc.setFont('helvetica', 'bold');
               doc.text(spec.value, specsX + 35, specsY);
@@ -212,20 +212,20 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
 
       yPos += 10;
     }
-    
+
     // Project Configuration Table
     if (quoteData.project_config) {
       if (yPos > 220) {
         doc.addPage();
         yPos = 20;
       }
-      
+
       doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...darkGray);
       doc.text('CONFIGURAZIONE PROGETTO', 20, yPos);
       yPos += 8;
-      
+
       // Table header
       doc.setFillColor(248, 249, 250);
       doc.rect(20, yPos - 5, 170, 8, 'F');
@@ -235,12 +235,12 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
       doc.text('CARATTERISTICA', 25, yPos);
       doc.text('DETTAGLIO', 100, yPos);
       yPos += 8;
-      
+
       // Table rows
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...accentGray);
       doc.setFontSize(9);
-      
+
       const pc = quoteData.project_config;
       const projectRows = [
         ['Tipo di Immobile', pc.propertyType || '-'],
@@ -249,7 +249,7 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
         ['Numero di Bagni', pc.bathrooms?.toString() || '-'],
         ['Livello di Qualità', pc.qualityLevel || '-']
       ];
-      
+
       projectRows.forEach((row, index) => {
         if (index % 2 === 0) {
           doc.setFillColor(252, 252, 252);
@@ -263,7 +263,7 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
         doc.text(row[1], 100, yPos);
         yPos += 7;
       });
-      
+
       // Services
       if (pc.services && pc.services.length > 0) {
         yPos += 3;
@@ -278,23 +278,23 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
           yPos += 5;
         });
       }
-      
+
       yPos += 10;
     }
-    
+
     // Notes section
     if (quoteData.notes) {
       if (yPos > 220) {
         doc.addPage();
         yPos = 20;
       }
-      
+
       doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...darkGray);
       doc.text('NOTE AGGIUNTIVE', 20, yPos);
       yPos += 8;
-      
+
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...accentGray);
@@ -302,11 +302,11 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
       doc.text(splitNotes, 20, yPos);
       yPos += splitNotes.length * 5 + 10;
     }
-    
+
     // Check if we need a new page for disclaimer
     if (yPos > 185) {
       doc.addPage();
-      
+
       // Repeat minimal header on new page with branding
       if (logoImg.complete) {
         doc.addImage(logoImg, 'PNG', 20, 15, 15, 15, '', 'FAST');
@@ -316,16 +316,16 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
       doc.line(20, 35, 190, 35);
       yPos = 50;
     }
-    
+
     // Disclaimer box - well spaced to avoid overlaps
     doc.setFillColor(255, 250, 240);
     doc.roundedRect(20, yPos, 170, 58, 3, 3, 'F');
-    
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...primary);
     doc.text('⚠️  Informazioni Importanti', 25, yPos + 9);
-    
+
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...secondary);
@@ -337,20 +337,20 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
       '• Validità preventivo: 30 giorni dalla data di emissione',
       '• Materiali certificati e conformi alle normative vigenti • Garanzia 2 anni'
     ];
-    
+
     let disclaimerY = yPos + 18;
     disclaimer.forEach(line => {
       const wrapped = doc.splitTextToSize(line, 160);
       doc.text(wrapped, 25, disclaimerY);
       disclaimerY += wrapped.length * 5;
     });
-    
+
     yPos += 65;
-    
+
     // Total Price Box - ensure no overlaps
     if (yPos > 230) {
       doc.addPage();
-      
+
       // Repeat branding on new page
       if (logoImg.complete) {
         doc.addImage(logoImg, 'PNG', 20, 15, 15, 15, '', 'FAST');
@@ -360,53 +360,53 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
       doc.line(20, 35, 190, 35);
       yPos = 50;
     }
-    
+
     // Add spacing before total box
     yPos += 15;
-    
+
     const totalY = yPos;
     doc.setDrawColor(...secondary);
     doc.setLineWidth(0.8);
     doc.roundedRect(20, totalY, 170, 32, 2, 2, 'D');
-    
+
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...secondary);
     doc.text('Totale Stimato', 30, totalY + 13);
-    
+
     doc.setFontSize(26);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...primary);
     doc.text(`€ ${totalPrice.toLocaleString('it-IT')}`, 185, totalY + 19, { align: 'right' });
-    
+
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...secondary);
     doc.text('Posa inclusa • IVA esclusa', 185, totalY + 26, { align: 'right' });
-    
+
     // Clean footer with branding - well positioned
     const footerY = 277;
     doc.setDrawColor(...secondary);
     doc.setLineWidth(0.3);
     doc.line(20, footerY, 190, footerY);
-    
+
     // Add small logo in footer for branding consistency
     if (logoImg.complete) {
       doc.addImage(logoImg, 'PNG', 20, footerY + 3, 8, 8, '', 'FAST');
     }
-    
+
     doc.setFontSize(8);
     doc.setTextColor(...primary);
     doc.setFont('helvetica', 'bold');
     doc.text('IwHome Showroom', 32, footerY + 7);
-    
+
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(...secondary);
-    doc.text('Via Montefiorino 10/E, Reggio Emilia', 32, footerY + 11);
-    doc.text('+39 340 292 1052  •  info@iwhome.it', 105, footerY + 9, { align: 'center' });
+    doc.text('Via Emilio All\'angelo 22/F, Reggio Emilia - 42124', 32, footerY + 11);
+    doc.text('+39 389 182 0808  •  info@iwhome.it  •  amministrazione@iwhome.it  •  P.IVA 03096130350', 105, footerY + 9, { align: 'center' });
     doc.text(`#${quoteNumber}`, 190, footerY + 9, { align: 'right' });
-    
+
     doc.save(`IWHome-Preventivo-${quoteNumber}.pdf`);
   };
 
