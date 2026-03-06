@@ -149,7 +149,10 @@ export default function Fornitori() {
     // Mutations
     const createSupplier = useMutation(api.suppliers.create);
     const createRequest = useMutation(api.suppliers.createRequest);
+    const removeRequest = useMutation(api.suppliers.removeRequest);
     const createDelivery = useMutation(api.suppliers.createDelivery);
+    const removeOrder = useMutation(api.suppliers.removeOrder);
+    const removeDelivery = useMutation(api.suppliers.removeDelivery);
     const updateDelivery = useMutation(api.suppliers.updateDelivery);
     const removeSupplier = useMutation(api.suppliers.remove);
     const updateSupplier = useMutation(api.suppliers.update);
@@ -196,6 +199,21 @@ export default function Fornitori() {
             setShowNewRequestModal(false);
             setNewRequest({ supplier_id: undefined, title: '', description: '', fixture_type: '' });
         } catch (err) { console.error(err); }
+    };
+
+    const handleDeleteRequest = async (id) => {
+        if (!window.confirm("Sei sicuro di voler eliminare questa richiesta? L'operazione non è reversibile.")) return;
+        try { await removeRequest({ id }); } catch (err) { console.error(err); }
+    };
+
+    const handleDeleteOrder = async (id) => {
+        if (!window.confirm("Sei sicuro di voler eliminare questo ordine?")) return;
+        try { await removeOrder({ id }); } catch (err) { console.error(err); }
+    };
+
+    const handleDeleteDelivery = async (id) => {
+        if (!window.confirm("Sei sicuro di voler eliminare questa consegna?")) return;
+        try { await removeDelivery({ id }); } catch (err) { console.error(err); }
     };
 
     const handleCreateDelivery = async () => {
@@ -457,6 +475,11 @@ export default function Fornitori() {
                                                     <div className="flex items-center gap-2">
                                                         {req.quoted_price && <span className="text-[#f8f9fa] font-medium">€{req.quoted_price?.toLocaleString()}</span>}
                                                         <Badge variant="default" className={statusColors[req.status] || 'bg-gray-500/20 text-gray-400'}>{statusLabels[req.status] || req.status}</Badge>
+                                                        {isAdmin && (
+                                                            <Button variant="ghost" size="sm" onClick={() => handleDeleteRequest(req._id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2 h-8 ml-2">
+                                                                <Trash2 size={14} className="mr-1" /> Elimina
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </CardContent>
@@ -485,6 +508,11 @@ export default function Fornitori() {
                                                     <div className="flex items-center gap-3">
                                                         {order.total_amount && <span className="text-[#f8f9fa] font-medium text-lg">€{order.total_amount?.toLocaleString()}</span>}
                                                         <Badge variant="default" className={statusColors[order.status] || 'bg-gray-500/20 text-gray-400'}>{statusLabels[order.status] || order.status}</Badge>
+                                                        {isAdmin && (
+                                                            <Button variant="ghost" size="sm" onClick={() => handleDeleteOrder(order._id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2 h-8 ml-2">
+                                                                <Trash2 size={14} className="mr-1" /> Elimina
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 {/* Linked payment status */}
@@ -608,6 +636,11 @@ export default function Fornitori() {
                                                             {isAdmin && delivery.status !== 'consegnato' && (
                                                                 <Button size="sm" onClick={() => handleConfirmDelivery(delivery._id)} className="bg-emerald-600 hover:bg-emerald-700 text-xs h-7">
                                                                     <CheckCircle size={12} className="mr-1" /> Conferma
+                                                                </Button>
+                                                            )}
+                                                            {isAdmin && (
+                                                                <Button size="sm" onClick={() => handleDeleteDelivery(delivery._id)} className="bg-red-600/80 hover:bg-red-700 text-xs h-7 ml-1">
+                                                                    <Trash2 size={12} className="mr-1" /> Elimina
                                                                 </Button>
                                                             )}
                                                         </div>
