@@ -9,8 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
@@ -41,8 +39,10 @@ import {
   ArrowRight,
   UserPlus,
   Plus,
-  BarChart3,
-  Hammer
+  Hammer,
+  Trash2,
+  Link2,
+  Loader2
 } from 'lucide-react';
 import VerticalMenu from '../components/dashboard/VerticalMenu';
 import OnboardingModal from '../components/dashboard/OnboardingModal';
@@ -53,7 +53,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 
 export default function Dashboard() {
-  const { user, isLoaded } = useUser();
+  const { user } = useUser();
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -105,6 +105,8 @@ export default function Dashboard() {
   useEffect(() => {
     trackDevice();
   }, []);
+
+
 
   const trackDevice = () => {
     const deviceId = localStorage.getItem('device_id') || `device_${Date.now()}_${Math.random()}`;
@@ -184,13 +186,7 @@ export default function Dashboard() {
     totalMessages: conversations.length
   };
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#212529] to-[#495057] flex items-center justify-center">
-        <div className="text-[#f8f9fa]">Caricamento...</div>
-      </div>
-    );
-  }
+
 
 
 
@@ -543,23 +539,64 @@ export default function Dashboard() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-2">
-                      <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                      <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
                         {recentActivity.length === 0 ? (
-                          <p className="text-xs text-[#adb5bd] text-center py-4">Nessuna attività recente</p>
+                          <div className="text-center py-6">
+                            <Clock className="h-8 w-8 text-[#495057] mx-auto mb-2 opacity-50" />
+                            <p className="text-xs text-[#adb5bd]">Nessuna attività recente</p>
+                          </div>
                         ) : (
-                          recentActivity.map((act, i) => (
-                            <div key={i} className="flex items-start gap-2 bg-[#495057]/30 rounded-lg p-2">
-                              <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                                {act.action === 'created' && <Plus className="h-3 w-3 text-blue-400" />}
-                                {act.action === 'role_promoted' && <TrendingUp className="h-3 w-3 text-green-400" />}
-                                {!['created', 'role_promoted'].includes(act.action) && <Activity className="h-3 w-3 text-purple-400" />}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs text-[#f8f9fa] truncate">{act.entity_name || act.entity_type}</p>
-                                <p className="text-[10px] text-[#adb5bd]">{act.action} • {new Date(act.created_date).toLocaleDateString('it-IT')}</p>
-                              </div>
-                            </div>
-                          ))
+                          recentActivity.map((act, i) => {
+                            const getActionIcon = (action, type) => {
+                              if (action === 'created') return <Plus className="h-3.5 w-3.5 text-blue-400" />;
+                              if (action === 'deleted') return <Trash2 className="h-3.5 w-3.5 text-red-400" />;
+                              if (action === 'updated' || action === 'updated_status') return <Activity className="h-3.5 w-3.5 text-yellow-400" />;
+                              if (action === 'role_promoted' || action === 'role_change') return <TrendingUp className="h-3.5 w-3.5 text-green-400" />;
+                              if (action === 'accepted') return <CheckCircle className="h-3.5 w-3.5 text-green-400" />;
+                              if (action === 'rejected') return <XCircle className="h-3.5 w-3.5 text-red-400" />;
+                              if (action === 'linked_quote') return <Link2 className="h-3.5 w-3.5 text-cyan-400" />;
+                              return <Activity className="h-3.5 w-3.5 text-purple-400" />;
+                            };
+
+                            const getEntityLabel = (type) => {
+                              switch (type) {
+                                case 'quote': return 'Preventivo';
+                                case 'client': return 'Cliente';
+                                case 'cantiere': return 'Cantiere';
+                                case 'appointment': return 'Appuntamento';
+                                case 'document': return 'Documento';
+                                case 'user': return 'Utente';
+                                default: return type;
+                              }
+                            };
+
+                            return (
+                              <motion.div
+                                key={act._id}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.05 }}
+                                className="flex items-start gap-2 bg-[#495057]/30 hover:bg-[#495057]/50 rounded-lg p-2 transition-colors border border-[#f8f9fa]/5"
+                              >
+                                <div className="w-7 h-7 rounded-full bg-[#f8f9fa]/5 flex items-center justify-center flex-shrink-0 border border-[#f8f9fa]/10">
+                                  {getActionIcon(act.action, act.entity_type)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex justify-between items-start">
+                                    <p className="text-[11px] font-medium text-[#f8f9fa] truncate">
+                                      {act.entity_name || getEntityLabel(act.entity_type)}
+                                    </p>
+                                    <span className="text-[9px] text-[#6c757d] whitespace-nowrap">
+                                      {new Date(act.created_date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                  <p className="text-[10px] text-[#adb5bd] truncate">
+                                    <span className="text-blue-400 font-medium">{act.user_name || 'Sistema'}</span>: {act.details || act.action}
+                                  </p>
+                                </div>
+                              </motion.div>
+                            );
+                          })
                         )}
                       </div>
                     </CardContent>

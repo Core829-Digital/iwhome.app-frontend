@@ -4,10 +4,9 @@ import { useUser } from "@clerk/clerk-react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import VerticalMenu from '../components/dashboard/VerticalMenu';
 import { Card } from '@/components/ui/card';
-import { User, Mail, Phone, Building, Save, Check, Camera, Briefcase, ShieldCheck, HardHat, Users } from 'lucide-react';
+import { User, Mail, Phone, Building, Save, Check, Camera, Briefcase, ShieldCheck, HardHat, Users, Loader2 } from 'lucide-react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
 import { useToast } from '@/components/ui/use-toast';
@@ -167,11 +166,8 @@ export default function Settings() {
     );
   };
 
-  if (!user) {
-    return <div className="min-h-screen flex items-center justify-center">
-      <div className="text-[#f8f9fa]">Caricamento...</div>
-    </div>;
-  }
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">

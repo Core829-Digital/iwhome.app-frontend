@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useUser, useClerk } from '@clerk/clerk-react';
 import { createPageUrl } from '../utils';
 import SEO from '../components/seo/SEO';
 import ElectricalSystemIcon from '../components/services/ElectricalSystemIcon';
@@ -63,6 +64,9 @@ const services = [
 export default function Servizi() {
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], [0, -100]);
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
+  const navigate = useNavigate();
 
   return (
     <div>
@@ -252,15 +256,23 @@ export default function Servizi() {
                   Calcola Preventivo
                 </motion.button>
               </Link>
-              <Link to={createPageUrl('Appuntamenti')}>
-                <motion.button
+              <button
+                onClick={() => {
+                  if (isSignedIn) {
+                    navigate('/MyAppointments');
+                  } else {
+                    openSignIn({ redirectUrl: '/MyAppointments' });
+                  }
+                }}
+              >
+                <motion.div
                   whileHover={{ scale: 1.05, backgroundColor: '#495057' }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-8 py-4 border-2 border-[#f8f9fa]/30 text-[#f8f9fa] rounded-full font-medium backdrop-blur-sm transition-all duration-300"
+                  className="px-8 py-4 border-2 border-[#f8f9fa]/30 text-[#f8f9fa] rounded-full font-medium backdrop-blur-sm transition-all duration-300 inline-block"
                 >
                   Prenota Appuntamento
-                </motion.button>
-              </Link>
+                </motion.div>
+              </button>
             </div>
           </motion.div>
         </div>

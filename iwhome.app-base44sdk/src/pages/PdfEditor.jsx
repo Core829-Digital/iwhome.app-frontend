@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/select';
 import VerticalMenu from '../components/dashboard/VerticalMenu';
 import AnimatedBackground from '../components/dashboard/AnimatedBackground';
+import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
 import {
   FileText,
   Plus,
@@ -58,6 +59,7 @@ export default function PdfEditor() {
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [companySignature, setCompanySignature] = useState(null);
   const [showSendModal, setShowSendModal] = useState(false);
+  const [viewPdfUrl, setViewPdfUrl] = useState(null);
   const [sendData, setSendData] = useState({ cliente_email: '', cliente_nome: '' });
   const [activeTab, setActiveTab] = useState('editor');
   const [quoteItems, setQuoteItems] = useState([]);
@@ -579,6 +581,12 @@ export default function PdfEditor() {
     <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
       <AnimatedBackground />
       <VerticalMenu />
+      <UniversalPdfViewer
+        isOpen={!!viewPdfUrl}
+        onClose={() => setViewPdfUrl(null)}
+        url={viewPdfUrl}
+        title="Visualizzazione Documento"
+      />
 
       <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
@@ -889,7 +897,7 @@ export default function PdfEditor() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => window.open(sig.pdf_url, '_blank')}
+                            onClick={() => setViewPdfUrl(sig.pdf_url)}
                             className="border-[#f8f9fa]/30 text-[#f8f9fa]"
                           >
                             <Eye size={14} className="mr-1" />

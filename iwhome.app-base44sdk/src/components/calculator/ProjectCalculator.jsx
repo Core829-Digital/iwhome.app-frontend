@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -122,7 +121,7 @@ export default function ProjectCalculator({ onQuoteChange, windowsPrice = 0 }) {
   });
 
   const [totalPrice, setTotalPrice] = useState(0);
-  const [breakdown, setBreakdown] = useState({});
+  const [breakdown, setBreakdown] = useState({ base: 0, services: 0, bathrooms: 0, windows: 0, servicesDetail: {} });
   const [aiSuggestions, setAiSuggestions] = useState(null);
   const [alternatives, setAlternatives] = useState([]);
   const [loadingAI, setLoadingAI] = useState(false);
@@ -282,11 +281,10 @@ Genera 2 configurazioni alternative con:
               <motion.label
                 key={type.id}
                 whileTap={{ scale: 0.98 }}
-                className={`relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all backdrop-blur-sm ${
-                  config.propertyType === type.id
-                    ? 'border-[#f8f9fa] bg-[#f8f9fa]/20'
-                    : 'border-[#f8f9fa]/20 hover:border-[#f8f9fa]/40 bg-[#343a40]/50'
-                }`}
+                className={`relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all backdrop-blur-sm ${config.propertyType === type.id
+                  ? 'border-[#f8f9fa] bg-[#f8f9fa]/20'
+                  : 'border-[#f8f9fa]/20 hover:border-[#f8f9fa]/40 bg-[#343a40]/50'
+                  }`}
               >
                 <RadioGroupItem value={type.id} className="sr-only" />
                 <span className="font-medium text-[#f8f9fa] text-sm">{type.name}</span>
@@ -376,11 +374,10 @@ Genera 2 configurazioni alternative con:
               <motion.label
                 key={level.id}
                 whileTap={{ scale: 0.98 }}
-                className={`relative flex flex-col p-5 rounded-xl border-2 cursor-pointer transition-all backdrop-blur-sm ${
-                  config.qualityLevel === level.id
-                    ? 'border-[#f8f9fa] bg-[#f8f9fa]/20'
-                    : 'border-[#f8f9fa]/20 hover:border-[#f8f9fa]/40 bg-[#343a40]/50'
-                }`}
+                className={`relative flex flex-col p-5 rounded-xl border-2 cursor-pointer transition-all backdrop-blur-sm ${config.qualityLevel === level.id
+                  ? 'border-[#f8f9fa] bg-[#f8f9fa]/20'
+                  : 'border-[#f8f9fa]/20 hover:border-[#f8f9fa]/40 bg-[#343a40]/50'
+                  }`}
               >
                 <RadioGroupItem value={level.id} className="sr-only" />
                 <div className="flex items-center justify-between mb-2">
@@ -409,11 +406,10 @@ Genera 2 configurazioni alternative con:
               <motion.label
                 key={service.id}
                 whileTap={{ scale: 0.98 }}
-                className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all backdrop-blur-sm ${
-                  config.services.includes(service.id)
-                    ? 'border-[#f8f9fa] bg-[#f8f9fa]/20'
-                    : 'border-[#f8f9fa]/20 hover:border-[#f8f9fa]/40 bg-[#343a40]/50'
-                }`}
+                className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all backdrop-blur-sm ${config.services.includes(service.id)
+                  ? 'border-[#f8f9fa] bg-[#f8f9fa]/20'
+                  : 'border-[#f8f9fa]/20 hover:border-[#f8f9fa]/40 bg-[#343a40]/50'
+                  }`}
               >
                 <Checkbox
                   checked={config.services.includes(service.id)}
@@ -435,20 +431,7 @@ Genera 2 configurazioni alternative con:
           </div>
         </div>
 
-        {/* AI Assistant Toggle */}
-        <div className="flex justify-center">
-          <Button
-            onClick={() => setShowAI(!showAI)}
-            className={`rounded-full px-6 ${
-              showAI 
-                ? 'bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529] hover:shadow-2xl' 
-                : 'border-2 border-[#f8f9fa] text-[#f8f9fa] bg-transparent hover:bg-[#f8f9fa]/10'
-            }`}
-          >
-            <Sparkles size={18} className="mr-2" />
-            {showAI ? 'Nascondi' : 'Attiva'} Assistente AI
-          </Button>
-        </div>
+
 
         {/* AI Suggestions */}
         {showAI && (

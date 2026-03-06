@@ -7,12 +7,14 @@ import { useUser } from "@clerk/clerk-react";
 import { Button } from '@/components/ui/button';
 import VerticalMenu from '../components/dashboard/VerticalMenu';
 import AnimatedBackground from '../components/dashboard/AnimatedBackground';
-import { FileText, Eye, Share2, Search } from 'lucide-react';
+import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
+import { FileText, Eye, Share2, Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 export default function SharedDocuments() {
   const { user } = useUser();
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewPdfUrl, setViewPdfUrl] = useState(null);
 
   const userEmail = user?.primaryEmailAddress?.emailAddress || "";
 
@@ -23,18 +25,18 @@ export default function SharedDocuments() {
     doc.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#212529]">
-        <div className="text-[#f8f9fa]">Caricamento...</div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
       <AnimatedBackground />
       <VerticalMenu />
+      <UniversalPdfViewer
+        isOpen={!!viewPdfUrl}
+        onClose={() => setViewPdfUrl(null)}
+        url={viewPdfUrl}
+        title="Visualizzazione Documento Condiviso"
+      />
 
       <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
@@ -94,7 +96,7 @@ export default function SharedDocuments() {
                     size="sm"
                     onClick={() => {
                       if (doc.file_url) {
-                        window.open(doc.file_url, '_blank');
+                        setViewPdfUrl(doc.file_url);
                       }
                     }}
                     className="w-full bg-[#495057]/50 backdrop-blur-sm border border-[#f8f9fa]/20 text-[#f8f9fa] hover:bg-[#f8f9fa]/10"

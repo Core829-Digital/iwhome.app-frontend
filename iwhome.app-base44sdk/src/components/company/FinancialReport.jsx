@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Download, TrendingUp, Euro, Calendar } from 'lucide-react';
+import { Download } from 'lucide-react';
 
 const REGIME_FISCALE_CONFIG = {
   forfettario: { label: 'Regime Forfettario', iva: 0, note: 'Non soggetto IVA (L. 190/2014)' },

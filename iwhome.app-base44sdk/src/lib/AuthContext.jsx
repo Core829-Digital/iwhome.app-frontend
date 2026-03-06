@@ -17,28 +17,27 @@ export const AuthProvider = ({ children }) => {
     ...clerkUser
   } : null;
 
-  const isLoadingAuth = isLoadingConvex || !isClerkLoaded;
+  // Only show full blocking loader if we have NO user data at all yet and we are not sure if we are logged in.
+  // If we have a user (even from Clerk cache), we should let them in and update in background.
+  const isLoadingAuth = (isLoadingConvex || !isClerkLoaded) && !clerkUser;
   // Previously used for checking app settings, now assumed true/loaded
   const isLoadingPublicSettings = false;
   const [authError, setAuthError] = useState(null);
-
-  // Sync user to Convex on load if needed (optional pattern)
-  // But usually handled by webhooks or direct usage in mutations
-
-  const logout = () => {
-    signOut();
-  };
-
-  const navigateToLogin = () => {
-    openSignIn();
-  };
 
   // Sync user to Convex
   const storeUser = useMutation(api.users.store);
 
   useEffect(() => {
     if (isAuthenticated && clerkUser) {
-      storeUser().catch(err => console.error("Failed to sync user:", err));
+      // Sync user logic
+      const sync = async () => {
+        try {
+          await storeUser();
+        } catch (err) {
+          console.error("Failed to sync user:", err);
+        }
+      };
+      sync();
     }
   }, [isAuthenticated, clerkUser, storeUser]);
 
@@ -58,6 +57,9 @@ export const AuthProvider = ({ children }) => {
       setAuthError(null);
     }
   }, [convexUser]);
+
+  const navigateToLogin = () => openSignIn();
+  const logout = () => signOut();
 
   const checkAppState = async () => {
     // No-op in new auth flow

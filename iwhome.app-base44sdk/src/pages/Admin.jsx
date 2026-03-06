@@ -1,6 +1,5 @@
 /// <reference types="vite/client" />
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
@@ -9,13 +8,10 @@ import {
     User,
     FileText,
     Upload,
-    DollarSign,
     ChevronRight,
-    X,
     Shield,
     Eye,
     Trash2,
-    Plus,
     Ban,
     CheckCircle,
     AlertTriangle,
@@ -25,13 +21,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import VerticalMenu from '../components/dashboard/VerticalMenu';
 import AnimatedBackground from '../components/dashboard/AnimatedBackground';
+import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
 
 export default function Admin() {
     const { user } = useUser();
@@ -64,6 +59,7 @@ export default function Admin() {
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [blockReason, setBlockReason] = useState('');
     const [actionLoading, setActionLoading] = useState(false);
+    const [viewPdfUrl, setViewPdfUrl] = useState(null);
 
     // Admin action handlers
     const handleRoleChange = async (userId, newRole) => {
@@ -184,6 +180,12 @@ export default function Admin() {
         <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
             <AnimatedBackground />
             <VerticalMenu />
+            <UniversalPdfViewer
+                isOpen={!!viewPdfUrl}
+                onClose={() => setViewPdfUrl(null)}
+                url={viewPdfUrl}
+                title="Visualizzazione Documento Admin"
+            />
 
             <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
                 <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
@@ -472,7 +474,13 @@ export default function Admin() {
                                                                 </div>
                                                             </div>
                                                             <div className="flex gap-2">
-                                                                <Button size="icon" variant="ghost" className="hover:bg-[#f8f9fa]/10" onClick={() => window.open(doc.file_url, '_blank')}>
+                                                                <Button size="icon" variant="ghost" className="hover:bg-[#f8f9fa]/10" onClick={() => {
+                                                                    if (doc.file_type === 'application/pdf' || doc.file_name?.toLowerCase().endsWith('.pdf') || doc.category === 'preventivo' || doc.category === 'contratto') {
+                                                                        setViewPdfUrl(doc.file_url)
+                                                                    } else {
+                                                                        window.open(doc.file_url, '_blank')
+                                                                    }
+                                                                }}>
                                                                     <Eye size={16} className="text-[#f8f9fa]" />
                                                                 </Button>
                                                                 <Button size="icon" variant="ghost" className="hover:bg-red-500/10" onClick={() => deleteDocument({ id: doc._id })}>

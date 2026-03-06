@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import VerticalMenu from '../components/dashboard/VerticalMenu';
 import AnimatedBackground from '../components/dashboard/AnimatedBackground';
-import { Upload, FileText, Check, X } from 'lucide-react';
+import { Upload, FileText, Check, X, Loader2 } from 'lucide-react';
 import { createPageUrl } from '../utils';
 
 export default function UploadDocument() {
@@ -101,14 +101,7 @@ export default function UploadDocument() {
     }
   };
 
-  // Loading state if user not loaded
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#212529]">
-        <div className="text-[#f8f9fa]">Caricamento...</div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
@@ -140,8 +133,8 @@ export default function UploadDocument() {
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
                 className={`relative border-2 border-dashed rounded-2xl p-12 text-center transition-all ${dragActive
-                    ? 'border-[#f8f9fa] bg-[#f8f9fa]/10'
-                    : 'border-[#f8f9fa]/30 hover:border-[#f8f9fa]/50 hover:bg-[#f8f9fa]/5'
+                  ? 'border-[#f8f9fa] bg-[#f8f9fa]/10'
+                  : 'border-[#f8f9fa]/30 hover:border-[#f8f9fa]/50 hover:bg-[#f8f9fa]/5'
                   }`}
               >
                 <input

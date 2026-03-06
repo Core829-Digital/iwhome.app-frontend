@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '../utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,6 +30,7 @@ export default function Calcolatore() {
   const { user } = useUser();
   const { openSignIn } = useClerk();
   const createQuote = useMutation(api.quotes.create);
+  const upgradeToCliente = useMutation(api.users.upgradeToCliente);
 
   const [quoteType, setQuoteType] = useState('finestre'); // 'finestre' | 'chiavi_in_mano'
   const [includeWindows, setIncludeWindows] = useState(true);
@@ -95,6 +95,9 @@ export default function Calcolatore() {
       // Save quote to database
       await createQuote(quoteData);
 
+      // Upgrade user role to client
+      await upgradeToCliente();
+
       // TODO: Send emails via Convex Action
       // await base44.functions.invoke('sendQuoteEmail', ...)
 
@@ -139,14 +142,14 @@ export default function Calcolatore() {
             Grazie per la tua richiesta. Ti contatteremo presto per discutere i dettagli del tuo progetto.
           </p>
           <div className="flex flex-col gap-4">
-            <Link to={createPageUrl('Appuntamenti')}>
+            <Link to="/MyAppointments">
               <Button className="w-full bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529] hover:shadow-2xl rounded-full font-medium transition-all">
                 <Calendar className="mr-2" size={18} />
                 Prenota Appuntamento
               </Button>
             </Link>
-            <Link to={createPageUrl('Home')}>
-              <Button variant="outline" className="w-full rounded-full border-[#f8f9fa]/30 text-[#f8f9fa] hover:bg-[#f8f9fa]/10">
+            <Link to="/">
+              <Button variant="outline" className="w-full rounded-full border-[#f8f9fa]/40 text-[#212529] bg-[#f8f9fa]/20 hover:bg-[#f8f9fa]/30 backdrop-blur-sm font-medium">
                 Torna alla Home
               </Button>
             </Link>

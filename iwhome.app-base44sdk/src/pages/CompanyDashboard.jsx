@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import VerticalMenu from '../components/dashboard/VerticalMenu';
@@ -7,7 +6,7 @@ import KanbanBoard from '../components/company/KanbanBoard';
 import ChatChannels from '../components/company/ChatChannels';
 import FinancialReport from '../components/company/FinancialReport';
 import CantieriDashboard from '../components/company/CantieriDashboard';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,18 +14,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
-  Users,
-  MessageSquare,
-  TrendingUp,
   Building,
   Plus,
-  UserPlus,
   Trash2,
-  Edit,
-  FileText,
-  Euro,
-  CheckCircle,
-  BarChart3
+  Edit
 } from 'lucide-react';
 
 export default function CompanyDashboard() {
@@ -48,7 +39,7 @@ export default function CompanyDashboard() {
     status: 'in_corso',
     cantiere_id: ''
   });
-  
+
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -83,7 +74,7 @@ export default function CompanyDashboard() {
   });
 
   const createPreventivo = useMutation({
-    mutationFn: (data) => base44.entities.WorkflowPreventivo.create({
+    mutationFn: (/** @type {any} */ data) => base44.entities.WorkflowPreventivo.create({
       ...data,
       company_email: user.email,
       history: [{
@@ -93,23 +84,24 @@ export default function CompanyDashboard() {
       }]
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['preventivi']);
+      queryClient.invalidateQueries({ queryKey: ['preventivi'] });
       setShowPreventivoDialog(false);
       setPreventivoData({ title: '', cliente: '', importo: 0, status: 'bozza' });
     }
   });
 
   const updatePreventivoStatus = useMutation({
-    mutationFn: async ({ id, status }) => {
+    mutationFn: async (/** @type {{id: string, status: string}} */ variables) => {
+      const { id, status } = variables;
       const prev = preventivi.find(p => p.id === id);
       const history = [...(prev.history || []), {
         date: new Date().toISOString(),
         action: `Stato cambiato in ${status}`,
         user: user.email
       }];
-      
+
       await base44.entities.WorkflowPreventivo.update(id, { status, history });
-      
+
       // Notifica utente assegnato
       if (prev.assegnato_a) {
         await base44.entities.Notification.create({
@@ -121,30 +113,30 @@ export default function CompanyDashboard() {
         });
       }
     },
-    onSuccess: () => queryClient.invalidateQueries(['preventivi'])
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['preventivi'] })
   });
 
   const createFattura = useMutation({
-    mutationFn: (data) => base44.entities.Fatturato.create({
+    mutationFn: (/** @type {any} */ data) => base44.entities.Fatturato.create({
       ...data,
       company_email: user.email,
       data_emissione: new Date().toISOString().split('T')[0]
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['fatture']);
+      queryClient.invalidateQueries({ queryKey: ['fatture'] });
       setShowFatturaDialog(false);
       setFatturaData({ numero_fattura: '', cliente: '', importo: 0, status: 'in_corso', cantiere_id: '' });
     }
   });
 
   const updateFattura = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Fatturato.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries(['fatture'])
+    mutationFn: (/** @type {{id: string, data: any}} */ variables) => base44.entities.Fatturato.update(variables.id, variables.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['fatture'] })
   });
 
   const deleteFattura = useMutation({
-    mutationFn: (id) => base44.entities.Fatturato.delete(id),
-    onSuccess: () => queryClient.invalidateQueries(['fatture'])
+    mutationFn: (/** @type {string} */ id) => base44.entities.Fatturato.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['fatture'] })
   });
 
   const handleKanbanDragEnd = (result) => {

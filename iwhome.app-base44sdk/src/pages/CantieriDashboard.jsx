@@ -1,14 +1,15 @@
 /// <reference types="vite/client" />
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import {
-    Search, Plus, Building, Calendar, CheckCircle, Clock,
+    Search, Plus, Building, Calendar,
     HardHat, X, Users, MessageSquare, ChevronRight, Send, Paperclip,
-    GripVertical, ArrowRight, Mic, MicOff, Image, FileText, Play, Pause,
-    Volume2, UserPlus, Mail, Loader2, ClipboardList, Check, Trash2, ChevronDown
+    GripVertical, ArrowRight, Mic, MicOff, Image, FileText,
+    Volume2, UserPlus, Mail, Loader2, ClipboardList, Check, Trash2, ChevronDown,
+    Phone, MapPin, User, Receipt
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import VerticalMenu from '../components/dashboard/VerticalMenu';
 import AnimatedBackground from '../components/dashboard/AnimatedBackground';
+import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
 
 // Kanban phases (3 phases only)
 const KANBAN_PHASES = [
@@ -32,8 +34,12 @@ export default function CantieriDashboard() {
     const [searchTerm, setSearchTerm] = useState('');
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [selectedCantiere, setSelectedCantiere] = useState(null);
+    const [viewPdfUrl, setViewPdfUrl] = useState(null);
     const [activeTab, setActiveTab] = useState('kanban');
     const [detailTab, setDetailTab] = useState('details');
+    // ... (rest of state)
+
+
     const [newCantiere, setNewCantiere] = useState({
         nome_cantiere: '',
         cliente: '',
@@ -42,6 +48,7 @@ export default function CantieriDashboard() {
         status: 'in_lavorazione',
         valore_contratto: '',
         valore_progetto: '',
+        quote_id: null,
     });
 
     // Drag state
@@ -69,118 +76,128 @@ export default function CantieriDashboard() {
 
     const userEmail = user?.primaryEmailAddress?.emailAddress || "";
 
-    // Queries
-    const cantieri = useQuery(api.cantieri.listCantieri, { company_email: userEmail }) || [];
-    const clientsList = useQuery(api.clients.list) || []; // For client dropdown
-    const cantiereTeam = useQuery(
-        api.cantieri.getCantiereTeam,
-        selectedCantiere ? { cantiere_id: selectedCantiere._id } : "skip"
-    ) || [];
+    // --- Queries & Access Control ---
+    // Fetch Convex User to determine role securely
+    const convexUser = useQuery(api.users.getByEmail, { email: userEmail || "" });
 
-    // Get messages for selected cantiere
-    const messages = useQuery(
-        api.chat.getChannelMessages,
-        selectedCantiere ? { channel_id: selectedCantiere._id } : "skip"
-    ) || [];
+    const isClient = convexUser?.role === 'user' || convexUser?.role === 'client';
+    const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
+    const isWorker = convexUser?.role === 'worker' || convexUser?.role === 'operaio' || convexUser?.role === 'company';
 
-    // Mutations
+    // Queries for Admin/Creation
+    const allQuotes = useQuery(api.quotes.getAll) || [];
+    const clientsList = useQuery(api.clients.list) || [];
+
+    // Main Cantieri Query
+    // Differentiate queries to avoid TS union type mismatch
+    const cantieriClient = useQuery(api.cantieri.getByClient, isClient ? {} : "skip");
+    const cantieriAdmin = useQuery(api.cantieri.listCantieri, !isClient ? { company_email: userEmail } : "skip");
+    const cantieri = (isClient ? cantieriClient : cantieriAdmin) || [];
+
+    // --- Derived State for Views ---
+    const filteredCantieri = cantieri.filter(c =>
+        c.nome_cantiere.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.cliente.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const cantieriByPhase = {};
+    KANBAN_PHASES.forEach(phase => {
+        cantieriByPhase[phase.id] = filteredCantieri.filter(c => c.status === phase.id);
+    });
+
+    // --- Detail View Queries (Dependent on selectedCantiere) ---
+    const cantiereDetail = useQuery(api.cantieri.getById, selectedCantiere ? { id: selectedCantiere._id } : "skip");
+    const phaseTasks = useQuery(api.phase_tasks.listByPhase, selectedCantiere ? { cantiere_id: selectedCantiere._id } : "skip") || [];
+    const cantiereTeam = useQuery(api.cantieri.getCantiereTeam, selectedCantiere ? { cantiere_id: selectedCantiere._id } : "skip") || [];
+
+    // Messages - Assume cantiere ID is the channel ID for cantiere-specific chat
+    const messages = useQuery(api.chat.getChannelMessages, selectedCantiere ? { channel_id: selectedCantiere._id } : "skip") || [];
+
+    // --- Mutations ---
     const createCantiereMutation = useMutation(api.cantieri.createCantiere);
     const updateCantiereMutation = useMutation(api.cantieri.updateCantiere);
-    const sendMessageMutation = useMutation(api.chat.sendCantiereMessage);
-    const inviteTeamMemberMutation = useMutation(api.cantieri.inviteTeamMember);
-    const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+    const deleteCantiereMutation = useMutation(api.cantieri.deleteCantiere);
 
-    // Phase Tasks - NEW
-    const phaseTasks = useQuery(
-        api.phase_tasks.listByPhase,
-        selectedCantiere ? { cantiere_id: selectedCantiere._id } : "skip"
-    ) || [];
     const createPhaseTaskMutation = useMutation(api.phase_tasks.create);
     const updatePhaseTaskMutation = useMutation(api.phase_tasks.update);
     const removePhaseTaskMutation = useMutation(api.phase_tasks.remove);
 
-    // Legacy task queries (keep for compatibility)
-    const tasksList = useQuery(
-        api.tasks.list,
-        selectedCantiere ? { cantiere_id: selectedCantiere._id } : "skip"
-    ) || [];
-    const createTaskMutation = useMutation(api.tasks.create);
-    const updateTaskMutation = useMutation(api.tasks.update);
-    const removeTaskMutation = useMutation(api.tasks.remove);
+    const inviteTeamMemberMutation = useMutation(api.cantieri.inviteTeamMember);
+    const sendMessageMutation = useMutation(api.chat.sendCantiereMessage);
+    const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
-    // Phase task state
-    const [expandedPhase, setExpandedPhase] = useState('in_lavorazione');
-    const [newPhaseTask, setNewPhaseTask] = useState({ title: '', phase: 'in_lavorazione', priority: 'media', assigned_to: '' });
+    // --- Local State ---
+    const [expandedPhase, setExpandedPhase] = useState(null);
+    const [newPhaseTask, setNewPhaseTask] = useState({ title: '', phase: '', priority: 'media', assigned_to: '' });
 
-    // Actions
-    const sendInviteEmail = useAction(api.actions.sendTeamInviteEmail);
-
-
-    // Scroll to bottom of messages
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    // --- Handlers ---
 
     const handleCreate = async () => {
+        if (!newCantiere.quote_id || !newCantiere.client_id) return;
+
         try {
             await createCantiereMutation({
+                company_email: userEmail,
                 nome_cantiere: newCantiere.nome_cantiere,
                 cliente: newCantiere.cliente,
-                client_id: newCantiere.client_id || undefined,
-                indirizzo: newCantiere.indirizzo || undefined,
+                client_id: newCantiere.client_id,
+                quote_id: newCantiere.quote_id,
+                indirizzo: newCantiere.indirizzo,
                 status: newCantiere.status,
                 valore_contratto: parseFloat(newCantiere.valore_contratto) || 0,
                 valore_progetto: parseFloat(newCantiere.valore_progetto) || 0,
-                company_email: userEmail,
-                created_date: new Date().toISOString()
+                created_date: new Date().toISOString(),
             });
             setCreateModalOpen(false);
-            setNewCantiere({ nome_cantiere: '', cliente: '', client_id: null, indirizzo: '', status: 'in_lavorazione', valore_contratto: '', valore_progetto: '' });
+            setNewCantiere({
+                nome_cantiere: '',
+                cliente: '',
+                client_id: null,
+                indirizzo: '',
+                status: 'in_lavorazione',
+                valore_contratto: '',
+                valore_progetto: '',
+                quote_id: null,
+            });
         } catch (error) {
             console.error("Error creating cantiere:", error);
-            alert("Errore durante la creazione del cantiere");
+            alert("Errore durante la creazione: " + error.message);
         }
     };
 
-    const handlePhaseChange = async (cantiereId, newPhase) => {
-        try {
-            await updateCantiereMutation({
-                id: cantiereId,
-                data: { status: newPhase }
-            });
-            // Update selected cantiere if it's the one being changed
-            if (selectedCantiere && selectedCantiere._id === cantiereId) {
-                setSelectedCantiere(prev => ({ ...prev, status: newPhase }));
-            }
-        } catch (error) {
-            console.error("Error updating phase:", error);
-        }
-    };
-
-
-    // Drag and Drop handlers
+    // Drag & Drop
     const handleDragStart = (e, cantiere) => {
+        if (!isAdmin) return;
         setDraggedItem(cantiere);
-        e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', cantiere._id);
+        e.dataTransfer.effectAllowed = 'move';
     };
 
     const handleDragOver = (e, phaseId) => {
+        if (!isAdmin) return;
         e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
         setDragOverPhase(phaseId);
     };
 
-    const handleDragLeave = () => {
+    const handleDragLeave = (e) => {
         setDragOverPhase(null);
     };
 
-    const handleDrop = async (e, targetPhase) => {
+    const handleDrop = async (e, phaseId) => {
+        if (!isAdmin) return;
         e.preventDefault();
         setDragOverPhase(null);
+        const cantiereId = e.dataTransfer.getData('text/plain');
 
-        if (draggedItem && draggedItem.status !== targetPhase) {
-            await handlePhaseChange(draggedItem._id, targetPhase);
+        if (cantiereId && phaseId) {
+            try {
+                await updateCantiereMutation({
+                    id: cantiereId,
+                    data: { status: phaseId }
+                });
+            } catch (err) {
+                console.error("Failed to move cantiere:", err);
+            }
         }
         setDraggedItem(null);
     };
@@ -190,32 +207,122 @@ export default function CantieriDashboard() {
         setDragOverPhase(null);
     };
 
-    // Voice recording
+    // Phase Change (Dropdown)
+    const handlePhaseChange = async (cantiereId, newPhase) => {
+        if (!isAdmin) return;
+        try {
+            await updateCantiereMutation({
+                id: cantiereId,
+                data: { status: newPhase }
+            });
+        } catch (err) {
+            console.error("Failed to update status:", err);
+        }
+    };
+
+    // Team Invite
+    const handleInviteTeamMember = async () => {
+        if (!inviteEmail.trim() || !selectedCantiere) return;
+        setInviteSending(true);
+        try {
+            await inviteTeamMemberMutation({
+                cantiere_id: selectedCantiere._id,
+                email: inviteEmail.trim(),
+                role: 'worker', // Default role
+                invited_by: userEmail
+            });
+            setInviteModalOpen(false);
+            setInviteEmail('');
+            alert("Invito inviato con successo!");
+        } catch (error) {
+            alert("Errore invio invito: " + error.message);
+        } finally {
+            setInviteSending(false);
+        }
+    };
+
+    // Messaging
+    const handleSendMessage = async () => {
+        if ((!newMessage.trim() && !audioBlob && !selectedFile) || !selectedCantiere) return;
+
+        try {
+            let fileUrl = null;
+            let fileName = null;
+            let fileType = 'text';
+
+            // Upload File/Audio if present
+            if (audioBlob || selectedFile) {
+                const uploadUrl = await generateUploadUrl();
+                const fileToUpload = audioBlob || selectedFile;
+
+                const result = await fetch(uploadUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": fileToUpload.type },
+                    body: fileToUpload,
+                });
+
+                if (!result.ok) throw new Error("Upload failed");
+                const { storageId } = await result.json();
+                fileUrl = storageId;
+
+                if (audioBlob) {
+                    fileType = 'voice';
+                    fileName = 'voice_message.webm';
+                } else if (selectedFile) {
+                    fileName = selectedFile.name;
+                    if (selectedFile.type.startsWith('image/')) fileType = 'image';
+                    else fileType = 'file';
+                }
+            }
+
+            await sendMessageMutation({
+                channel_id: selectedCantiere._id,
+                sender_email: userEmail,
+                sender_name: user?.fullName || userEmail,
+                content: newMessage.trim(),
+                file_url: fileUrl || undefined,
+                file_name: fileName || undefined,
+                message_type: fileType // Defaults to 'text' if not overwritten by file logic, but we should handle text-only
+            });
+
+            setNewMessage('');
+            setSelectedFile(null);
+            setAudioBlob(null);
+            setRecordingTime(0);
+        } catch (error) {
+            console.error("Send message error:", error);
+            alert("Errore invio messaggio");
+        }
+    };
+
+    // Recording Logic
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorderRef.current = new MediaRecorder(stream);
+            const mediaRecorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = mediaRecorder;
             audioChunksRef.current = [];
 
-            mediaRecorderRef.current.ondataavailable = (e) => {
-                audioChunksRef.current.push(e.data);
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) audioChunksRef.current.push(event.data);
             };
 
-            mediaRecorderRef.current.onstop = () => {
-                const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-                setAudioBlob(blob);
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                setAudioBlob(audioBlob);
                 stream.getTracks().forEach(track => track.stop());
             };
 
-            mediaRecorderRef.current.start();
+            mediaRecorder.start();
             setIsRecording(true);
-            setRecordingTime(0);
 
+            // Timer
             recordingIntervalRef.current = setInterval(() => {
                 setRecordingTime(prev => prev + 1);
             }, 1000);
-        } catch (error) {
-            console.error("Error starting recording:", error);
+
+        } catch (err) {
+            console.error("Error accessing microphone:", err);
             alert("Impossibile accedere al microfono");
         }
     };
@@ -224,7 +331,7 @@ export default function CantieriDashboard() {
         if (mediaRecorderRef.current && isRecording) {
             mediaRecorderRef.current.stop();
             setIsRecording(false);
-            clearInterval(recordingIntervalRef.current);
+            if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
         }
     };
 
@@ -233,135 +340,30 @@ export default function CantieriDashboard() {
         setRecordingTime(0);
     };
 
-    // File upload helper
-    const uploadFile = async (file) => {
-        const postUrl = await generateUploadUrl();
-        const result = await fetch(postUrl, {
-            method: "POST",
-            headers: { "Content-Type": file.type },
-            body: file,
-        });
-        if (!result.ok) throw new Error("Upload failed");
-        const { storageId } = await result.json();
-        return `${import.meta.env.VITE_CONVEX_URL}/api/storage/${storageId}`;
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
     };
 
-    const handleSendMessage = async () => {
-        if ((!newMessage.trim() && !audioBlob && !selectedFile) || !selectedCantiere) return;
-
-        try {
-            let fileUrl = null;
-            let fileName = null;
-            let messageType = 'text';
-
-            // Upload audio if present
-            if (audioBlob) {
-                fileUrl = await uploadFile(new File([audioBlob], 'voice_message.webm', { type: 'audio/webm' }));
-                fileName = 'Messaggio vocale';
-                messageType = 'voice';
-            }
-            // Upload file if present
-            else if (selectedFile) {
-                fileUrl = await uploadFile(selectedFile);
-                fileName = selectedFile.name;
-                messageType = selectedFile.type.startsWith('image/') ? 'image' : 'file';
-            }
-
-            await sendMessageMutation({
-                channel_id: selectedCantiere._id,
-                sender_email: userEmail,
-                sender_name: user?.fullName || 'Utente',
-                content: newMessage || fileName || '',
-                file_url: fileUrl,
-                file_name: fileName,
-                message_type: messageType,
-            });
-
-            setNewMessage('');
-            setAudioBlob(null);
-            setSelectedFile(null);
-            setRecordingTime(0);
-        } catch (error) {
-            console.error("Error sending message:", error);
-            alert("Errore durante l'invio del messaggio");
-        }
-    };
-
-    const handleInviteTeamMember = async () => {
-        if (!inviteEmail.trim() || !selectedCantiere) return;
-        setInviteSending(true);
-
-        try {
-            // Add to database
-            await inviteTeamMemberMutation({
-                cantiere_id: selectedCantiere._id,
-                email: inviteEmail,
-                role: 'worker',
-                invited_by: userEmail,
-            });
-
-            // Send email
-            await sendInviteEmail({
-                to: inviteEmail,
-                cantiereNome: selectedCantiere.nome_cantiere,
-                inviterName: user?.fullName || 'Admin',
-                inviterEmail: userEmail,
-            });
-
-            alert(`Invito inviato a ${inviteEmail}`);
-            setInviteEmail('');
-            setInviteModalOpen(false);
-        } catch (error) {
-            console.error("Error inviting team member:", error);
-            alert("Errore durante l'invio dell'invito");
-        } finally {
-            setInviteSending(false);
-        }
+    // Phase Helpers
+    const getPhaseColor = (status) => {
+        const phase = KANBAN_PHASES.find(p => p.id === status);
+        return phase ? phase.color : 'bg-gray-500';
     };
 
     const getPhaseLabel = (status) => {
         const phase = KANBAN_PHASES.find(p => p.id === status);
-        return phase?.label || status?.toUpperCase() || 'N/A';
+        return phase ? phase.label : status;
     };
 
-    const getPhaseColor = (status) => {
-        const phase = KANBAN_PHASES.find(p => p.id === status);
-        return phase?.color || 'bg-gray-500';
-    };
 
-    const filteredCantieri = cantieri.filter(c =>
-        c.nome_cantiere?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.cliente?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    // Group cantieri by phase for Kanban
-    const cantieriByPhase = KANBAN_PHASES.reduce((acc, phase) => {
-        acc[phase.id] = filteredCantieri.filter(c => c.status === phase.id);
-        return acc;
-    }, {});
-
-    const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
-
-    // Convex user for role check
-    const convexUser = useQuery(api.users.getByEmail, { email: userEmail });
-
-    // Loading state
-    if (!user || convexUser === undefined) {
-        return <div className="min-h-screen grid place-items-center bg-[#212529] text-white">Caricamento...</div>;
-    }
-
-    // Access control - only Admin/CEO can access CantieriDashboard
-    const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
-    if (!isAdmin) {
+    if (!isAdmin && !isClient && !isWorker) {
         return (
             <div className="min-h-screen bg-[#212529] flex items-center justify-center">
                 <div className="text-center">
                     <h2 className="text-xl text-[#f8f9fa] mb-2">Accesso Negato</h2>
-                    <p className="text-[#adb5bd]">Solo gli amministratori possono accedere alla gestione cantieri.</p>
+                    <p className="text-[#adb5bd]">Non hai i permessi per accedere a questa sezione.</p>
                 </div>
             </div>
         );
@@ -371,6 +373,12 @@ export default function CantieriDashboard() {
         <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
             <AnimatedBackground />
             <VerticalMenu />
+            <UniversalPdfViewer
+                isOpen={!!viewPdfUrl}
+                onClose={() => setViewPdfUrl(null)}
+                url={viewPdfUrl}
+                title="Visualizzazione Documento"
+            />
 
             <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
                 <div className="max-w-full mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
@@ -386,134 +394,149 @@ export default function CantieriDashboard() {
                         </div>
 
                         <div className="flex gap-3">
-                            <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-                                <DialogTrigger asChild>
-                                    <Button className="bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529] shadow-lg hover:shadow-xl">
-                                        <Plus size={20} className="mr-2" />
-                                        Nuovo Cantiere
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa]">
-                                    <DialogHeader>
-                                        <DialogTitle className="text-[#f8f9fa]">Crea Nuovo Cantiere</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="space-y-4 py-4">
-                                        <div className="space-y-2">
-                                            <Label className="text-[#dee2e6]">Nome Cantiere</Label>
-                                            <Input
-                                                value={newCantiere.nome_cantiere}
-                                                onChange={e => setNewCantiere({ ...newCantiere, nome_cantiere: e.target.value })}
-                                                placeholder="Es. Ristrutturazione Villa Rossi"
-                                                className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] placeholder:text-[#adb5bd]"
-                                            />
-                                        </div>
-
-                                        {/* Client Selection Dropdown */}
-                                        <div className="space-y-2">
-                                            <Label className="text-[#dee2e6]">Seleziona Cliente (da Clienti)</Label>
-                                            <Select
-                                                value={newCantiere.client_id || "manual"}
-                                                onValueChange={(v) => {
-                                                    if (v === "manual") {
-                                                        setNewCantiere({ ...newCantiere, client_id: null });
-                                                    } else {
-                                                        const client = clientsList.find(c => c._id === v);
-                                                        setNewCantiere({
-                                                            ...newCantiere,
-                                                            client_id: v,
-                                                            cliente: client?.full_name || newCantiere.cliente
-                                                        });
-                                                    }
-                                                }}
-                                            >
-                                                <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
-                                                    <SelectValue placeholder="Seleziona cliente..." />
-                                                </SelectTrigger>
-                                                <SelectContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa]">
-                                                    <SelectItem value="manual" className="text-[#f8f9fa] focus:bg-[#495057] focus:text-[#f8f9fa]">
-                                                        ✍️ Inserisci manualmente
-                                                    </SelectItem>
-                                                    {clientsList.filter(c => c.status === 'active').map(client => (
-                                                        <SelectItem key={client._id} value={client._id} className="text-[#f8f9fa] focus:bg-[#495057] focus:text-[#f8f9fa]">
-                                                            {client.full_name} {client.company_name && `(${client.company_name})`}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-
-                                        {!newCantiere.client_id && (
+                            {isAdmin && (
+                                <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button className="bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529] shadow-lg hover:shadow-xl">
+                                            <Plus size={20} className="mr-2" />
+                                            Nuovo Cantiere
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa]">
+                                        <DialogHeader>
+                                            <DialogTitle className="text-[#f8f9fa]">Crea Nuovo Cantiere</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="space-y-4 py-4">
+                                            {/* Quote Selection */}
                                             <div className="space-y-2">
-                                                <Label className="text-[#dee2e6]">Nome Cliente (manuale)</Label>
+                                                <Label className="text-[#dee2e6]">Seleziona Preventivo Definitivo (Obbligatorio)</Label>
+                                                <Select
+                                                    value={newCantiere.quote_id || ""}
+                                                    onValueChange={(val) => {
+                                                        const quote = allQuotes.find(q => q._id === val);
+                                                        if (quote) {
+                                                            const client = clientsList.find(c => c._id === quote.client_id) ||
+                                                                clientsList.find(c => c.email === quote.email);
+
+                                                            setNewCantiere(prev => ({
+                                                                ...prev,
+                                                                quote_id: quote._id,
+                                                                nome_cantiere: `Cantiere ${quote.full_name || 'Nuovo'}`,
+                                                                client_id: quote.client_id || (client ? client._id : null),
+                                                                cliente: quote.full_name || quote.email,
+                                                                valore_contratto: quote.estimated_price?.toString() || '',
+                                                                valore_progetto: quote.estimated_price?.toString() || ''
+                                                            }));
+                                                        }
+                                                    }}
+                                                >
+                                                    <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
+                                                        <SelectValue placeholder="Seleziona preventivo accettato..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa]">
+                                                        {allQuotes.filter(q => q.status === 'accepted' && !q.cantiere_id).map(quote => (
+                                                            <SelectItem key={quote._id} value={quote._id} className="text-[#f8f9fa]">
+                                                                {quote.full_name} - €{quote.estimated_price?.toLocaleString()}
+                                                            </SelectItem>
+                                                        ))}
+                                                        {allQuotes.filter(q => q.status === 'accepted' && !q.cantiere_id).length === 0 && (
+                                                            <div className="p-2 text-sm text-[#adb5bd] text-center">Nessun preventivo accettato disponibile</div>
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
+                                                <p className="text-xs text-[#6c757d]">Solo i preventivi "Accettati" e non ancora collegati possono essere selezionati.</p>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label className="text-[#dee2e6]">Nome Cantiere</Label>
+                                                <Input
+                                                    value={newCantiere.nome_cantiere}
+                                                    onChange={e => setNewCantiere({ ...newCantiere, nome_cantiere: e.target.value })}
+                                                    placeholder="Es. Ristrutturazione Villa Rossi"
+                                                    className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] placeholder:text-[#adb5bd]"
+                                                />
+                                            </div>
+
+                                            {/* Client Info (Read Only or verify) */}
+                                            <div className="space-y-2">
+                                                <Label className="text-[#dee2e6]">Cliente</Label>
                                                 <Input
                                                     value={newCantiere.cliente}
-                                                    onChange={e => setNewCantiere({ ...newCantiere, cliente: e.target.value })}
-                                                    placeholder="Nome Cliente"
+                                                    readOnly
+                                                    placeholder="Seleziona un preventivo per compilare"
+                                                    className="bg-[#343a40] border-[#6c757d] text-[#adb5bd] cursor-not-allowed"
+                                                />
+                                                {!newCantiere.client_id && newCantiere.quote_id && (
+                                                    <p className="text-xs text-yellow-500">Attenzione: Il preventivo selezionato non ha un cliente collegato nel database.</p>
+                                                )}
+                                            </div>
+
+                                            {/* Address */}
+                                            <div className="space-y-2">
+                                                <Label className="text-[#dee2e6]">Indirizzo Cantiere</Label>
+                                                <Input
+                                                    value={newCantiere.indirizzo}
+                                                    onChange={e => setNewCantiere({ ...newCantiere, indirizzo: e.target.value })}
+                                                    placeholder="Via, Numero, Città"
                                                     className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] placeholder:text-[#adb5bd]"
                                                 />
                                             </div>
-                                        )}
 
-                                        {/* Address */}
-                                        <div className="space-y-2">
-                                            <Label className="text-[#dee2e6]">Indirizzo Cantiere</Label>
-                                            <Input
-                                                value={newCantiere.indirizzo}
-                                                onChange={e => setNewCantiere({ ...newCantiere, indirizzo: e.target.value })}
-                                                placeholder="Via, Numero, Città"
-                                                className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] placeholder:text-[#adb5bd]"
-                                            />
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label className="text-[#dee2e6]">Valore Contratto (€)</Label>
-                                                <Input
-                                                    type="number"
-                                                    value={newCantiere.valore_contratto}
-                                                    onChange={e => setNewCantiere({ ...newCantiere, valore_contratto: e.target.value })}
-                                                    className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]"
-                                                />
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label className="text-[#dee2e6]">Valore Contratto (€)</Label>
+                                                    <Input
+                                                        type="number"
+                                                        value={newCantiere.valore_contratto}
+                                                        onChange={e => setNewCantiere({ ...newCantiere, valore_contratto: e.target.value })}
+                                                        className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-[#dee2e6]">Valore Progetto (€)</Label>
+                                                    <Input
+                                                        type="number"
+                                                        value={newCantiere.valore_progetto}
+                                                        onChange={e => setNewCantiere({ ...newCantiere, valore_progetto: e.target.value })}
+                                                        placeholder="Stima progetto"
+                                                        className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] placeholder:text-[#adb5bd]"
+                                                    />
+                                                </div>
                                             </div>
                                             <div className="space-y-2">
-                                                <Label className="text-[#dee2e6]">Valore Progetto (€)</Label>
-                                                <Input
-                                                    type="number"
-                                                    value={newCantiere.valore_progetto}
-                                                    onChange={e => setNewCantiere({ ...newCantiere, valore_progetto: e.target.value })}
-                                                    placeholder="Stima progetto"
-                                                    className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] placeholder:text-[#adb5bd]"
-                                                />
+                                                <Label className="text-[#dee2e6]">Fase Iniziale</Label>
+                                                <Select
+                                                    value={newCantiere.status}
+                                                    onValueChange={v => setNewCantiere({ ...newCantiere, status: v })}
+                                                >
+                                                    <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa]">
+                                                        {KANBAN_PHASES.map(phase => (
+                                                            <SelectItem key={phase.id} value={phase.id} className="text-[#f8f9fa] focus:bg-[#495057] focus:text-[#f8f9fa]">
+                                                                {phase.label}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
                                             </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-[#dee2e6]">Fase Iniziale</Label>
-                                            <Select
-                                                value={newCantiere.status}
-                                                onValueChange={v => setNewCantiere({ ...newCantiere, status: v })}
+                                            <Button
+                                                onClick={handleCreate}
+                                                disabled={!newCantiere.nome_cantiere || !newCantiere.quote_id || !newCantiere.client_id}
+                                                className="w-full bg-[#f8f9fa] text-[#212529] hover:bg-[#e9ecef] mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
-                                                <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa]">
-                                                    {KANBAN_PHASES.map(phase => (
-                                                        <SelectItem key={phase.id} value={phase.id} className="text-[#f8f9fa] focus:bg-[#495057] focus:text-[#f8f9fa]">
-                                                            {phase.label}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                                Crea Cantiere
+                                            </Button>
+                                            {!newCantiere.client_id && newCantiere.quote_id && (
+                                                <p className="text-xs text-red-400 mt-2 text-center">
+                                                    Impossibile creare cantiere: Il preventivo selezionato non è associato a un cliente.
+                                                </p>
+                                            )}
                                         </div>
-                                        <Button
-                                            onClick={handleCreate}
-                                            disabled={!newCantiere.nome_cantiere || !newCantiere.cliente}
-                                            className="w-full bg-[#f8f9fa] text-[#212529] hover:bg-[#e9ecef] mt-4"
-                                        >
-                                            Crea Cantiere
-                                        </Button>
-                                    </div>
-                                </DialogContent>
-                            </Dialog>
+                                    </DialogContent>
+                                </Dialog>
+                            )}
                         </div>
                     </div>
 
@@ -576,11 +599,11 @@ export default function CantieriDashboard() {
                                                     opacity: draggedItem?._id === cantiere._id ? 0.5 : 1,
                                                     y: 0
                                                 }}
-                                                draggable
-                                                onDragStart={(e) => handleDragStart(e, cantiere)}
-                                                onDragEnd={handleDragEnd}
-                                                className={`bg-[#343a40] border border-[#495057] rounded-xl p-4 cursor-grab active:cursor-grabbing hover:border-[#6c757d] transition-all ${draggedItem?._id === cantiere._id ? 'ring-2 ring-[#f8f9fa]' : ''
-                                                    }`}
+                                                draggable={isAdmin}
+                                                onDragStart={(e) => isAdmin && handleDragStart(e, cantiere)}
+                                                onDragEnd={isAdmin ? handleDragEnd : undefined}
+                                                className={`bg-[#343a40] border border-[#495057] rounded-xl p-4 cursor-pointer hover:border-[#6c757d] transition-all ${draggedItem?._id === cantiere._id ? 'ring-2 ring-[#f8f9fa]' : ''
+                                                    } ${!isAdmin ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
                                                 onClick={() => setSelectedCantiere(cantiere)}
                                             >
                                                 <div className="flex items-start justify-between mb-2">
@@ -705,10 +728,10 @@ export default function CantieriDashboard() {
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="fixed right-0 top-0 h-full w-full max-w-lg bg-[#212529] border-l border-[#495057] z-50 overflow-hidden flex flex-col"
+                            className="fixed right-0 top-0 h-screen w-full max-w-lg bg-[#212529] border-l border-[#495057] z-50 flex flex-col"
                         >
                             {/* Header */}
-                            <div className="p-6 border-b border-[#495057] bg-[#343a40]">
+                            <div className="p-6 border-b border-[#495057] bg-[#343a40] flex-shrink-0">
                                 <div className="flex items-start justify-between">
                                     <div>
                                         <h2 className="text-xl font-medium text-[#f8f9fa]">{selectedCantiere.nome_cantiere}</h2>
@@ -722,6 +745,25 @@ export default function CantieriDashboard() {
                                     >
                                         <X size={20} />
                                     </Button>
+                                    {isAdmin && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={async () => {
+                                                if (window.confirm("Sei sicuro di voler eliminare DEFINITIVAMENTE questo cantiere? L'operazione non può essere annullata.")) {
+                                                    try {
+                                                        await deleteCantiereMutation({ id: selectedCantiere._id });
+                                                        setSelectedCantiere(null);
+                                                    } catch (e) {
+                                                        alert("Errore durante l'eliminazione: " + e.message);
+                                                    }
+                                                }
+                                            }}
+                                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 ml-2"
+                                        >
+                                            <Trash2 size={20} />
+                                        </Button>
+                                    )}
                                 </div>
 
                                 {/* Phase Selector */}
@@ -730,8 +772,9 @@ export default function CantieriDashboard() {
                                     <Select
                                         value={selectedCantiere.status}
                                         onValueChange={(v) => handlePhaseChange(selectedCantiere._id, v)}
+                                        disabled={!isAdmin}
                                     >
-                                        <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
+                                        <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] disabled:opacity-50">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa]">
@@ -749,8 +792,8 @@ export default function CantieriDashboard() {
                             </div>
 
                             {/* Tabs */}
-                            <Tabs value={detailTab} onValueChange={setDetailTab} className="flex-1 flex flex-col overflow-hidden">
-                                <TabsList className="bg-transparent border-b border-[#495057] rounded-none px-6 justify-start">
+                            <Tabs value={detailTab} onValueChange={setDetailTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                                <TabsList className="bg-transparent border-b border-[#495057] rounded-none px-6 justify-start flex-shrink-0 h-auto py-0">
                                     <TabsTrigger value="details" className="text-[#adb5bd] data-[state=active]:bg-transparent data-[state=active]:text-[#f8f9fa] data-[state=active]:border-b-2 data-[state=active]:border-[#f8f9fa] rounded-none">
                                         Dettagli
                                     </TabsTrigger>
@@ -766,8 +809,9 @@ export default function CantieriDashboard() {
                                 </TabsList>
 
                                 {/* Details Tab */}
-                                <TabsContent value="details" className="flex-1 overflow-y-auto p-6 m-0">
-                                    <div className="space-y-6">
+                                <TabsContent value="details" className="flex-1 overflow-y-auto p-6 pt-4 m-0 min-h-0">
+                                    <div className="space-y-6 pb-12">
+                                        {/* Value & Progress Cards */}
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="bg-[#343a40] rounded-xl p-4 border border-[#495057]">
                                                 <p className="text-xs text-[#adb5bd] mb-1">Valore Contratto</p>
@@ -783,7 +827,153 @@ export default function CantieriDashboard() {
                                             </div>
                                         </div>
 
-                                        {/* Auto-calculated progress based on tasks */}
+                                        {/* Client Info */}
+                                        {cantiereDetail?.client && (
+                                            <div className="bg-[#343a40] rounded-xl p-4 border border-[#495057]">
+                                                <div className="flex items-center gap-2 mb-4">
+                                                    <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                                        <User size={14} className="text-blue-400" />
+                                                    </div>
+                                                    <p className="text-sm font-medium text-[#f8f9fa]">Informazioni Cliente</p>
+                                                </div>
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <User size={14} className="text-[#6c757d] flex-shrink-0" />
+                                                        <div>
+                                                            <p className="text-xs text-[#6c757d]">Nome</p>
+                                                            <p className="text-sm text-[#f8f9fa] font-medium">{cantiereDetail.client.full_name}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <Mail size={14} className="text-[#6c757d] flex-shrink-0" />
+                                                        <div>
+                                                            <p className="text-xs text-[#6c757d]">Email</p>
+                                                            <p className="text-sm text-[#f8f9fa]">{cantiereDetail.client.email}</p>
+                                                        </div>
+                                                    </div>
+                                                    {cantiereDetail.client.phone && (
+                                                        <div className="flex items-center gap-3">
+                                                            <Phone size={14} className="text-[#6c757d] flex-shrink-0" />
+                                                            <div>
+                                                                <p className="text-xs text-[#6c757d]">Telefono</p>
+                                                                <p className="text-sm text-[#f8f9fa]">{cantiereDetail.client.phone}</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {cantiereDetail.client.address && (
+                                                        <div className="flex items-center gap-3">
+                                                            <MapPin size={14} className="text-[#6c757d] flex-shrink-0" />
+                                                            <div>
+                                                                <p className="text-xs text-[#6c757d]">Indirizzo</p>
+                                                                <p className="text-sm text-[#f8f9fa]">{cantiereDetail.client.address}</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {cantiereDetail.client.fiscal_code && (
+                                                        <div className="flex items-center gap-3">
+                                                            <FileText size={14} className="text-[#6c757d] flex-shrink-0" />
+                                                            <div>
+                                                                <p className="text-xs text-[#6c757d]">Codice Fiscale / P.IVA</p>
+                                                                <p className="text-sm text-[#f8f9fa] font-mono">{cantiereDetail.client.fiscal_code}</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {cantiereDetail.client.company_name && (
+                                                        <div className="flex items-center gap-3">
+                                                            <Building size={14} className="text-[#6c757d] flex-shrink-0" />
+                                                            <div>
+                                                                <p className="text-xs text-[#6c757d]">Azienda</p>
+                                                                <p className="text-sm text-[#f8f9fa]">{cantiereDetail.client.company_name}</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    <div className="pt-2 border-t border-[#495057]">
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cantiereDetail.client.status === 'active' ? 'bg-green-500/20 text-green-400' :
+                                                            cantiereDetail.client.status === 'lead' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                                'bg-gray-500/20 text-gray-400'
+                                                            }`}>
+                                                            {cantiereDetail.client.status === 'active' ? 'Attivo' :
+                                                                cantiereDetail.client.status === 'lead' ? 'Lead' : 'Archiviato'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Linked Quotes */}
+                                        <div className="bg-[#343a40] rounded-xl p-4 border border-[#495057]">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                                                    <Receipt size={14} className="text-emerald-400" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-medium text-[#f8f9fa]">Preventivi Collegati</p>
+                                                    <p className="text-xs text-[#6c757d]">
+                                                        {cantiereDetail?.quotes?.length || 0} preventiv{(cantiereDetail?.quotes?.length || 0) === 1 ? 'o' : 'i'}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {(!cantiereDetail?.quotes || cantiereDetail.quotes.length === 0) ? (
+                                                <div className="text-center py-6 border-2 border-dashed border-[#495057] rounded-lg">
+                                                    <Receipt size={24} className="text-[#6c757d] mx-auto mb-2" />
+                                                    <p className="text-sm text-[#6c757d]">Nessun preventivo collegato</p>
+                                                    <p className="text-xs text-[#495057] mt-1">Collega un preventivo dalla sezione Preventivi</p>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {cantiereDetail.quotes.map((quote) => (
+                                                        <div key={quote._id} className="bg-[#212529] rounded-lg p-3 border border-[#495057] hover:border-[#6c757d] transition-colors">
+                                                            <div className="flex items-start justify-between mb-2">
+                                                                <div>
+                                                                    <p className="text-sm font-medium text-[#f8f9fa]">
+                                                                        {quote.quote_type === 'finestre' ? '🪟 Solo Infissi' :
+                                                                            quote.quote_type === 'chiavi_in_mano' ? '🏠 Chiavi in Mano' :
+                                                                                quote.quote_type === 'completo' ? '🏗️ Completo' : quote.quote_type}
+                                                                    </p>
+                                                                    <p className="text-xs text-[#6c757d] mt-0.5">
+                                                                        {quote.full_name || quote.email}
+                                                                    </p>
+                                                                </div>
+                                                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${quote.status === 'completato' ? 'bg-green-500/20 text-green-400' :
+                                                                    quote.status === 'in_revisione' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                                        quote.status === 'inviato' ? 'bg-blue-500/20 text-blue-400' :
+                                                                            quote.status === 'rifiutato' ? 'bg-red-500/20 text-red-400' :
+                                                                                'bg-gray-500/20 text-gray-400'
+                                                                    }`}>
+                                                                    {quote.status === 'completato' ? 'Completato' :
+                                                                        quote.status === 'in_revisione' ? 'In Revisione' :
+                                                                            quote.status === 'inviato' ? 'Inviato' :
+                                                                                quote.status === 'rifiutato' ? 'Rifiutato' :
+                                                                                    quote.status?.replace(/_/g, ' ') || 'Nuovo'}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-3 text-xs text-[#adb5bd]">
+                                                                    <span className="flex items-center gap-1">
+                                                                        <Calendar size={10} />
+                                                                        {quote.created_date ? new Date(quote.created_date).toLocaleDateString('it-IT') : '-'}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-[#f8f9fa] font-semibold text-sm">
+                                                                    € {quote.estimated_price?.toLocaleString('it-IT') || '0'}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+
+                                                    {/* Total */}
+                                                    <div className="flex items-center justify-between pt-3 border-t border-[#495057]">
+                                                        <p className="text-xs text-[#adb5bd] font-medium">Totale Preventivi</p>
+                                                        <p className="text-[#f8f9fa] font-bold">
+                                                            € {cantiereDetail.quotes.reduce((sum, q) => sum + (q.estimated_price || 0), 0).toLocaleString('it-IT')}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Progress bar */}
                                         <div className="bg-[#343a40] rounded-xl p-4 border border-[#495057]">
                                             <p className="text-xs text-[#adb5bd] mb-3">Progresso Lavori (automatico)</p>
                                             <div className="space-y-3">
@@ -804,6 +994,7 @@ export default function CantieriDashboard() {
                                             </div>
                                         </div>
 
+                                        {/* Workflow */}
                                         <div className="bg-[#343a40] rounded-xl p-4 border border-[#495057]">
                                             <p className="text-xs text-[#adb5bd] mb-3">Flusso di Lavoro</p>
                                             <div className="flex items-center gap-1 flex-wrap">
@@ -826,8 +1017,8 @@ export default function CantieriDashboard() {
                                 </TabsContent>
 
                                 {/* Tasks Tab - Phase Based */}
-                                <TabsContent value="tasks" className="flex-1 overflow-y-auto p-6 m-0">
-                                    <div className="space-y-6">
+                                <TabsContent value="tasks" className="flex-1 overflow-y-auto p-6 pt-4 m-0 min-h-0">
+                                    <div className="space-y-6 pb-12">
                                         {/* Overall Progress */}
                                         <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl p-4 border border-blue-500/30">
                                             <div className="flex items-center justify-between mb-3">
@@ -877,57 +1068,59 @@ export default function CantieriDashboard() {
                                                     {isExpanded && (
                                                         <div className="border-t border-[#495057] p-4 space-y-4">
                                                             {/* Add Task Form for this phase */}
-                                                            <div className="flex gap-2">
-                                                                <Input
-                                                                    value={newPhaseTask.phase === phaseName ? newPhaseTask.title : ''}
-                                                                    onChange={(e) => setNewPhaseTask({ ...newPhaseTask, title: e.target.value, phase: phaseName })}
-                                                                    placeholder={`Nuova task per ${phase.label}...`}
-                                                                    className="flex-1 bg-[#495057] border-[#6c757d] text-[#f8f9fa]"
-                                                                    onKeyPress={(e) => {
-                                                                        if (e.key === 'Enter' && newPhaseTask.title.trim()) {
-                                                                            createPhaseTaskMutation({
-                                                                                cantiere_id: selectedCantiere._id,
-                                                                                phase: phaseName,
-                                                                                title: newPhaseTask.title.trim(),
-                                                                                priority: newPhaseTask.priority,
-                                                                                assigned_to: newPhaseTask.assigned_to || undefined
-                                                                            });
-                                                                            setNewPhaseTask({ title: '', phase: phaseName, priority: 'media', assigned_to: '' });
-                                                                        }
-                                                                    }}
-                                                                />
-                                                                <Select
-                                                                    value={newPhaseTask.priority}
-                                                                    onValueChange={(v) => setNewPhaseTask({ ...newPhaseTask, priority: v })}
-                                                                >
-                                                                    <SelectTrigger className="w-24 bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
-                                                                        <SelectValue />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent className="bg-[#343a40] border-[#495057]">
-                                                                        <SelectItem value="alta" className="text-red-400">Alta</SelectItem>
-                                                                        <SelectItem value="media" className="text-yellow-400">Media</SelectItem>
-                                                                        <SelectItem value="bassa" className="text-blue-400">Bassa</SelectItem>
-                                                                    </SelectContent>
-                                                                </Select>
-                                                                <Button
-                                                                    onClick={() => {
-                                                                        if (newPhaseTask.title.trim()) {
-                                                                            createPhaseTaskMutation({
-                                                                                cantiere_id: selectedCantiere._id,
-                                                                                phase: phaseName,
-                                                                                title: newPhaseTask.title.trim(),
-                                                                                priority: newPhaseTask.priority,
-                                                                                assigned_to: newPhaseTask.assigned_to || undefined
-                                                                            });
-                                                                            setNewPhaseTask({ title: '', phase: phaseName, priority: 'media', assigned_to: '' });
-                                                                        }
-                                                                    }}
-                                                                    size="sm"
-                                                                    className="bg-blue-600 hover:bg-blue-700"
-                                                                >
-                                                                    <Plus size={16} />
-                                                                </Button>
-                                                            </div>
+                                                            {isAdmin && (
+                                                                <div className="flex gap-2">
+                                                                    <Input
+                                                                        value={newPhaseTask.phase === phaseName ? newPhaseTask.title : ''}
+                                                                        onChange={(e) => setNewPhaseTask({ ...newPhaseTask, title: e.target.value, phase: phaseName })}
+                                                                        placeholder={`Nuova task per ${phase.label}...`}
+                                                                        className="flex-1 bg-[#495057] border-[#6c757d] text-[#f8f9fa]"
+                                                                        onKeyPress={(e) => {
+                                                                            if (e.key === 'Enter' && newPhaseTask.title.trim()) {
+                                                                                createPhaseTaskMutation({
+                                                                                    cantiere_id: selectedCantiere._id,
+                                                                                    phase: phaseName,
+                                                                                    title: newPhaseTask.title.trim(),
+                                                                                    priority: newPhaseTask.priority,
+                                                                                    assigned_to: newPhaseTask.assigned_to || undefined
+                                                                                });
+                                                                                setNewPhaseTask({ title: '', phase: phaseName, priority: 'media', assigned_to: '' });
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                    <Select
+                                                                        value={newPhaseTask.priority}
+                                                                        onValueChange={(v) => setNewPhaseTask({ ...newPhaseTask, priority: v })}
+                                                                    >
+                                                                        <SelectTrigger className="w-24 bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
+                                                                            <SelectValue />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent className="bg-[#343a40] border-[#495057]">
+                                                                            <SelectItem value="alta" className="text-red-400">Alta</SelectItem>
+                                                                            <SelectItem value="media" className="text-yellow-400">Media</SelectItem>
+                                                                            <SelectItem value="bassa" className="text-blue-400">Bassa</SelectItem>
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    <Button
+                                                                        onClick={() => {
+                                                                            if (newPhaseTask.title.trim()) {
+                                                                                createPhaseTaskMutation({
+                                                                                    cantiere_id: selectedCantiere._id,
+                                                                                    phase: phaseName,
+                                                                                    title: newPhaseTask.title.trim(),
+                                                                                    priority: newPhaseTask.priority,
+                                                                                    assigned_to: newPhaseTask.assigned_to || undefined
+                                                                                });
+                                                                                setNewPhaseTask({ title: '', phase: phaseName, priority: 'media', assigned_to: '' });
+                                                                            }
+                                                                        }}
+                                                                        size="sm"
+                                                                        className="bg-blue-600 hover:bg-blue-700"
+                                                                    >
+                                                                        <Plus size={16} />
+                                                                    </Button>
+                                                                </div>
+                                                            )}
 
                                                             {/* Tasks List */}
                                                             {tasksInPhase.length === 0 ? (
@@ -943,14 +1136,14 @@ export default function CantieriDashboard() {
                                                                             className={`flex items-center gap-3 p-3 bg-[#495057]/50 rounded-lg ${task.status === 'completato' ? 'opacity-60' : ''}`}
                                                                         >
                                                                             <button
-                                                                                onClick={() => updatePhaseTaskMutation({
+                                                                                onClick={() => isAdmin && updatePhaseTaskMutation({
                                                                                     id: task._id,
                                                                                     data: { status: task.status === 'completato' ? 'da_fare' : 'completato' }
                                                                                 })}
                                                                                 className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${task.status === 'completato'
                                                                                     ? 'bg-green-500 border-green-500'
                                                                                     : 'border-[#6c757d] hover:border-green-500'
-                                                                                    }`}
+                                                                                    } ${!isAdmin ? 'cursor-default opacity-50 hover:border-[#6c757d]' : ''}`}
                                                                             >
                                                                                 {task.status === 'completato' && <Check size={12} className="text-white" />}
                                                                             </button>
@@ -970,7 +1163,7 @@ export default function CantieriDashboard() {
                                                                             </span>
                                                                             <button
                                                                                 onClick={() => removePhaseTaskMutation({ id: task._id })}
-                                                                                className="text-[#6c757d] hover:text-red-400 transition-colors"
+                                                                                className={`text-[#6c757d] hover:text-red-400 transition-colors ${!isAdmin ? 'hidden' : ''}`}
                                                                             >
                                                                                 <Trash2 size={14} />
                                                                             </button>
@@ -987,63 +1180,65 @@ export default function CantieriDashboard() {
                                 </TabsContent>
 
                                 {/* Team Tab */}
-                                <TabsContent value="team" className="flex-1 overflow-y-auto p-6 m-0">
-                                    <div className="space-y-4">
+                                <TabsContent value="team" className="flex-1 overflow-y-auto p-6 pt-4 m-0 min-h-0">
+                                    <div className="space-y-4 pb-12">
                                         <div className="flex items-center justify-between">
                                             <h3 className="font-medium text-[#f8f9fa]">Team Assegnato</h3>
-                                            <Dialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
-                                                <DialogTrigger asChild>
-                                                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
-                                                        <UserPlus size={14} className="mr-1" />
-                                                        Invita
-                                                    </Button>
-                                                </DialogTrigger>
-                                                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa]">
-                                                    <DialogHeader>
-                                                        <DialogTitle className="text-[#f8f9fa]">Invita Membro del Team</DialogTitle>
-                                                    </DialogHeader>
-                                                    <div className="space-y-4 py-4">
-                                                        <div className="space-y-2">
-                                                            <Label className="text-[#dee2e6]">Email del lavoratore</Label>
-                                                            <div className="relative">
-                                                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-[#adb5bd]" size={16} />
-                                                                <Input
-                                                                    type="email"
-                                                                    value={inviteEmail}
-                                                                    onChange={e => setInviteEmail(e.target.value)}
-                                                                    placeholder="email@example.com"
-                                                                    className="pl-10 bg-[#495057] border-[#6c757d] text-[#f8f9fa] placeholder:text-[#adb5bd]"
-                                                                />
+                                            {isAdmin && (
+                                                <Dialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
+                                                    <DialogTrigger asChild>
+                                                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+                                                            <UserPlus size={14} className="mr-1" />
+                                                            Invita
+                                                        </Button>
+                                                    </DialogTrigger>
+                                                    <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa]">
+                                                        <DialogHeader>
+                                                            <DialogTitle className="text-[#f8f9fa]">Invita Membro del Team</DialogTitle>
+                                                        </DialogHeader>
+                                                        <div className="space-y-4 py-4">
+                                                            <div className="space-y-2">
+                                                                <Label className="text-[#dee2e6]">Email del lavoratore</Label>
+                                                                <div className="relative">
+                                                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-[#adb5bd]" size={16} />
+                                                                    <Input
+                                                                        type="email"
+                                                                        value={inviteEmail}
+                                                                        onChange={e => setInviteEmail(e.target.value)}
+                                                                        placeholder="email@example.com"
+                                                                        className="pl-10 bg-[#495057] border-[#6c757d] text-[#f8f9fa] placeholder:text-[#adb5bd]"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div className="bg-[#495057]/50 rounded-lg p-3">
+                                                                <p className="text-xs text-[#adb5bd]">
+                                                                    Il membro riceverà un'email con un link per accedere a questo cantiere.
+                                                                    Potrà visualizzare i dettagli, modificare il progresso e comunicare tramite la chat.
+                                                                </p>
                                                             </div>
                                                         </div>
-                                                        <div className="bg-[#495057]/50 rounded-lg p-3">
-                                                            <p className="text-xs text-[#adb5bd]">
-                                                                Il membro riceverà un'email con un link per accedere a questo cantiere.
-                                                                Potrà visualizzare i dettagli, modificare il progresso e comunicare tramite la chat.
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <DialogFooter>
-                                                        <Button
-                                                            onClick={handleInviteTeamMember}
-                                                            disabled={!inviteEmail.trim() || inviteSending}
-                                                            className="bg-blue-600 hover:bg-blue-700 text-white"
-                                                        >
-                                                            {inviteSending ? (
-                                                                <>
-                                                                    <Loader2 size={16} className="mr-2 animate-spin" />
-                                                                    Invio...
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <Send size={16} className="mr-2" />
-                                                                    Invia Invito
-                                                                </>
-                                                            )}
-                                                        </Button>
-                                                    </DialogFooter>
-                                                </DialogContent>
-                                            </Dialog>
+                                                        <DialogFooter>
+                                                            <Button
+                                                                onClick={handleInviteTeamMember}
+                                                                disabled={!inviteEmail.trim() || inviteSending}
+                                                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                                                            >
+                                                                {inviteSending ? (
+                                                                    <>
+                                                                        <Loader2 size={16} className="mr-2 animate-spin" />
+                                                                        Invio...
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Send size={16} className="mr-2" />
+                                                                        Invia Invito
+                                                                    </>
+                                                                )}
+                                                            </Button>
+                                                        </DialogFooter>
+                                                    </DialogContent>
+                                                </Dialog>
+                                            )}
                                         </div>
 
                                         {/* Team Members */}
@@ -1095,7 +1290,7 @@ export default function CantieriDashboard() {
                                 </TabsContent>
 
                                 {/* Messages Tab */}
-                                <TabsContent value="messages" className="flex-1 flex flex-col overflow-hidden m-0">
+                                <TabsContent value="messages" className="flex-1 flex flex-col m-0 min-h-0 overflow-hidden">
                                     {/* Messages List */}
                                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
                                         {messages.length === 0 ? (
@@ -1136,15 +1331,20 @@ export default function CantieriDashboard() {
 
                                                         {/* File */}
                                                         {msg.message_type === 'file' && msg.file_url && (
-                                                            <a
-                                                                href={msg.file_url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="flex items-center gap-2 p-2 bg-white/10 rounded mb-1 hover:bg-white/20"
+                                                            <div
+                                                                onClick={() => {
+                                                                    const isPdf = msg.file_name?.toLowerCase().endsWith('.pdf');
+                                                                    if (isPdf) {
+                                                                        setViewPdfUrl(msg.file_url);
+                                                                    } else {
+                                                                        window.open(msg.file_url, '_blank');
+                                                                    }
+                                                                }}
+                                                                className="flex items-center gap-2 p-2 bg-white/10 rounded mb-1 hover:bg-white/20 cursor-pointer"
                                                             >
                                                                 <FileText size={16} />
                                                                 <span className="text-sm truncate">{msg.file_name || 'File'}</span>
-                                                            </a>
+                                                            </div>
                                                         )}
 
                                                         {/* Text Content */}
@@ -1263,6 +1463,6 @@ export default function CantieriDashboard() {
                     </>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 }

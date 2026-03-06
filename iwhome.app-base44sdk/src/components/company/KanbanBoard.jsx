@@ -1,8 +1,7 @@
 import React from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Euro, Clock, User, AlertCircle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Euro, Clock, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 

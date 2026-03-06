@@ -9,7 +9,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { useMutation } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
-import { format, addDays, isBefore, isWeekend, startOfToday } from 'date-fns';
+import { format, isBefore, isWeekend, startOfToday } from 'date-fns';
 import { it } from 'date-fns/locale';
 import CalendarWidget from '../components/appointments/CalendarWidget';
 import {

@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
 import InfoTooltip from '@/components/ui/InfoTooltip';
 import AISuggestions from './AISuggestions';
 import ComparativeAnalysis from './ComparativeAnalysis';
@@ -18,7 +15,6 @@ import {
   Plus,
   Minus,
   Calculator,
-  Sparkles,
   Trash2,
   ListOrdered
 } from 'lucide-react';
@@ -160,11 +156,11 @@ export default function WindowCalculator({ onQuoteChange }) {
     const price = pricePerSqm * area * config.quantity;
 
     setCurrentPrice(Math.round(price));
-    
+
     // Calculate total including all added windows
     const windowsTotal = windows.reduce((sum, w) => sum + w.price, 0);
     const total = windowsTotal + Math.round(price);
-    
+
     setTotalPrice(total);
     onQuoteChange?.({
       windows: [...windows, {
@@ -219,7 +215,7 @@ export default function WindowCalculator({ onQuoteChange }) {
   const removeWindow = (id) => {
     const updatedWindows = windows.filter(w => w.id !== id);
     setWindows(updatedWindows);
-    
+
     const newTotal = updatedWindows.reduce((sum, w) => sum + w.price, 0) + currentPrice;
     setTotalPrice(newTotal);
 
@@ -311,60 +307,60 @@ Inoltre genera 2 alternative comparative con:
 
   return (
     <div className="bg-gradient-to-br from-[#495057] to-[#6c757d] backdrop-blur-sm border border-[#f8f9fa]/20 rounded-3xl shadow-2xl overflow-hidden">
-    <div className="bg-gradient-to-r from-[#343a40] to-[#495057] p-6 lg:p-8 border-b border-[#f8f9fa]/10">
-      <div className="flex items-center gap-4 mb-6">
-        <img
-          src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/927932459_icon.png"
-          alt="IwHome"
-          className="h-14 w-auto"
-        />
-        <div>
-          <h3 className="text-2xl font-medium text-[#f8f9fa]">Calcolatore Infissi</h3>
-          <p className="text-[#dee2e6] text-sm">Telaio Z40 - Configura e ottieni un preventivo istantaneo</p>
+      <div className="bg-gradient-to-r from-[#343a40] to-[#495057] p-6 lg:p-8 border-b border-[#f8f9fa]/10">
+        <div className="flex items-center gap-4 mb-6">
+          <img
+            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/927932459_icon.png"
+            alt="IwHome"
+            className="h-14 w-auto"
+          />
+          <div>
+            <h3 className="text-2xl font-medium text-[#f8f9fa]">Calcolatore Infissi</h3>
+            <p className="text-[#dee2e6] text-sm">Telaio Z40 - Configura e ottieni un preventivo istantaneo</p>
+          </div>
         </div>
+
+        {/* Window Preview with color filter and Technical Drawing */}
+        {config.material === 'pvc' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            {/* Window Preview */}
+            <motion.div
+              key={`${config.windowType}-${config.ante}-${config.color}`}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4 }}
+              className="relative bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-[#f8f9fa]/10"
+            >
+              <img
+                src={WINDOW_IMAGES[config.windowType][config.ante]}
+                alt={`${config.windowType} ${config.ante} ante`}
+                className="h-48 lg:h-56 w-auto object-contain mx-auto"
+                style={{ filter: getColorFilter(config.color) }}
+              />
+              <div className="absolute top-2 right-2 bg-[#343a40]/90 backdrop-blur-sm px-3 py-1 rounded-full">
+                <span className="text-[#f8f9fa] text-xs font-medium">Anteprima</span>
+              </div>
+            </motion.div>
+
+            {/* Technical Drawing Z40 */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className="relative bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-[#f8f9fa]/10"
+            >
+              <img
+                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/cdb44c5dd_ideal4000schemaz40blackandwhite.png"
+                alt="Schema Telaio Z40"
+                className="h-48 lg:h-56 w-auto object-contain mx-auto"
+              />
+              <div className="absolute top-2 left-2 bg-[#343a40]/90 backdrop-blur-sm px-3 py-1 rounded-full">
+                <span className="text-[#f8f9fa] text-xs font-medium">Schema Tecnico Profilo Standard</span>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
-
-      {/* Window Preview with color filter and Technical Drawing */}
-      {config.material === 'pvc' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          {/* Window Preview */}
-          <motion.div
-            key={`${config.windowType}-${config.ante}-${config.color}`}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4 }}
-            className="relative bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-[#f8f9fa]/10"
-          >
-            <img
-              src={WINDOW_IMAGES[config.windowType][config.ante]}
-              alt={`${config.windowType} ${config.ante} ante`}
-              className="h-48 lg:h-56 w-auto object-contain mx-auto"
-              style={{ filter: getColorFilter(config.color) }}
-            />
-            <div className="absolute top-2 right-2 bg-[#343a40]/90 backdrop-blur-sm px-3 py-1 rounded-full">
-              <span className="text-[#f8f9fa] text-xs font-medium">Anteprima</span>
-            </div>
-          </motion.div>
-
-          {/* Technical Drawing Z40 */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            className="relative bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-[#f8f9fa]/10"
-          >
-            <img
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/cdb44c5dd_ideal4000schemaz40blackandwhite.png"
-              alt="Schema Telaio Z40"
-              className="h-48 lg:h-56 w-auto object-contain mx-auto"
-            />
-            <div className="absolute top-2 left-2 bg-[#343a40]/90 backdrop-blur-sm px-3 py-1 rounded-full">
-              <span className="text-[#f8f9fa] text-xs font-medium">Schema Tecnico Profilo Standard</span>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </div>
 
       <div className="p-6 lg:p-8 space-y-8">
         {/* Material Selection */}
@@ -377,19 +373,18 @@ Inoltre genera 2 alternative comparative con:
             {MATERIALS.map((mat) => (
               <motion.div
                 key={mat.id}
-                className={`relative flex flex-col p-4 rounded-xl border-2 transition-all backdrop-blur-sm ${
-                  mat.available
+                className={`relative flex flex-col p-4 rounded-xl border-2 transition-all backdrop-blur-sm ${mat.available
                     ? config.material === mat.id
                       ? 'border-[#f8f9fa] bg-[#f8f9fa]/20'
                       : 'border-[#f8f9fa]/20 bg-[#343a40]/50'
                     : 'border-[#f8f9fa]/10 bg-[#343a40]/20 opacity-60'
-                }`}
+                  }`}
               >
                 {!mat.available && (
                   <div className="absolute top-2 right-2">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-[#adb5bd]">
-                      <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="2"/>
-                      <path d="M7 11V7C7 4.79086 8.79086 3 11 3H13C15.2091 3 17 4.79086 17 7V11" stroke="currentColor" strokeWidth="2"/>
+                      <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="2" />
+                      <path d="M7 11V7C7 4.79086 8.79086 3 11 3H13C15.2091 3 17 4.79086 17 7V11" stroke="currentColor" strokeWidth="2" />
                     </svg>
                   </div>
                 )}
@@ -412,11 +407,10 @@ Inoltre genera 2 alternative comparative con:
                 key={type.id}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setConfig((prev) => ({ ...prev, windowType: type.id }))}
-                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all backdrop-blur-sm ${
-                  config.windowType === type.id
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all backdrop-blur-sm ${config.windowType === type.id
                     ? 'border-[#f8f9fa] bg-[#f8f9fa]/20'
                     : 'border-[#f8f9fa]/20 hover:border-[#f8f9fa]/40 bg-[#343a40]/50'
-                }`}
+                  }`}
               >
                 <img
                   src={WINDOW_IMAGES[type.id][config.ante]}
@@ -442,11 +436,10 @@ Inoltre genera 2 alternative comparative con:
                 key={ante.id}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setConfig((prev) => ({ ...prev, ante: ante.id }))}
-                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all backdrop-blur-sm ${
-                  config.ante === ante.id
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all backdrop-blur-sm ${config.ante === ante.id
                     ? 'border-[#f8f9fa] bg-[#f8f9fa]/20'
                     : 'border-[#f8f9fa]/20 hover:border-[#f8f9fa]/40 bg-[#343a40]/50'
-                }`}
+                  }`}
               >
                 <img
                   src={WINDOW_IMAGES[config.windowType][ante.id]}
@@ -548,11 +541,10 @@ Inoltre genera 2 alternative comparative con:
                 key={glass.id}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setConfig((prev) => ({ ...prev, glassType: glass.id }))}
-                className={`p-4 rounded-xl border-2 text-left transition-all backdrop-blur-sm ${
-                  config.glassType === glass.id
+                className={`p-4 rounded-xl border-2 text-left transition-all backdrop-blur-sm ${config.glassType === glass.id
                     ? 'border-[#f8f9fa] bg-[#f8f9fa]/20'
                     : 'border-[#f8f9fa]/20 hover:border-[#f8f9fa]/40 bg-[#343a40]/50'
-                }`}
+                  }`}
               >
                 <span className="font-medium text-[#f8f9fa]">{glass.name}</span>
               </motion.button>
@@ -572,19 +564,18 @@ Inoltre genera 2 alternative comparative con:
                 key={color.id}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setConfig((prev) => ({ ...prev, color: color.id }))}
-                className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all backdrop-blur-sm ${
-                  config.color === color.id
+                className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all backdrop-blur-sm ${config.color === color.id
                     ? 'border-[#f8f9fa] bg-[#f8f9fa]/20'
                     : 'border-[#f8f9fa]/20 hover:border-[#f8f9fa]/40 bg-[#343a40]/50'
-                }`}
+                  }`}
               >
                 {color.id === 'bianco_legno' ? (
                   <div className="w-8 h-8 rounded-full border-2 border-[#f8f9fa]/30 flex-shrink-0 overflow-hidden">
                     <div className="flex h-full">
                       <div className="w-1/2 bg-white" />
-                      <div 
-                        className="w-1/2" 
-                        style={{ 
+                      <div
+                        className="w-1/2"
+                        style={{
                           backgroundImage: 'url(https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/6a8f058d8_brave_screenshot_wwwaluplastcompl.png)',
                           backgroundSize: 'cover',
                           backgroundPosition: 'center'
@@ -593,9 +584,9 @@ Inoltre genera 2 alternative comparative con:
                     </div>
                   </div>
                 ) : color.id === 'effetto_legno' ? (
-                  <div 
+                  <div
                     className="w-8 h-8 rounded-full border-2 border-[#f8f9fa]/30 flex-shrink-0"
-                    style={{ 
+                    style={{
                       backgroundImage: 'url(https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/6a8f058d8_brave_screenshot_wwwaluplastcompl.png)',
                       backgroundSize: 'cover',
                       backgroundPosition: 'center'
@@ -613,20 +604,7 @@ Inoltre genera 2 alternative comparative con:
           </div>
         </div>
 
-        {/* AI Assistant Toggle */}
-        <div className="flex justify-center">
-          <Button
-            onClick={() => setShowAI(!showAI)}
-            className={`rounded-full px-6 ${
-              showAI 
-                ? 'bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529] hover:shadow-2xl' 
-                : 'border-2 border-[#f8f9fa] text-[#f8f9fa] bg-transparent hover:bg-[#f8f9fa]/10'
-            }`}
-          >
-            <Sparkles size={18} className="mr-2" />
-            {showAI ? 'Nascondi' : 'Attiva'} Assistente AI
-          </Button>
-        </div>
+
 
         {/* AI Suggestions */}
         {showAI && (
@@ -647,7 +625,7 @@ Inoltre genera 2 alternative comparative con:
               <ListOrdered size={18} className="text-[#f8f9fa]" />
               <Label className="text-sm font-medium text-[#f8f9fa]">Finestre Aggiunte ({windows.length})</Label>
             </div>
-            
+
             <div className="grid gap-3">
               {windows.map((window, index) => (
                 <motion.div
@@ -668,13 +646,13 @@ Inoltre genera 2 alternative comparative con:
                           Finestra #{index + 1}
                         </p>
                         <p className="text-[#dee2e6] text-xs">
-                          {window.windowType === 'finestra' ? 'Finestra' : 'Porta Finestra'} • 
-                          {window.ante} {window.ante === '1' ? 'Anta' : 'Ante'} • 
-                          {window.width}×{window.height}cm • 
+                          {window.windowType === 'finestra' ? 'Finestra' : 'Porta Finestra'} •
+                          {window.ante} {window.ante === '1' ? 'Anta' : 'Ante'} •
+                          {window.width}×{window.height}cm •
                           Qtà: {window.quantity}
                         </p>
                         <p className="text-[#adb5bd] text-xs mt-1">
-                          {window.glassType === 'doppio' ? 'Doppio' : 'Triplo'} Vetro • 
+                          {window.glassType === 'doppio' ? 'Doppio' : 'Triplo'} Vetro •
                           {COLORS.find(c => c.id === window.color)?.name}
                         </p>
                       </div>
@@ -744,15 +722,15 @@ Inoltre genera 2 alternative comparative con:
               </p>
             </div>
           </div>
-          
+
           {/* Disclaimer */}
           <div className="mt-4 pt-4 border-t border-[#f8f9fa]/10 space-y-2">
             <p className="text-[#adb5bd] text-xs text-center leading-relaxed">
-              ⚠️ <span className="font-medium">Prezzo indicativo e stimato</span> - Non rappresenta il costo reale del preventivo finale. 
+              ⚠️ <span className="font-medium">Prezzo indicativo e stimato</span> - Non rappresenta il costo reale del preventivo finale.
               Il prezzo definitivo sarà comunicato dopo un sopralluogo e valutazione specifica del progetto.
             </p>
             <p className="text-[#adb5bd] text-xs text-center leading-relaxed">
-              📋 Per configurazioni diverse o materiali specifici (Alluminio, Legno), 
+              📋 Per configurazioni diverse o materiali specifici (Alluminio, Legno),
               contattaci in sede o <span className="font-medium">richiedi un sopralluogo gratuito</span>.
             </p>
           </div>

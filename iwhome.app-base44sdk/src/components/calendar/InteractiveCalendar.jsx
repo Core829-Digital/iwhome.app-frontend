@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar as CalendarIcon, Plus, ChevronLeft, ChevronRight, Download, Edit, Trash2, Clock, MapPin, FileText } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Plus, ChevronLeft, ChevronRight, Download, Edit, Trash2, Clock } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';

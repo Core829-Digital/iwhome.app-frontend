@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
@@ -7,6 +7,7 @@ import { useUser } from "@clerk/clerk-react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -26,13 +27,14 @@ import AnimatedBackground from '../components/dashboard/AnimatedBackground';
 import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
 import {
   FileText,
-  Upload,
   Trash2,
   Eye,
   Plus,
   Search,
-  X,
-  Download,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertCircle,
   Loader2
 } from 'lucide-react';
 
@@ -45,7 +47,9 @@ export default function Documents() {
     title: '',
     description: '',
     category: 'altro',
-    file: null
+    file: null,
+    client_id: null,
+    client_email: null
   });
   const [isUploading, setIsUploading] = useState(false);
 
@@ -53,12 +57,22 @@ export default function Documents() {
   const [selectedDocUrl, setSelectedDocUrl] = useState(null);
   const [selectedDocTitle, setSelectedDocTitle] = useState('');
 
+  const convexUser = useQuery(api.users.getByEmail, { email: user?.primaryEmailAddress?.emailAddress || "" });
+  const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
+  const clients = useQuery(api.clients.list, isAdmin ? {} : "skip") || []; // Admin only query, safe now
+
   const documentsQuery = useQuery(api.documents.getByUser, { email: user?.primaryEmailAddress?.emailAddress || "" });
   const documents = documentsQuery || [];
   const isLoading = documentsQuery === undefined;
   const createDocument = useMutation(api.documents.create);
   const deleteDocument = useMutation(api.documents.deleteDocument);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+  const respondToQuoteMutation = useMutation(api.quotes.respondToQuote);
+
+  // Quote queries - user sees their own quotes
+  const userQuotes = useQuery(api.quotes.getByUser, { email: user?.primaryEmailAddress?.emailAddress || "" }) || [];
+  // Shared documents (final quotes from admin)
+  const sharedDocs = useQuery(api.documents.getSharedWith, { email: user?.primaryEmailAddress?.emailAddress || "" }) || [];
 
   const handleUpload = async () => {
     if (!uploadData.file || !uploadData.title) return;
@@ -88,12 +102,14 @@ export default function Documents() {
           file_size: uploadData.file.size,
           is_public: "false",
           created_by: user.primaryEmailAddress.emailAddress,
-          created_date: new Date().toISOString()
+          created_date: new Date().toISOString(),
+          client_id: uploadData.client_id, // Link to client if selected
+          shared_with: uploadData.client_email ? [uploadData.client_email] : undefined, // Optional: duplicate check
         });
       }
 
       setUploadModalOpen(false);
-      setUploadData({ title: '', description: '', category: 'altro', file: null });
+      setUploadData({ title: '', description: '', category: 'altro', file: null, client_id: null, client_email: null });
     } catch (error) {
       console.error("Upload failed:", error);
       alert("Errore durante il caricamento del file.");
@@ -109,11 +125,9 @@ export default function Documents() {
     return matchesSearch && matchesCategory;
   });
 
-  if (!user) {
-    return <div className="min-h-screen flex items-center justify-center bg-[#212529]">
-      <div className="text-[#f8f9fa]">Caricamento...</div>
-    </div>;
-  }
+  // Loading guard removed — auth handled globally by App.jsx
+
+  // if (!user) check removed
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
@@ -165,6 +179,31 @@ export default function Documents() {
                       className="bg-[#495057]/50 border-[#f8f9fa]/20 text-[#f8f9fa]"
                     />
                   </div>
+                  {/* Admin: Select Client */}
+                  {isAdmin && (
+                    <div className="space-y-2">
+                      <Label className="text-[#f8f9fa]">Cliente (Opzionale)</Label>
+                      <Select
+                        value={uploadData.client_id}
+                        onValueChange={(v) => {
+                          const client = clients.find(c => c._id === v);
+                          setUploadData({ ...uploadData, client_id: v, client_email: client?.email });
+                        }}
+                      >
+                        <SelectTrigger className="bg-[#495057]/50 border-[#f8f9fa]/20 text-[#f8f9fa]">
+                          <SelectValue placeholder="Seleziona cliente..." />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#343a40] border-[#f8f9fa]/20 max-h-[200px]">
+                          {clients.map(client => (
+                            <SelectItem key={client._id} value={client._id} className="text-[#f8f9fa] focus:bg-[#495057] focus:text-white cursor-pointer">
+                              {client.full_name} ({client.email})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <Label className="text-[#f8f9fa]">Categoria</Label>
                     <Select value={uploadData.category} onValueChange={v => setUploadData({ ...uploadData, category: v })}>
@@ -226,6 +265,128 @@ export default function Documents() {
             </Select>
           </div>
 
+          {/* Preventivi Section */}
+          {(userQuotes.length > 0 || sharedDocs.length > 0) && (
+            <div className="mb-6 lg:mb-8">
+              <h2 className="text-lg font-medium text-[#f8f9fa] mb-4 flex items-center gap-2">
+                <FileText size={20} className="text-blue-400" />
+                I Tuoi Preventivi
+              </h2>
+
+              {/* Shared final quotes from admin */}
+              {sharedDocs.filter(d => d.category === 'preventivo').length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm text-[#adb5bd] mb-3">Preventivi Definitivi</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {sharedDocs.filter(d => d.category === 'preventivo').map(doc => (
+                      <motion.div
+                        key={doc._id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-gradient-to-r from-green-500/5 to-blue-500/5 border border-green-500/20 rounded-xl p-4"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                              <FileText size={20} className="text-green-400" />
+                            </div>
+                            <div>
+                              <p className="text-[#f8f9fa] font-medium text-sm">{doc.title}</p>
+                              <p className="text-xs text-[#adb5bd]">{doc.file_name}</p>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setSelectedDocUrl(doc.file_url);
+                              setSelectedDocTitle(doc.title);
+                            }}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <Eye size={14} className="mr-1" /> Apri
+                          </Button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Quote requests */}
+              <div className="space-y-3">
+                {userQuotes.map(quote => (
+                  <motion.div
+                    key={quote._id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-[#343a40]/50 backdrop-blur-sm border border-[#f8f9fa]/10 rounded-xl p-4"
+                  >
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="text-[#f8f9fa] font-medium">
+                            {quote.quote_type === 'finestre' ? 'Infissi e Serramenti' :
+                              quote.quote_type === 'chiavi_in_mano' ? 'Ristrutturazione Chiavi in Mano' : 'Progetto Completo'}
+                          </h4>
+                          <Badge variant="secondary" className={`text-xs border-none ${quote.status === 'accepted' ? 'bg-green-500/20 text-green-400' :
+                            quote.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
+                              quote.status === 'sent' ? 'bg-blue-500/20 text-blue-400' :
+                                'bg-yellow-500/20 text-yellow-400'
+                            }`}>
+                            {quote.status === 'accepted' && <><CheckCircle size={10} className="mr-1" /> Accettato</>}
+                            {quote.status === 'rejected' && <><XCircle size={10} className="mr-1" /> Rifiutato</>}
+                            {quote.status === 'sent' && <><AlertCircle size={10} className="mr-1" /> In Attesa</>}
+                            {quote.status === 'draft' && <><Clock size={10} className="mr-1" /> In Elaborazione</>}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm text-[#adb5bd]">
+                          <span className="flex items-center gap-1">
+                            <Clock size={12} />
+                            {new Date(quote.created_date).toLocaleDateString('it-IT')}
+                          </span>
+                          {quote.estimated_price && (
+                            <span className="text-[#f8f9fa] font-medium">
+                              € {quote.estimated_price.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Accept/Reject for sent quotes */}
+                      {quote.status === 'sent' && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            onClick={async () => {
+                              if (window.confirm('Sei sicuro di voler accettare questo preventivo? Il lavoro comincerà una volta effettuato il pagamento dell\'acconto.')) {
+                                await respondToQuoteMutation({ quote_id: quote._id, response: 'accepted' });
+                              }
+                            }}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <CheckCircle size={14} className="mr-1" /> Accetta
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={async () => {
+                              if (window.confirm('Sei sicuro di voler rifiutare questo preventivo?')) {
+                                await respondToQuoteMutation({ quote_id: quote._id, response: 'rejected' });
+                              }
+                            }}
+                            className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                          >
+                            <XCircle size={14} className="mr-1" /> Rifiuta
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Documents Grid */}
           {isLoading ? (
             <div className="text-center py-12 text-[#dee2e6]">Caricamento...</div>
@@ -249,9 +410,16 @@ export default function Documents() {
                     <div className="w-12 h-12 rounded-xl bg-[#f8f9fa]/10 backdrop-blur-sm flex items-center justify-center">
                       <FileText size={24} className="text-[#f8f9fa]" />
                     </div>
-                    <span className="text-xs px-2 py-1 rounded-full bg-[#f8f9fa]/10 text-[#f8f9fa]">
-                      {doc.category}
-                    </span>
+                    <div className="flex gap-2">
+                      <span className="text-xs px-2 py-1 rounded-full bg-[#f8f9fa]/10 text-[#f8f9fa]">
+                        {doc.category}
+                      </span>
+                      {(doc.status === 'accepted' || doc.status === 'definitive') && (
+                        <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/20 flex items-center gap-1">
+                          <CheckCircle size={10} /> Accettato
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <h3 className="text-lg font-medium text-[#f8f9fa] mb-2">{doc.title}</h3>
                   {doc.description && (

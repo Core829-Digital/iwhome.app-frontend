@@ -16,9 +16,13 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
     const quoteNumber = generateQuoteNumber();
 
     // Colors - Minimal palette
+    /** @type {[number, number, number]} */
     const primary = [33, 37, 41];
+    /** @type {[number, number, number]} */
     const secondary = [108, 117, 125];
+    /** @type {[number, number, number]} */
     const light = [248, 249, 250];
+    /** @type {[number, number, number]} */
     const white = [255, 255, 255];
 
     // Load logo image (black version)
@@ -222,7 +226,7 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
 
       doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...darkGray);
+      doc.setTextColor(...primary);
       doc.text('CONFIGURAZIONE PROGETTO', 20, yPos);
       yPos += 8;
 
@@ -231,23 +235,47 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
       doc.rect(20, yPos - 5, 170, 8, 'F');
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...darkGray);
+      doc.setTextColor(...primary);
       doc.text('CARATTERISTICA', 25, yPos);
       doc.text('DETTAGLIO', 100, yPos);
       yPos += 8;
 
       // Table rows
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...accentGray);
+      doc.setTextColor(...secondary);
       doc.setFontSize(9);
 
       const pc = quoteData.project_config;
+      const bd = pc.breakdown || {};
+      const sd = bd.servicesDetail || {};
+
+      const formatLabel = (key) => {
+        const labels = {
+          tinteggiatura: 'Tinteggiatura',
+          riscaldamento: 'Riscaldamento',
+          impianto_idraulico: 'Impianto Idraulico',
+          impianto_elettrico: 'Impianto Elettrico',
+          demolizioni: 'Demolizioni',
+          climatizzazione: 'Climatizzazione',
+          pavimentazione: 'Pavimentazione',
+          coibentazione: 'Coibentazione',
+          appartamento: 'Appartamento',
+          villa: 'Villa',
+          casa_indipendente: 'Casa Indipendente',
+          attico: 'Attico',
+          standard: 'Standard',
+          premium: 'Premium',
+          luxury: 'Luxury',
+        };
+        return labels[key] || key?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || '-';
+      };
+
       const projectRows = [
-        ['Tipo di Immobile', pc.propertyType || '-'],
+        ['Tipo di Immobile', formatLabel(pc.propertyType)],
         ['Superficie', pc.squareMeters ? `${pc.squareMeters} m²` : '-'],
         ['Numero di Stanze', pc.rooms?.toString() || '-'],
         ['Numero di Bagni', pc.bathrooms?.toString() || '-'],
-        ['Livello di Qualità', pc.qualityLevel || '-']
+        ['Livello di Qualità', formatLabel(pc.qualityLevel)]
       ];
 
       projectRows.forEach((row, index) => {
@@ -256,27 +284,116 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
           doc.rect(20, yPos - 4, 170, 7, 'F');
         }
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...darkGray);
+        doc.setTextColor(...primary);
         doc.text(row[0], 25, yPos);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...accentGray);
+        doc.setTextColor(...secondary);
         doc.text(row[1], 100, yPos);
         yPos += 7;
       });
 
-      // Services
-      if (pc.services && pc.services.length > 0) {
-        yPos += 3;
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...darkGray);
-        doc.text('Servizi Inclusi:', 25, yPos);
+      // ── Price Breakdown Section ──
+      if (bd.base || bd.services || bd.bathrooms || bd.windows) {
         yPos += 6;
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...accentGray);
-        pc.services.forEach(service => {
-          doc.text(`• ${service}`, 30, yPos);
-          yPos += 5;
-        });
+
+        // Check page space
+        if (yPos > 200) {
+          doc.addPage();
+          if (logoImg.complete) {
+            doc.addImage(logoImg, 'PNG', 20, 15, 15, 15, '', 'FAST');
+          }
+          doc.setDrawColor(...secondary);
+          doc.setLineWidth(0.3);
+          doc.line(20, 35, 190, 35);
+          yPos = 50;
+        }
+
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...primary);
+        doc.text('DETTAGLIO COSTI', 20, yPos);
+        yPos += 8;
+
+        // Table header
+        doc.setFillColor(33, 37, 41);
+        doc.roundedRect(20, yPos - 5, 170, 8, 1, 1, 'F');
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(255, 255, 255);
+        doc.text('VOCE', 25, yPos);
+        doc.text('IMPORTO', 185, yPos, { align: 'right' });
+        yPos += 8;
+
+        const priceRow = (label, amount, isBold = false, indent = false) => {
+          if (yPos > 250) {
+            doc.addPage();
+            if (logoImg.complete) {
+              doc.addImage(logoImg, 'PNG', 20, 15, 15, 15, '', 'FAST');
+            }
+            doc.setDrawColor(...secondary);
+            doc.setLineWidth(0.3);
+            doc.line(20, 35, 190, 35);
+            yPos = 50;
+          }
+          doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+          doc.setTextColor(...(isBold ? primary : secondary));
+          doc.setFontSize(9);
+          doc.text(label, indent ? 30 : 25, yPos);
+          doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+          doc.setTextColor(...primary);
+          doc.text(`€${amount.toLocaleString('it-IT')}`, 185, yPos, { align: 'right' });
+
+          // Light divider line
+          doc.setDrawColor(230, 230, 230);
+          doc.setLineWidth(0.2);
+          doc.line(20, yPos + 2, 190, yPos + 2);
+          yPos += 7;
+        };
+
+        // Base renovation cost
+        if (bd.base) {
+          priceRow('Ristrutturazione Base', bd.base, true);
+        }
+
+        // Services with individual breakdown
+        if (bd.services && Object.keys(sd).length > 0) {
+          // Services header
+          doc.setFillColor(248, 249, 250);
+          doc.rect(20, yPos - 4, 170, 7, 'F');
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(...primary);
+          doc.setFontSize(9);
+          doc.text('Servizi Aggiuntivi', 25, yPos);
+          doc.text(`€${bd.services.toLocaleString('it-IT')}`, 185, yPos, { align: 'right' });
+          yPos += 8;
+
+          // Individual services
+          Object.entries(sd).forEach(([key, value]) => {
+            priceRow(`• ${formatLabel(key)}`, value, false, true);
+          });
+        }
+
+        // Bathrooms
+        if (bd.bathrooms) {
+          priceRow(`Bagni (${pc.bathrooms || 0})`, bd.bathrooms, true);
+        }
+
+        // Windows
+        if (bd.windows) {
+          priceRow('Infissi Inclusi', bd.windows, true);
+        }
+
+        // Total row
+        yPos += 2;
+        doc.setFillColor(33, 37, 41);
+        doc.roundedRect(20, yPos - 4, 170, 10, 1, 1, 'F');
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(255, 255, 255);
+        doc.text('TOTALE PROGETTO', 25, yPos + 2);
+        doc.setFontSize(12);
+        doc.text(`€${(pc.estimatedPrice || 0).toLocaleString('it-IT')}`, 185, yPos + 2, { align: 'right' });
+        yPos += 14;
       }
 
       yPos += 10;
@@ -291,13 +408,13 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
 
       doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...darkGray);
+      doc.setTextColor(...primary);
       doc.text('NOTE AGGIUNTIVE', 20, yPos);
       yPos += 8;
 
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...accentGray);
+      doc.setTextColor(...secondary);
       const splitNotes = doc.splitTextToSize(quoteData.notes, 170);
       doc.text(splitNotes, 20, yPos);
       yPos += splitNotes.length * 5 + 10;

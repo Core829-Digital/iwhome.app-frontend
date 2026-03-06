@@ -1,8 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '../../utils';
 import { Calculator, Calendar, ArrowRight } from 'lucide-react';
+import { useUser, useClerk } from '@clerk/clerk-react';
 
 export default function CTASection() {
   return (
@@ -40,7 +41,7 @@ export default function CTASection() {
             <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#f8f9fa] via-[#e9ecef] to-[#dee2e6]">creatività e praticità</span>
           </h2>
           <p className="text-[#dee2e6] max-w-2xl mx-auto">
-            Utilizza i nostri strumenti per calcolare un preventivo stimato 
+            Utilizza i nostri strumenti per calcolare un preventivo stimato
             o prenota un appuntamento nel nostro showroom.
           </p>
         </motion.div>
@@ -57,7 +58,7 @@ export default function CTASection() {
             <Link to={createPageUrl('Calcolatore')}>
               <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#f8f9fa] via-[#e9ecef] to-[#dee2e6] p-8 lg:p-10 h-full border border-[#f8f9fa]/20 shadow-2xl hover:shadow-[0_30px_90px_rgba(248,249,250,0.4)] transition-all duration-500">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-[#212529]/5 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
-                
+
                 <div className="relative z-10">
                   <motion.div
                     whileHover={{ rotate: 360, scale: 1.1 }}
@@ -87,36 +88,56 @@ export default function CTASection() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             whileHover={{ y: -10, scale: 1.02 }}
-            className="group"
+            className="group cursor-pointer"
+            onClick={null} // Will be replaced by handleAppointmentClick logic in wrapper or here
           >
-            <Link to={createPageUrl('Appuntamenti')}>
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#343a40] to-[#495057] border border-[#f8f9fa]/20 p-8 lg:p-10 h-full shadow-2xl hover:shadow-[0_30px_90px_rgba(248,249,250,0.2)] transition-all duration-500">
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#f8f9fa]/5 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
-                
-                <div className="relative z-10">
-                  <motion.div
-                    whileHover={{ rotate: -360, scale: 1.1 }}
-                    transition={{ duration: 0.6 }}
-                    className="w-16 h-16 rounded-2xl bg-[#f8f9fa]/10 flex items-center justify-center mb-6 group-hover:bg-[#6c757d] transition-colors"
-                  >
-                    <Calendar size={28} className="text-[#f8f9fa]" />
-                  </motion.div>
-                  <h3 className="text-2xl font-medium text-[#f8f9fa] mb-3">
-                    Prenota Appuntamento
-                  </h3>
-                  <p className="text-[#dee2e6] mb-6">
-                    Visita il nostro showroom e parla con i nostri esperti per il tuo progetto.
-                  </p>
-                  <div className="flex items-center gap-2 text-[#f8f9fa] font-medium">
-                    <span>Prenota</span>
-                    <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
-                  </div>
-                </div>
-              </div>
-            </Link>
+            {/* We need to rewrite the component to use hooks. Converting export default to allow hooks. */}
+            <AppointmentCard />
           </motion.div>
         </div>
       </div>
     </section>
+  );
+}
+
+function AppointmentCard() {
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
+  const navigate = useNavigate();
+
+  const handleAppointmentClick = () => {
+    if (isSignedIn) {
+      navigate('/MyAppointments');
+    } else {
+      openSignIn({ redirectUrl: '/MyAppointments' });
+    }
+  };
+
+  return (
+    <div onClick={handleAppointmentClick}>
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#343a40] to-[#495057] border border-[#f8f9fa]/20 p-8 lg:p-10 h-full shadow-2xl hover:shadow-[0_30px_90px_rgba(248,249,250,0.2)] transition-all duration-500">
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#f8f9fa]/5 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
+
+        <div className="relative z-10">
+          <motion.div
+            whileHover={{ rotate: -360, scale: 1.1 }}
+            transition={{ duration: 0.6 }}
+            className="w-16 h-16 rounded-2xl bg-[#f8f9fa]/10 flex items-center justify-center mb-6 group-hover:bg-[#6c757d] transition-colors"
+          >
+            <Calendar size={28} className="text-[#f8f9fa]" />
+          </motion.div>
+          <h3 className="text-2xl font-medium text-[#f8f9fa] mb-3">
+            Prenota Appuntamento
+          </h3>
+          <p className="text-[#dee2e6] mb-6">
+            Visita il nostro showroom e parla con i nostri esperti per il tuo progetto.
+          </p>
+          <div className="flex items-center gap-2 text-[#f8f9fa] font-medium">
+            <span>Prenota</span>
+            <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

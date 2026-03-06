@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
+import ScrollToAnchor from './components/utils/ScrollToAnchor';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Phone, Mail, MapPin, Instagram, Facebook, Linkedin, User, LogOut, LayoutDashboard } from 'lucide-react';
 import ChatWidget from './components/chat/ChatWidget';
@@ -73,6 +74,7 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <div className="min-h-screen bg-[#E8E8E4] font-sans relative overflow-x-hidden">
+      <ScrollToAnchor />
       {/* ... (backgrounds) ... */}
 
       <div className="relative z-10">
@@ -387,6 +389,7 @@ export default function Layout({ children, currentPageName }) {
                 <li className="flex items-center gap-3 text-[#e9ecef]/60 text-sm">
                   <Phone size={16} className="text-[#f8f9fa]" />
                   <a href="tel:+393891820808" className="hover:text-[#f8f9fa] transition-colors">+39 389 182 0808</a>
+                  <a href="tel:+393402921052" className="hover:text-[#f8f9fa] transition-colors">+39 340 292 1052</a>
                 </li>
                 <li className="flex items-start gap-3 text-[#e9ecef]/60 text-sm">
                   <Mail size={16} className="text-[#f8f9fa] mt-0.5" />

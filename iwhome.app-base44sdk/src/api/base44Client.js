@@ -6,11 +6,23 @@ export const base44 = {
     redirectToLogin: () => console.log('Redirect to login called'),
   },
   entities: {
-    Appointment: { filter: async () => [], create: async () => { } },
-    Quote: { filter: async () => [], update: async () => { } },
-    Notification: { filter: async () => [], create: async () => { } },
-    Document: { filter: async () => [] },
-    Conversation: { filter: async () => [] },
+    Appointment: { filter: async (args) => [], create: async (data) => { } },
+    Quote: { filter: async (args) => [], update: async (id, data) => { } },
+    Notification: { filter: async (args) => [], create: async (data) => { } },
+    Document: { filter: async (args) => [] },
+    Conversation: { filter: async (args) => [] },
+    WorkflowPreventivo: {
+      filter: async (args) => [],
+      create: async (data) => { },
+      update: async (id, data) => { }
+    },
+    Fatturato: {
+      filter: async (args) => [],
+      create: async (data) => { },
+      update: async (id, data) => { },
+      delete: async (id) => { }
+    },
+    Cantiere: { filter: async (args) => [] },
     Query: {},
   },
   appLogs: {

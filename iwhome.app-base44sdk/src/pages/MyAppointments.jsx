@@ -10,7 +10,7 @@ import AnimatedBackground from '../components/dashboard/AnimatedBackground';
 import InteractiveCalendar from '../components/calendar/InteractiveCalendar';
 import { useUser } from "@clerk/clerk-react";
 
-import { Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, X, List } from 'lucide-react';
+import { Calendar, Clock, MapPin, CheckCircle, XCircle, X, List } from 'lucide-react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 
@@ -18,7 +18,17 @@ export default function MyAppointments() {
   const { user, isLoaded } = useUser();
   const [viewMode, setViewMode] = useState('calendar');
 
-  const appointments = useQuery(api.appointments.get) || [];
+  const [showAll, setShowAll] = useState(false);
+
+  const myAppointments = useQuery(api.appointments.get) || [];
+  const allAppointments = useQuery(api.appointments.getAll) || [];
+
+  const convexUser = useQuery(api.users.getByEmail, {
+    email: user?.primaryEmailAddress?.emailAddress || ""
+  });
+
+  const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
+  const appointments = showAll && isAdmin ? allAppointments : myAppointments;
 
   const createAppointment = useMutation(api.appointments.create);
   const updateStatus = useMutation(api.appointments.updateStatus);
@@ -72,11 +82,7 @@ export default function MyAppointments() {
     }
   };
 
-  if (!isLoaded || !user) {
-    return <div className="min-h-screen flex items-center justify-center">
-      <div className="text-[#f8f9fa]">Caricamento...</div>
-    </div>;
-  }
+  // if (!isLoaded || !user) check removed
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
@@ -88,10 +94,31 @@ export default function MyAppointments() {
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
             <div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-medium text-[#f8f9fa] mb-1">I Miei Appuntamenti</h1>
-              <p className="text-xs sm:text-sm text-[#dee2e6]">Gestisci le tue visite</p>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-medium text-[#f8f9fa] mb-1">
+                {showAll ? 'Tutti gli Appuntamenti' : 'I Miei Appuntamenti'}
+              </h1>
+              <p className="text-xs sm:text-sm text-[#dee2e6]">
+                {showAll ? 'Gestione completa appuntamenti' : 'Gestisci le tue visite'}
+              </p>
             </div>
             <div className="flex gap-2">
+              {isAdmin && (
+                <div className="flex bg-[#343a40] rounded-lg p-1 mr-2 border border-[#495057]">
+                  <button
+                    onClick={() => setShowAll(false)}
+                    className={`px-3 py-1.5 rounded-md text-sm transition-all ${!showAll ? 'bg-[#495057] text-white shadow-sm' : 'text-[#adb5bd] hover:text-white'}`}
+                  >
+                    Miei
+                  </button>
+                  <button
+                    onClick={() => setShowAll(true)}
+                    className={`px-3 py-1.5 rounded-md text-sm transition-all ${showAll ? 'bg-blue-600 text-white shadow-sm' : 'text-[#adb5bd] hover:text-white'}`}
+                  >
+                    Tutti
+                  </button>
+                </div>
+              )}
+
               <Button
                 variant={viewMode === 'calendar' ? 'default' : 'outline'}
                 onClick={() => setViewMode('calendar')}
@@ -149,9 +176,14 @@ export default function MyAppointments() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       {getStatusIcon(apt.status)}
-                      <span className="text-sm px-3 py-1 rounded-full bg-[#f8f9fa]/10 text-[#f8f9fa] backdrop-blur-sm">
-                        {getStatusText(apt.status)}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-sm px-3 py-1 rounded-full bg-[#f8f9fa]/10 text-[#f8f9fa] backdrop-blur-sm w-fit">
+                          {getStatusText(apt.status)}
+                        </span>
+                        {showAll && (
+                          <span className="text-xs text-[#ced4da] mt-1">{apt.full_name}</span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex gap-2">
                       <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-300 backdrop-blur-sm">
@@ -184,8 +216,16 @@ export default function MyAppointments() {
                     </div>
                     <div className="flex items-center gap-3 text-[#dee2e6]">
                       <MapPin size={18} className="text-[#adb5bd]" />
-                      <span className="text-sm">Showroom IwHome, Via Montefiorino 10/E</span>
+                      <span className="text-sm text-[#f8f9fa]">Showroom IwHome, Via Montefiorino 10/E</span>
                     </div>
+                    {showAll && (
+                      <div className="flex flex-col gap-1 mt-2 p-2 bg-[#495057]/30 rounded-lg">
+                        <p className="text-xs text-[#ced4da] font-medium">Cliente:</p>
+                        <p className="text-sm text-[#f8f9fa]">{apt.full_name}</p>
+                        <p className="text-xs text-[#adb5bd]">{apt.email}</p>
+                        {apt.phone && <p className="text-xs text-[#adb5bd]">{apt.phone}</p>}
+                      </div>
+                    )}
                   </div>
 
                   {apt.notes && (

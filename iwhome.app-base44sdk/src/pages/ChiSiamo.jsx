@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '../utils';
 import SEO from '../components/seo/SEO';
 import { Check, Users, Award, Clock, ArrowRight } from 'lucide-react';
 
@@ -118,7 +117,7 @@ export default function ChiSiamo() {
                   e delle finiture, e per confrontarti con il nostro team di esperti.
                 </p>
               </div>
-              <a href="/home#dove-siamo">
+              <Link to="/#dove-siamo">
                 <motion.button
                   whileHover={{ scale: 1.05, boxShadow: '0 20px 60px rgba(248, 249, 250, 0.3)' }}
                   whileTap={{ scale: 0.95 }}
@@ -127,7 +126,7 @@ export default function ChiSiamo() {
                   Contattaci
                   <ArrowRight size={18} />
                 </motion.button>
-              </a>
+              </Link>
             </motion.div>
 
             <motion.div

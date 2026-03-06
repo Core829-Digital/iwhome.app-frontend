@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -17,11 +17,16 @@ import {
   Users,
   Building,
   HardHat,
-  MessagesSquare,
   Receipt,
-  Shield
+  Shield,
+  Truck,
+  QrCode,
+  CreditCard,
+  Briefcase
 } from 'lucide-react';
 import { useUser, useClerk } from '@clerk/clerk-react';
+import { useQuery } from "convex/react";
+import { api } from "../../../../../Backend/convex/_generated/api";
 
 // Helper function to create page URLs (simplified for now)
 const createPageUrl = (page) => {
@@ -38,117 +43,108 @@ const createPageUrl = (page) => {
     CantieriDashboard: '/CantieriDashboard',
     Clienti: '/Clienti',
     Preventivi: '/Preventivi',
-    Admin: '/Admin'
+    Admin: '/Admin',
+    Fornitori: '/Fornitori',
+    Collaboratori: '/Collaboratori',
+    StaffQR: '/StaffQR',
+    Certificati: '/Certificati',
+    Pagamenti: '/Pagamenti',
   };
   return routes[page] || '/Dashboard';
 };
 
 const getMenuItems = (user) => {
-  // 1. Basic items available to everyone (User, Client, Admin)
-  const baseItems = [
-    {
-      name: 'Dashboard',
-      page: 'Dashboard',
-      icon: LayoutDashboard,
-      subItems: []
-    },
-    {
-      name: 'Documenti',
-      page: 'Documents',
-      icon: FileText,
-      subItems: [
-        { name: 'I Miei Documenti', page: 'Documents', icon: FolderOpen },
-        { name: 'Carica Documento', page: 'UploadDocument', icon: Upload },
-        { name: 'Condivisi con me', page: 'SharedDocuments', icon: Share2 }
-      ]
-    },
-    {
-      name: 'Appuntamenti',
-      page: 'MyAppointments',
-      icon: Calendar,
-      subItems: []
-    },
-    {
-      name: 'Impostazioni',
-      page: 'Settings',
-      icon: Settings,
-      subItems: []
-    }
-  ];
+  const role = user?.role || 'user';
+  const isAdmin = role === 'admin' || role === 'ceo';
+  const isSupplier = role === 'supplier';
+  const isCollaborator = role === 'collaborator_internal' || role === 'collaborator_external';
+  const isSupervisor = role === 'supervisor';
+  const isClient = role === 'client';
 
-  // 2. Client & Admin only items
-  if (user?.role === 'client' || user?.role === 'admin' || user?.role === 'ceo') {
-    // Insert Messages after Documents (index 2)
-    baseItems.splice(2, 0, {
-      name: 'Messaggi',
-      page: 'Messages',
-      icon: MessageSquare,
-      subItems: []
-    });
+  // Build menu based on role
+  const items = [];
+
+  // 1. Dashboard — visible to all
+  items.push({ name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard, subItems: [] });
+
+  // 2. Fornitori — admin/ceo/supplier
+  if (isAdmin || isSupplier) {
+    items.push({ name: 'Fornitori', page: 'Fornitori', icon: Truck, subItems: [] });
   }
 
-  // 3. Admin only items
-  if (user?.role === 'admin' || user?.role === 'ceo') {
-    // Insert Admin items after Messages (or at the end of the main block)
-    // Current indices after splice: Dashboard(0), Docs(1), Messages(2), Appointments(3), Settings(4)
-    // We want Admin items to appear before Settings usually, or grouped. 
-    // Let's add them before 'Impostazioni' (last item) or specifically ordered.
-
-    // Admin specific pages: CantieriDashboard, Clienti, ClientChat, Preventivi
-    const adminItems = [
-      {
-        name: 'Gestione Cantieri',
-        page: 'CantieriDashboard',
-        icon: HardHat,
-        subItems: []
-      },
-      {
-        name: 'Clienti',
-        page: 'Clienti',
-        icon: Users,
-        subItems: []
-      },
-      {
-        name: 'Chat Clienti',
-        page: 'ClientChat',
-        icon: MessagesSquare,
-        subItems: []
-      },
-      {
-        name: 'Preventivi',
-        page: 'Preventivi',
-        icon: Receipt,
-        subItems: []
-      },
-      {
-        name: 'Pannello Admin',
-        page: 'Admin',
-        icon: Shield,
-        subItems: []
-      }
-    ];
-
-    // Find index of Settings to insert before it
-    const settingsIndex = baseItems.findIndex(item => item.page === 'Settings');
-    baseItems.splice(settingsIndex, 0, ...adminItems);
+  // 3. Collaboratori — admin/ceo
+  if (isAdmin) {
+    items.push({ name: 'Collaboratori', page: 'Collaboratori', icon: Briefcase, subItems: [] });
   }
 
-  // Legacy Company Dashboard check (preserving existing logic just in case)
+  // 4. Staff QR — admin/ceo/supervisor
+  if (isAdmin || isSupervisor) {
+    items.push({ name: 'Staff QR', page: 'StaffQR', icon: QrCode, subItems: [] });
+  }
+
+  // 5. Certificati — admin/ceo/supervisor
+  if (isAdmin || isSupervisor) {
+    items.push({ name: 'Certificati', page: 'Certificati', icon: Shield, subItems: [] });
+  }
+
+  // 6. Pagamenti — admin/ceo + limited view for others
+  if (isAdmin || isSupplier || isCollaborator || isClient) {
+    items.push({ name: 'Pagamenti', page: 'Pagamenti', icon: CreditCard, subItems: [] });
+  }
+
+  // 7. Gestione Cantieri — admin/ceo/supervisor
+  if (isAdmin || isSupervisor) {
+    items.push({ name: 'Gestione Cantieri', page: 'CantieriDashboard', icon: HardHat, subItems: [] });
+  }
+
+  // 8. Clienti — admin/ceo
+  if (isAdmin) {
+    items.push({ name: 'Clienti', page: 'Clienti', icon: Users, subItems: [] });
+  }
+
+  // 9. Preventivi — admin/ceo
+  if (isAdmin) {
+    items.push({ name: 'Preventivi', page: 'Preventivi', icon: Receipt, subItems: [] });
+  }
+
+  // 10. Documenti — all authenticated users
+  items.push({
+    name: 'Documenti',
+    page: 'Documents',
+    icon: FileText,
+    subItems: [
+      { name: 'I Miei Documenti', page: 'Documents', icon: FolderOpen },
+      { name: 'Carica Documento', page: 'UploadDocument', icon: Upload },
+      { name: 'Condivisi con me', page: 'SharedDocuments', icon: Share2 }
+    ]
+  });
+
+  // 11. Messages — admin/ceo/client
+  if (isAdmin || isClient) {
+    items.push({ name: 'Messaggi', page: 'Messages', icon: MessageSquare, subItems: [] });
+  }
+
+  // 12. Appuntamenti — all
+  items.push({ name: 'Appuntamenti', page: 'MyAppointments', icon: Calendar, subItems: [] });
+
+  // 13. Admin — admin/ceo only
+  if (isAdmin) {
+    items.push({ name: 'Pannello Admin', page: 'Admin', icon: Shield, subItems: [] });
+  }
+
+  // 14. Company Dashboard (legacy)
   if (user?.is_company && user?.company_role === 'admin') {
-    baseItems.splice(1, 0, {
-      name: 'Azienda',
-      page: 'CompanyDashboard',
-      icon: Building,
-      subItems: []
-    });
+    items.splice(1, 0, { name: 'Azienda', page: 'CompanyDashboard', icon: Building, subItems: [] });
   }
 
-  return baseItems;
+  // 15. Settings — always last
+  items.push({ name: 'Impostazioni', page: 'Settings', icon: Settings, subItems: [] });
+
+  return items;
 };
 
 
-import { useQuery } from "convex/react";
-import { api } from "../../../../../Backend/convex/_generated/api";
+
 
 export default function VerticalMenu() {
   const location = useLocation();
@@ -263,7 +259,9 @@ export default function VerticalMenu() {
           <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
             {menuItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname.includes(item.page.toLowerCase());
+              const linkPath = createPageUrl(item.page).toLowerCase();
+              const currentPath = location.pathname.toLowerCase();
+              const isActive = currentPath === linkPath || (linkPath !== '/' && currentPath.startsWith(linkPath));
 
               return (
                 <Link
@@ -271,7 +269,7 @@ export default function VerticalMenu() {
                   to={createPageUrl(item.page)}
                   onClick={() => setIsMobileOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-sm'
                     : 'text-[#dee2e6] hover:bg-[#f8f9fa]/10'
                     }`}
                 >

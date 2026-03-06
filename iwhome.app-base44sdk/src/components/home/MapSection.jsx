@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Clock, Phone, Mail } from 'lucide-react';
+import { MapPin, Clock, Phone } from 'lucide-react';
 
 
 export default function MapSection() {
@@ -13,7 +13,7 @@ export default function MapSection() {
   }, []);
 
   return (
-    <section className="relative py-20 lg:py-32 bg-gradient-to-b from-[#495057] via-[#6c757d] to-[#495057] overflow-hidden">
+    <section id="dove-siamo" className="relative py-20 lg:py-32 bg-gradient-to-b from-[#495057] via-[#6c757d] to-[#495057] overflow-hidden">
       {/* Animated Background */}
       <motion.div
         animate={{

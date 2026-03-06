@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../Backend/convex/_generated/api";
-import { Bell, Check, MessageSquare, FileText, Calendar, X, Maximize2 } from 'lucide-react';
+import { Bell, MessageSquare, FileText, Calendar, X, Maximize2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../../utils';
 import NotificationCenter from './NotificationCenter';
