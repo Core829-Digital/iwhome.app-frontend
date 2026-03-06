@@ -78,7 +78,7 @@ export default function Pagamenti() {
     const handleCreate = async () => {
         if (!formData.description || !formData.amount) return;
         try {
-            await createMutation({
+            const payload = /** @type {any} */ ({
                 type: formData.type,
                 reference_id: formData.reference_id || 'N/A',
                 reference_name: formData.reference_name || undefined,
@@ -91,6 +91,7 @@ export default function Pagamenti() {
                 supplier_id: formData.type === 'supplier' && formData.reference_id ? formData.reference_id : undefined,
                 collaborator_id: formData.type === 'collaborator' && formData.reference_id ? formData.reference_id : undefined,
             });
+            await createMutation(payload);
             setShowCreateModal(false);
             setFormData({ type: 'supplier', reference_id: '', reference_name: '', description: '', amount: '', payment_type: 'fattura', due_date: '', notes: '', cantiere_id: '' });
         } catch (err) { console.error(err); }

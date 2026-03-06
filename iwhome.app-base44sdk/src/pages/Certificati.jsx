@@ -73,7 +73,7 @@ export default function Certificati() {
     const handleCreate = async () => {
         if (!formData.title || !formData.file_url || !formData.file_name) return;
         try {
-            await createMutation({
+            const payload = /** @type {any} */ ({
                 title: formData.title,
                 category: formData.category,
                 subcategory: formData.subcategory,
@@ -82,10 +82,11 @@ export default function Certificati() {
                 file_name: formData.file_name,
                 issue_date: formData.issue_date || undefined,
                 expiry_date: formData.expiry_date || undefined,
-                cantiere_id: formData.cantiere_id || undefined, // Casting to string since Convex handles Idris runtime properly
+                cantiere_id: formData.cantiere_id || undefined,
                 supplier_id: formData.supplier_id || undefined,
                 collaborator_id: formData.collaborator_id || undefined,
             });
+            await createMutation(payload);
             setShowCreateModal(false);
             setFormData({
                 title: '', category: 'edilizia', subcategory: '', description: '',
