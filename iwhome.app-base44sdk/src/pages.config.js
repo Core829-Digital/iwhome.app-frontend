@@ -27,8 +27,10 @@ import Servizi from './pages/Servizi';
 import Settings from './pages/Settings';
 import SharedDocuments from './pages/SharedDocuments';
 import StaffQR from './pages/StaffQR';
+import SupplierOnboarding from './pages/SupplierOnboarding';
 import Termini from './pages/Termini';
 import UploadDocument from './pages/UploadDocument';
+import QRAccess from './pages/QRAccess';
 import __Layout from './Layout.jsx';
 
 
@@ -62,8 +64,11 @@ export const PAGES = {
     "Settings": Settings,
     "SharedDocuments": SharedDocuments,
     "StaffQR": StaffQR,
+    "SupplierOnboarding": SupplierOnboarding,
     "Termini": Termini,
     "UploadDocument": UploadDocument,
+    "QRAccess": QRAccess,
+    "qr-access/:token": QRAccess,
 }
 
 export const pagesConfig = {

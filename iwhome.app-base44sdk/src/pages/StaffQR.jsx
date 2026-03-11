@@ -1,21 +1,21 @@
 /// <reference types="vite/client" />
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
 import { useNavigate } from 'react-router-dom';
 import useRBAC from '../hooks/useRBAC';
 import {
     QrCode, Search, Loader2, MapPin, Phone, Mail, Briefcase,
-    Clock, Eye, CheckCircle, Scan, ExternalLink, Users
+    Clock, Eye, CheckCircle, Scan, ExternalLink, Users, RefreshCw, List
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import VerticalMenu from '../components/dashboard/VerticalMenu';
-import AnimatedBackground from '../components/dashboard/AnimatedBackground';
+
+
 
 const liveStatusConfig = {
     in_cantiere: { label: 'In Cantiere', dot: 'bg-green-400 animate-pulse' },
@@ -32,6 +32,9 @@ export default function StaffQR() {
     const [showQRModal, setShowQRModal] = useState(false);
 
     const collaborators = useQuery(api.collaborators.list, {}) || [];
+    const generateQrLink = useMutation(api.collaborators.generateQrLink);
+    const accessLogs = useQuery(api.collaborators.getQrAccessLogs, selectedCollab ? { id: selectedCollab._id } : "skip") || [];
+    const [isGenerating, setIsGenerating] = useState(false);
 
     if (rbacLoading) {
         return (<div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] flex items-center justify-center"><Loader2 className="animate-spin text-blue-500" size={40} /></div>);
@@ -40,7 +43,7 @@ export default function StaffQR() {
     if (!canView('staff_qr')) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-                <AnimatedBackground /><VerticalMenu />
+                
                 <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen flex items-center justify-center">
                     <div className="text-center"><h2 className="text-xl text-[#f8f9fa] mb-2">Accesso Negato</h2><p className="text-[#adb5bd]">Non hai i permessi per accedere a questa sezione.</p></div>
                 </div>
@@ -49,8 +52,25 @@ export default function StaffQR() {
     }
 
     const handleShowQR = (collab) => {
-        setSelectedCollab(collab);
+        // Find the fresh version of this collab so we see generated links live
+        const freshCollab = collaborators.find(c => c._id === collab._id) || collab;
+        setSelectedCollab(freshCollab);
         setShowQRModal(true);
+    };
+
+    const handleGenerateLink = async () => {
+        if (!selectedCollab) return;
+        setIsGenerating(true);
+        try {
+            await generateQrLink({ id: selectedCollab._id });
+            const freshCollabs = await collaborators;
+            setSelectedCollab(prev => ({...prev, qr_link_token: 'generated'})); // optimist update trigger, real one comes via query
+        } catch (error) {
+            console.error(error);
+            alert("Errore durante la generazione del link");
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
     const filteredCollaborators = collaborators.filter(c => {
@@ -93,8 +113,8 @@ export default function StaffQR() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-            <AnimatedBackground />
-            <VerticalMenu />
+            
+            
             <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Header */}
@@ -162,28 +182,89 @@ export default function StaffQR() {
 
             {/* QR MODAL */}
             <Dialog open={showQRModal} onOpenChange={setShowQRModal}>
-                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-sm">
-                    <DialogHeader><DialogTitle className="text-[#f8f9fa] text-center">Codice QR</DialogTitle></DialogHeader>
+                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md">
+                    <DialogHeader><DialogTitle className="text-[#f8f9fa] flex items-center gap-2"><QrCode size={18} className="text-cyan-400"/>QR Accesso Rapido</DialogTitle></DialogHeader>
                     {selectedCollab && (
-                        <div className="text-center py-4">
-                            {/* QR Code */}
-                            <div className="bg-[#212529] rounded-2xl p-6 border border-[#495057] inline-block mb-4">
-                                <div dangerouslySetInnerHTML={{ __html: generateQRSvg(selectedCollab.qr_code_data || selectedCollab._id) }} />
-                            </div>
-                            <h3 className="text-lg font-medium text-[#f8f9fa] mb-1">{selectedCollab.full_name}</h3>
-                            <p className="text-sm text-[#adb5bd] mb-2">{selectedCollab.job_title}</p>
-                            <div className="flex items-center justify-center gap-2 text-sm text-[#6c757d]">
-                                <Mail size={14} /> {selectedCollab.email}
-                            </div>
-                            {selectedCollab.phone && (
-                                <div className="flex items-center justify-center gap-2 text-sm text-[#6c757d] mt-1">
-                                    <Phone size={14} /> {selectedCollab.phone}
+                        <div className="py-2">
+                            <div className="flex gap-4 mb-4">
+                                {/* Collab Info */}
+                                <div className="flex-1">
+                                    <h3 className="text-xl font-medium text-[#f8f9fa] mb-1">{selectedCollab.full_name}</h3>
+                                    <p className="text-sm text-[#adb5bd] mb-2">{selectedCollab.job_title}</p>
+                                    <div className="text-sm text-[#6c757d] space-y-1 mb-4">
+                                        <div className="flex items-center gap-2"><Mail size={14} /> {selectedCollab.email}</div>
+                                        {selectedCollab.phone && <div className="flex items-center gap-2"><Phone size={14} /> {selectedCollab.phone}</div>}
+                                    </div>
+                                    
+                                    {!selectedCollab.qr_link_token || (selectedCollab.qr_link_expires && new Date(selectedCollab.qr_link_expires) < new Date()) ? (
+                                        <div className="bg-orange-500/10 border border-orange-500/20 p-3 rounded-xl">
+                                            <p className="text-xs text-orange-400 mb-2">Nessun link 24h attivo o link scaduto.</p>
+                                            <Button onClick={handleGenerateLink} disabled={isGenerating} size="sm" className="bg-cyan-600 hover:bg-cyan-700 w-full text-white">
+                                                {isGenerating ? <Loader2 size={16} className="animate-spin mr-2"/> : <RefreshCw size={16} className="mr-2"/>}
+                                                Genera Link 24h
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-cyan-500/10 border border-cyan-500/20 p-3 rounded-xl">
+                                            <div className="flex items-center gap-2 text-cyan-400 mb-1">
+                                                <CheckCircle size={14} />
+                                                <span className="text-xs font-medium">Link Attivo</span>
+                                            </div>
+                                            <p className="text-[10px] text-[#adb5bd] mb-3">
+                                                Scade il: {new Date(selectedCollab.qr_link_expires).toLocaleString('it-IT')}
+                                            </p>
+                                            <Button onClick={handleGenerateLink} disabled={isGenerating} size="sm" variant="outline" className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/20 w-full">
+                                                {isGenerating ? <Loader2 size={14} className="animate-spin mr-2"/> : <RefreshCw size={14} className="mr-2"/>}
+                                                Rigenera
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                            <p className="text-[10px] text-[#6c757d] mt-4 border-t border-[#495057] pt-3">
-                                ID: {selectedCollab.qr_code_data || selectedCollab._id}
-                            </p>
-                            <Button onClick={() => { setShowQRModal(false); navigate('/Collaboratori'); }} variant="outline" size="sm" className="mt-3 border-[#495057] text-[#adb5bd] hover:bg-[#495057]/50 gap-1 text-xs w-full">
+
+                                {/* QR Code Display */}
+                                <div className="w-1/2 flex items-center justify-center flex-col border-l border-[#495057] pl-4">
+                                    {selectedCollab.qr_link_token && (!selectedCollab.qr_link_expires || new Date(selectedCollab.qr_link_expires) >= new Date()) ? (
+                                        <>
+                                            <div className="bg-[#f8f9fa] rounded-xl p-2 mb-2">
+                                                <div dangerouslySetInnerHTML={{ __html: generateQRSvg(window.location.origin + '/qr-access/' + selectedCollab.qr_link_token) }} />
+                                            </div>
+                                            {/* Dummy Link to see Token string visually */}
+                                            <p className="text-[9px] text-[#6c757d] truncate w-full text-center" title={'/qr-access/' + selectedCollab.qr_link_token}>
+                                                /qr-access/{selectedCollab.qr_link_token}
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <div className="bg-[#212529] rounded-xl p-6 border border-dashed border-[#6c757d] w-32 h-32 flex items-center justify-center flex-col text-[#6c757d]">
+                                            <Scan size={32} className="mb-2 opacity-50"/>
+                                            <p className="text-[10px] text-center">Genera per visualizzare</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            {/* Access Logs */}
+                            <div className="mt-4 pt-4 border-t border-[#495057]">
+                                <h4 className="text-sm font-medium text-[#dee2e6] mb-3 flex items-center gap-2">
+                                    <List size={14} /> Ultimi Accessi QR
+                                </h4>
+                                <div className="space-y-2 max-h-32 overflow-y-auto pr-2">
+                                    {accessLogs.length === 0 ? (
+                                        <p className="text-xs text-[#adb5bd] text-center italic py-2">Nessun accesso registrato.</p>
+                                    ) : (
+                                        accessLogs.slice(0, 10).map((log, i) => (
+                                            <div key={log._id || i} className="flex justify-between items-center text-xs p-2 bg-[#212529] rounded border border-[#495057]">
+                                                <div className="flex items-center gap-2">
+                                                    <Clock size={12} className="text-[#adb5bd]" />
+                                                    <span className="text-[#f8f9fa]">{new Date(log.created_date).toLocaleString('it-IT')}</span>
+                                                </div>
+                                                <span className="text-cyan-400">Scannerizzato</span>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <Button onClick={() => { setShowQRModal(false); navigate('/Collaboratori'); }} variant="outline" size="sm" className="mt-4 border-[#495057] text-[#adb5bd] hover:bg-[#495057]/50 gap-1 text-xs w-full">
                                 <ExternalLink size={12} /> Apri Profilo Completo
                             </Button>
                         </div>

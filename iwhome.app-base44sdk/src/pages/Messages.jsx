@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { convertToWebP } from '../utils/imageConverter';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
@@ -13,8 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import VerticalMenu from '../components/dashboard/VerticalMenu';
-import AnimatedBackground from '../components/dashboard/AnimatedBackground';
+
+
 import PollMessage from '../components/chat/PollMessage';
 import CreatePollModal from '../components/chat/CreatePollModal';
 import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
@@ -235,13 +236,25 @@ export default function Messages() {
 
     // 1. Get Upload URL
     try {
+      let fileToUpload = file;
+
+      // Task 14: Universal WEBP Transcoder for JPG/PNG
+      if (file.type.startsWith('image/') && (file.type === 'image/jpeg' || file.type === 'image/png')) {
+        try {
+          const webpBlob = await convertToWebP(file, 0.85);
+          fileToUpload = new File([webpBlob], file.name.replace(/\.[^/.]+$/, "") + ".webp", { type: 'image/webp' });
+        } catch (err) {
+          console.error("WebP conversion failed, uploading original:", err);
+        }
+      }
+
       const postUrl = await generateUploadUrl();
 
       // 2. Upload File
       const result = await fetch(postUrl, {
         method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
+        headers: { "Content-Type": fileToUpload.type },
+        body: fileToUpload,
       });
 
       if (!result.ok) throw new Error("Upload failed");
@@ -295,12 +308,13 @@ export default function Messages() {
   // Access control - only Admin, CEO, and Client can access Messages
   const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
   const isClient = convexUser?.role === 'client';
+  const isSupplier = convexUser?.role === 'supplier';
 
   // Access check handled inline
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-      <AnimatedBackground />
+
 
       <UniversalPdfViewer
         isOpen={!!viewPdfUrl}
@@ -309,14 +323,14 @@ export default function Messages() {
         title="Visualizzazione Documento"
       />
 
-      <VerticalMenu />
+
 
       <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
         {convexUser === undefined ? (
           <div className="h-[calc(100vh-76px)] flex items-center justify-center">
             <Loader2 className="animate-spin text-blue-500" size={40} />
           </div>
-        ) : (!isAdmin && !isClient) ? (
+        ) : (!isAdmin && !isClient && !isSupplier) ? (
           <div className="h-[calc(100vh-76px)] flex items-center justify-center text-center px-4">
             <div>
               <h2 className="text-xl text-[#f8f9fa] mb-2">Accesso Limitato</h2>
@@ -786,7 +800,7 @@ export default function Messages() {
                     </div>
 
                     <div className="flex gap-1 mb-4 bg-[#212529]/50 p-1 rounded-xl">
-                      {['Admin', 'Clienti', 'Azienda', 'Operai'].map((tab) => (
+                      {(isAdmin ? ['Admin', 'Clienti', 'Azienda', 'Operai'] : ['Admin']).map((tab) => (
                         <Button
                           key={tab}
                           variant="ghost"

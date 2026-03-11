@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import VerticalMenu from '../components/dashboard/VerticalMenu';
 import KanbanBoard from '../components/company/KanbanBoard';
 import ChatChannels from '../components/company/ChatChannels';
 import FinancialReport from '../components/company/FinancialReport';
@@ -156,8 +155,7 @@ export default function CompanyDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-      <VerticalMenu />
-
+      
       <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
           {/* Header */}

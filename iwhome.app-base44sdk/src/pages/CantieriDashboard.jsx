@@ -18,8 +18,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import VerticalMenu from '../components/dashboard/VerticalMenu';
-import AnimatedBackground from '../components/dashboard/AnimatedBackground';
+
+
 import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
 
 // Kanban phases (3 phases only)
@@ -57,7 +57,7 @@ export default function CantieriDashboard() {
 
     // Team invite state
     const [inviteModalOpen, setInviteModalOpen] = useState(false);
-    const [inviteEmail, setInviteEmail] = useState('');
+    const [inviteEmails, setInviteEmails] = useState([]);
     const [inviteSending, setInviteSending] = useState(false);
 
     // Message state
@@ -87,6 +87,7 @@ export default function CantieriDashboard() {
     // Queries for Admin/Creation
     const allQuotes = useQuery(api.quotes.getAll) || [];
     const clientsList = useQuery(api.clients.list) || [];
+    const collaboratoriList = useQuery(api.collaborators.list, {}) || [];
 
     // Main Cantieri Query
     // Differentiate queries to avoid TS union type mismatch
@@ -222,20 +223,25 @@ export default function CantieriDashboard() {
 
     // Team Invite
     const handleInviteTeamMember = async () => {
-        if (!inviteEmail.trim() || !selectedCantiere) return;
+        if (inviteEmails.length === 0 || !selectedCantiere) return;
         setInviteSending(true);
         try {
-            await inviteTeamMemberMutation({
-                cantiere_id: selectedCantiere._id,
-                email: inviteEmail.trim(),
-                role: 'worker', // Default role
-                invited_by: userEmail
-            });
+            for (const email of inviteEmails) {
+                const existing = cantiereTeam?.find(m => m.email === email);
+                if (!existing) {
+                    await inviteTeamMemberMutation({
+                        cantiere_id: selectedCantiere._id,
+                        email,
+                        role: 'worker', // Default role for now
+                        invited_by: userEmail
+                    });
+                }
+            }
             setInviteModalOpen(false);
-            setInviteEmail('');
-            alert("Invito inviato con successo!");
+            setInviteEmails([]);
+            alert("Inviti inviati con successo!");
         } catch (error) {
-            alert("Errore invio invito: " + error.message);
+            alert("Errore invio inviti: " + error.message);
         } finally {
             setInviteSending(false);
         }
@@ -371,8 +377,8 @@ export default function CantieriDashboard() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-            <AnimatedBackground />
-            <VerticalMenu />
+            
+            
             <UniversalPdfViewer
                 isOpen={!!viewPdfUrl}
                 onClose={() => setViewPdfUrl(null)}
@@ -1198,16 +1204,42 @@ export default function CantieriDashboard() {
                                                         </DialogHeader>
                                                         <div className="space-y-4 py-4">
                                                             <div className="space-y-2">
-                                                                <Label className="text-[#dee2e6]">Email del lavoratore</Label>
-                                                                <div className="relative">
-                                                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-[#adb5bd]" size={16} />
-                                                                    <Input
-                                                                        type="email"
-                                                                        value={inviteEmail}
-                                                                        onChange={e => setInviteEmail(e.target.value)}
-                                                                        placeholder="email@example.com"
-                                                                        className="pl-10 bg-[#495057] border-[#6c757d] text-[#f8f9fa] placeholder:text-[#adb5bd]"
-                                                                    />
+                                                                <Label className="text-[#dee2e6]">Seleziona Collaboratori</Label>
+                                                                <div className="max-h-60 overflow-y-auto space-y-2 bg-[#212529] p-2 rounded-lg border border-[#495057]">
+                                                                    {collaboratoriList.length === 0 ? (
+                                                                        <p className="text-sm text-[#adb5bd] text-center p-2">Nessun collaboratore trovato. Vai su Staff per aggiungerne.</p>
+                                                                    ) : (
+                                                                        collaboratoriList.map(collab => {
+                                                                            const isSelected = inviteEmails.includes(collab.email);
+                                                                            const isAlreadyMember = cantiereTeam?.some(m => m.email === collab.email);
+                                                                            return (
+                                                                                <div 
+                                                                                    key={collab._id} 
+                                                                                    onClick={() => {
+                                                                                        if (isAlreadyMember) return;
+                                                                                        if (isSelected) setInviteEmails(prev => prev.filter(e => e !== collab.email));
+                                                                                        else setInviteEmails(prev => [...prev, collab.email]);
+                                                                                    }}
+                                                                                    className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${isAlreadyMember ? 'opacity-50 cursor-not-allowed bg-[#343a40]' : isSelected ? 'bg-blue-600/20 border border-blue-500/50' : 'bg-[#343a40] hover:bg-[#495057] border border-transparent'}`}
+                                                                                >
+                                                                                    <div className="flex items-center gap-3">
+                                                                                        <div className="w-8 h-8 rounded-full bg-[#495057] flex items-center justify-center text-xs font-medium text-[#f8f9fa]">
+                                                                                            {collab.full_name[0]}
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            <p className="text-sm text-[#f8f9fa]">{collab.full_name}</p>
+                                                                                            <p className="text-xs text-[#adb5bd]">{collab.email}</p>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    {isAlreadyMember ? (
+                                                                                        <span className="text-[10px] px-2 py-1 bg-[#495057] rounded text-[#adb5bd]">Già membro</span>
+                                                                                    ) : isSelected ? (
+                                                                                        <Check size={16} className="text-blue-400" />
+                                                                                    ) : null}
+                                                                                </div>
+                                                                            );
+                                                                        })
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                             <div className="bg-[#495057]/50 rounded-lg p-3">
@@ -1220,7 +1252,7 @@ export default function CantieriDashboard() {
                                                         <DialogFooter>
                                                             <Button
                                                                 onClick={handleInviteTeamMember}
-                                                                disabled={!inviteEmail.trim() || inviteSending}
+                                                                disabled={inviteEmails.length === 0 || inviteSending}
                                                                 className="bg-blue-600 hover:bg-blue-700 text-white"
                                                             >
                                                                 {inviteSending ? (

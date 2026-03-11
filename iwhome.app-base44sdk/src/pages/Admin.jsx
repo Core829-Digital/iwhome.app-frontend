@@ -24,8 +24,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import VerticalMenu from '../components/dashboard/VerticalMenu';
-import AnimatedBackground from '../components/dashboard/AnimatedBackground';
+
+
 import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
 
 export default function Admin() {
@@ -166,7 +166,7 @@ export default function Admin() {
     if (!isAdmin) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden flex items-center justify-center">
-                <VerticalMenu />
+                
                 <div className="text-center p-8 bg-[#343a40]/50 backdrop-blur-xl rounded-2xl border border-[#f8f9fa]/20">
                     <Shield size={48} className="text-red-500 mx-auto mb-4" />
                     <h1 className="text-2xl font-bold text-[#f8f9fa]">Accesso Negato</h1>
@@ -178,8 +178,8 @@ export default function Admin() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-            <AnimatedBackground />
-            <VerticalMenu />
+            
+            
             <UniversalPdfViewer
                 isOpen={!!viewPdfUrl}
                 onClose={() => setViewPdfUrl(null)}

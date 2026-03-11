@@ -203,9 +203,9 @@ export default function PollMessage({ pollId, userEmail, isAdmin, onViewPdf }) {
 
                                 {/* Negotiation / Counter-Proposal Input UI for Client */}
                                 {showCounterInput && isNegotiation && !userVote && (
-                                    <div className="mt-2 p-4 bg-[#212529] rounded-2xl border border-blue-500/30 shadow-2xl animate-in slide-in-from-top-2">
+                                    <div className="mt-2 p-3 sm:p-4 bg-[#212529] rounded-2xl border border-blue-500/30 shadow-2xl animate-in slide-in-from-top-2 w-full max-w-full box-border overflow-hidden">
                                         <div className="space-y-3">
-                                            <div>
+                                            <div className="w-full">
                                                 <label className="text-[10px] text-blue-400 font-bold uppercase mb-1 block">La tua offerta (€)</label>
                                                 <input
                                                     type="number"

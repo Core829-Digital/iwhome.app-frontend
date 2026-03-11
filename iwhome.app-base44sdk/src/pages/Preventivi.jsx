@@ -6,7 +6,8 @@ import { api } from "../../../../Backend/convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import {
     FileText, Download, Search, CheckCircle, XCircle, Clock, HardHat, Link2, Unlink, Users,
-    Eye, Upload, Loader2, Trash2, Lock
+    Eye, Upload, Loader2, Trash2, Lock, MessageSquare, Send, Truck, TrendingUp, UserPlus,
+    TrendingUp as TrendingUpIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,8 +16,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-import VerticalMenu from '../components/dashboard/VerticalMenu';
-import AnimatedBackground from '../components/dashboard/AnimatedBackground';
+
+
 import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
 
 export default function Preventivi() {
@@ -40,7 +41,7 @@ export default function Preventivi() {
     const convexUser = useQuery(api.users.getByEmail, { email: userEmail });
     const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
 
-    // Query quotes - admin sees all, users see their own
+    // Queries
     const allQuotes = useQuery(api.quotes.getAll, {}) || [];
     const userQuotes = useQuery(api.quotes.getByUser, { email: userEmail }) || [];
     const quotes = isAdmin ? allQuotes : userQuotes;
@@ -48,9 +49,35 @@ export default function Preventivi() {
     // Query cantieri for linking
     const cantieri = useQuery(api.cantieri.listCantieri, { company_email: userEmail }) || [];
     const clientsList = useQuery(api.clients.list) || []; // Fetch clients
+    const myDocuments = useQuery(api.documents.get, {}) || [];
+
+    // Query supplier requests for conversion
+    const supplierRequests = useQuery(api.suppliers.listRequests, {}) || [];
+    const suppliers = useQuery(api.suppliers.list, {}) || [];
+
+    // State for Quote -> Order conversion
+    const [convertModalOpen, setConvertModalOpen] = useState(false);
+    const [quoteToConvert, setQuoteToConvert] = useState(null);
+    const [selectedRequestToConvert, setSelectedRequestToConvert] = useState("");
+    const [isConverting, setIsConverting] = useState(false);
+
+    // State for Forwarding to Supplier
+    const [forwardModalOpen, setForwardModalOpen] = useState(false);
+    const [quoteToForward, setQuoteToForward] = useState(null);
+    const [selectedSupplier, setSelectedSupplier] = useState("");
+    const [preliminaryQuote, setPreliminaryQuote] = useState("");
+    const [isForwarding, setIsForwarding] = useState(false);
+
+    // State for Finalizing for Client
+    const [finalizeModalOpen, setFinalizeModalOpen] = useState(false);
+    const [selectedRequestToFinalize, setSelectedRequestToFinalize] = useState(null);
+    const [marginPrice, setMarginPrice] = useState("");
+    const [finalDocId, setFinalDocId] = useState("");
+    const [isFinalizing, setIsFinalizing] = useState(false);
 
     // Mutations
     const linkToCantiereMutation = useMutation(api.quotes.linkToCantiere);
+    const finalizeQuoteMutation = useMutation(api.suppliers.finalizeIWHomeQuote);
     const unlinkFromCantiereMutation = useMutation(api.quotes.unlinkFromCantiere);
     const linkToClientMutation = useMutation(api.quotes.linkToClient);
     const unlinkFromClientMutation = useMutation(api.quotes.unlinkFromClient);
@@ -59,8 +86,35 @@ export default function Preventivi() {
     const generateUploadUrl = useMutation(api.files.generateUploadUrl);
     const createDocumentMutation = useMutation(api.documents.create);
     const deleteQuoteMutation = useMutation(api.quotes.deleteQuote);
+    const createOrderFromQuoteMutation = useMutation(api.suppliers.createOrderFromQuote);
+    const createRequestMutation = useMutation(api.suppliers.createRequest);
 
     const [selectedClient, setSelectedClient] = useState(undefined);
+
+    const handleConvertToOrder = async () => {
+        if (!quoteToConvert || !selectedRequestToConvert) return;
+        setIsConverting(true);
+        try {
+            const request = supplierRequests.find(r => r._id === selectedRequestToConvert);
+            await createOrderFromQuoteMutation({
+                supplier_id: request.supplier_id,
+                // @ts-ignore
+                request_id: selectedRequestToConvert,
+                quote_id: quoteToConvert._id,
+                cantiere_id: quoteToConvert.cantiere_id,
+                total_amount: request.quoted_price || quoteToConvert.estimated_price
+            });
+            alert("Ordine Fornitore creato con successo!");
+            setConvertModalOpen(false);
+            setQuoteToConvert(null);
+            setSelectedRequestToConvert("");
+        } catch (err) {
+            console.error('Error converting to order:', err);
+            alert("Errore durante la creazione dell'ordine fornitore.");
+        } finally {
+            setIsConverting(false);
+        }
+    };
 
     const handleDelete = async (id) => {
         if (!window.confirm('Sei sicuro di voler eliminare questo preventivo? Questa azione è irreversibile.')) return;
@@ -72,6 +126,50 @@ export default function Preventivi() {
         }
     };
 
+    const handleForwardToSupplier = async () => {
+        if (!quoteToForward || !selectedSupplier) return;
+        setIsForwarding(true);
+        try {
+            const supplier = suppliers.find(s => s._id === selectedSupplier);
+
+            // Separate photos and documents based on extension
+            const photos = [];
+            const documents = [];
+            (quoteToForward.files || []).forEach(url => {
+                const lower = url.toLowerCase();
+                const isImg = lower.match(/\.(jpg|jpeg|png|webp|gif|bmp|svg)/) || lower.includes('image');
+                if (isImg) photos.push(url);
+                else documents.push(url);
+            });
+
+            // Create a request for the supplier based on the client quote
+            await createRequestMutation({
+                // @ts-ignore
+                supplier_id: selectedSupplier,
+                title: `Richiesta da Cliente: ${quoteToForward.full_name || quoteToForward.email}`,
+                description: `Richiesta inoltrata da IWHome.\n\nNote cliente: ${quoteToForward.notes || 'Nessuna'}\nTipo: ${quoteToForward.quote_type}`,
+                fixture_type: quoteToForward.quote_type,
+                urgency: 'normal',
+                quantity: 1,
+                preliminary_quote: preliminaryQuote ? parseFloat(preliminaryQuote) : undefined,
+                quote_id: quoteToForward._id, // Track the source
+                photos,
+                documents
+            });
+
+            alert(`Richiesta inviata con successo a ${supplier.name}`);
+            setForwardModalOpen(false);
+            setQuoteToForward(null);
+            setSelectedSupplier("");
+            setPreliminaryQuote("");
+        } catch (err) {
+            console.error('Error forwarding to supplier:', err);
+            alert("Errore durante l'invio al fornitore.");
+        } finally {
+            setIsForwarding(false);
+        }
+    };
+
     const getStatusBadge = (status) => {
         switch (status) {
             case 'accepted':
@@ -79,7 +177,9 @@ export default function Preventivi() {
             case 'rejected':
                 return <Badge variant="secondary" className="bg-red-500/20 text-red-400 border-none"><XCircle size={12} className="mr-1" /> Rifiutato</Badge>;
             case 'sent':
-                return <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-none"><FileText size={12} className="mr-1" /> Inviato</Badge>;
+                return <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-none"><FileText size={12} className="mr-1" /> Valutazione</Badge>;
+            case 'request':
+                return <Badge variant="secondary" className="bg-cyan-500/20 text-cyan-400 border-none"><Upload size={12} className="mr-1" /> Richiesta Cliente</Badge>;
             default:
                 return <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-400 border-none"><Clock size={12} className="mr-1" /> In Attesa</Badge>;
         }
@@ -189,6 +289,29 @@ export default function Preventivi() {
         }
     };
 
+    const handleFinalizeQuote = async () => {
+        if (!selectedRequestToFinalize || !marginPrice || !finalDocId) return;
+        setIsFinalizing(true);
+        try {
+            await finalizeQuoteMutation({
+                request_id: selectedRequestToFinalize._id,
+                margin_price: parseFloat(marginPrice),
+                // @ts-ignore
+                final_doc_id: finalDocId
+            });
+            alert("Preventivo finalizzato e inviato al cliente!");
+            setFinalizeModalOpen(false);
+            setSelectedRequestToFinalize(null);
+            setMarginPrice("");
+            setFinalDocId("");
+        } catch (err) {
+            console.error('Error finalizing quote:', err);
+            alert("Errore durante la finalizzazione del preventivo.");
+        } finally {
+            setIsFinalizing(false);
+        }
+    };
+
     const filteredQuotes = quotes.filter(quote => {
         const matchesSearch =
             (quote.notes?.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -203,8 +326,8 @@ export default function Preventivi() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-            <AnimatedBackground />
-            <VerticalMenu />
+
+
             <UniversalPdfViewer
                 isOpen={!!viewPdfUrl}
                 onClose={() => setViewPdfUrl(null)}
@@ -274,6 +397,13 @@ export default function Preventivi() {
                                     >
                                         Accettati
                                     </Button>
+                                    <Button
+                                        variant={statusFilter === 'request' ? "default" : "outline"}
+                                        onClick={() => setStatusFilter('request')}
+                                        className={statusFilter === 'request' ? "bg-cyan-500 text-white border-none" : "bg-transparent text-[#adb5bd] border-[#6c757d]"}
+                                    >
+                                        Richieste
+                                    </Button>
                                 </div>
                             </CardContent>
                         </Card>
@@ -289,8 +419,10 @@ export default function Preventivi() {
                                         <div className="bg-[#495057]/50 rounded-lg p-3">
                                             <p className="text-sm text-[#adb5bd]">Preventivo selezionato:</p>
                                             <p className="text-[#f8f9fa] font-medium">
-                                                {selectedQuote.quote_type === 'finestre' ? 'Infissi e Serramenti' :
-                                                    selectedQuote.quote_type === 'chiavi_in_mano' ? 'Ristrutturazione Chiavi in Mano' : 'Progetto Completo'}
+                                                {selectedQuote.title || (
+                                                    selectedQuote.quote_type === 'finestre' ? 'Infissi e Serramenti' :
+                                                        selectedQuote.quote_type === 'chiavi_in_mano' ? 'Ristrutturazione Chiavi in Mano' : 'Progetto Completo'
+                                                )}
                                             </p>
                                             <p className="text-xs text-[#6c757d]">{selectedQuote.email}</p>
                                         </div>
@@ -379,8 +511,10 @@ export default function Preventivi() {
                                                         <div className="flex-1">
                                                             <div className="flex items-center gap-3 mb-2 flex-wrap">
                                                                 <h3 className="text-lg font-medium text-[#f8f9fa]">
-                                                                    Preventivo: {quote.quote_type === 'finestre' ? 'Infissi e Serramenti' :
-                                                                        quote.quote_type === 'chiavi_in_mano' ? 'Ristrutturazione Chiavi in Mano' : 'Progetto Completo'}
+                                                                    {quote.title || (
+                                                                        quote.quote_type === 'finestre' ? 'Infissi e Serramenti' :
+                                                                            quote.quote_type === 'chiavi_in_mano' ? 'Ristrutturazione Chiavi in Mano' : 'Progetto Completo'
+                                                                    )}
                                                                 </h3>
                                                                 {getStatusBadge(quote.status)}
                                                                 {linkedCantiere && (
@@ -397,11 +531,13 @@ export default function Preventivi() {
                                                                 )}
                                                             </div>
                                                             <div className="flex items-center text-sm text-[#adb5bd] gap-4 flex-wrap">
-                                                                {isAdmin && quote.full_name && (
-                                                                    <span className="text-[#f8f9fa]">{quote.full_name}</span>
-                                                                )}
                                                                 {isAdmin && (
-                                                                    <span className="text-[#6c757d]">{quote.email}</span>
+                                                                    <div className="flex items-center gap-3 text-cyan-400">
+                                                                        <Users size={14} />
+                                                                        <span className="font-medium">{quote.full_name}</span>
+                                                                        <span className="text-[#6c757d]">({quote.email})</span>
+                                                                        {quote.phone && <span className="text-[#adb5bd]">{quote.phone}</span>}
+                                                                    </div>
                                                                 )}
                                                                 <span className="flex items-center gap-1">
                                                                     <Clock size={14} />
@@ -414,7 +550,10 @@ export default function Preventivi() {
                                                                 )}
                                                             </div>
                                                             {quote.notes && (
-                                                                <p className="text-sm text-[#adb5bd] mt-2 line-clamp-2">{quote.notes}</p>
+                                                                <div className="mt-3 p-3 bg-[#212529]/50 rounded-lg border border-[#f8f9fa]/5 text-sm text-[#dee2e6]">
+                                                                    <p className="text-xs text-[#6c757d] mb-1">Note Richiesta:</p>
+                                                                    <p>{quote.notes}</p>
+                                                                </div>
                                                             )}
                                                         </div>
 
@@ -476,6 +615,19 @@ export default function Preventivi() {
                                                                         )
                                                                     ) : null}
 
+                                                                    {quote.status === 'accepted' && (
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            onClick={() => {
+                                                                                setQuoteToConvert(quote);
+                                                                                setConvertModalOpen(true);
+                                                                            }}
+                                                                            className="text-orange-400 border-orange-500/30 hover:bg-orange-500/20"
+                                                                        >
+                                                                            <HardHat size={16} className="mr-1" /> Ordine Fornitore
+                                                                        </Button>
+                                                                    )}
+
                                                                     <Button
                                                                         variant="ghost"
                                                                         onClick={() => handleDelete(quote._id)}
@@ -485,6 +637,22 @@ export default function Preventivi() {
                                                                         <Trash2 size={16} />
                                                                     </Button>
                                                                 </>
+                                                            )}
+
+                                                            {/* Admin: Finalize from supplier response */}
+                                                            {isAdmin && supplierRequests.find(r => r.quote_id === quote._id && r.status === 'preventivato') && (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    onClick={() => {
+                                                                        const req = supplierRequests.find(r => r.quote_id === quote._id && r.status === 'preventivato');
+                                                                        setSelectedRequestToFinalize(req);
+                                                                        setMarginPrice(req.quoted_price ? (req.quoted_price * 1.2).toString() : ""); // Default 20% margin
+                                                                        setFinalizeModalOpen(true);
+                                                                    }}
+                                                                    className="text-orange-400 border-orange-500/30 hover:bg-orange-500/20"
+                                                                >
+                                                                    <TrendingUp size={16} className="mr-1" /> Finalizza per Cliente
+                                                                </Button>
                                                             )}
 
                                                             {/* Admin: Upload final quote */}
@@ -508,6 +676,28 @@ export default function Preventivi() {
                                                             >
                                                                 <Eye size={16} className="mr-1" /> Dettagli
                                                             </Button>
+
+                                                            {quote.status === 'request' && (
+                                                                <div className="flex gap-2">
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        onClick={() => {
+                                                                            setQuoteToForward(quote);
+                                                                            setForwardModalOpen(true);
+                                                                        }}
+                                                                        className="text-orange-400 border-orange-500/30 hover:bg-orange-500/20"
+                                                                    >
+                                                                        <Send size={16} className="mr-1" /> Invia a Fornitore
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        onClick={() => window.location.href = `/Messages`}
+                                                                        className="text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20"
+                                                                    >
+                                                                        <MessageSquare size={16} className="mr-1" /> Chat Cliente
+                                                                    </Button>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </CardContent>
@@ -517,6 +707,65 @@ export default function Preventivi() {
                                 })
                             )}
                         </div>
+
+                        {/* Forward to Supplier Modal */}
+                        <Dialog open={forwardModalOpen} onOpenChange={setForwardModalOpen}>
+                            <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle className="text-[#f8f9fa] flex items-center gap-2">
+                                        <Truck size={20} className="text-orange-400" />
+                                        Invia Richiesta al Fornitore
+                                    </DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4 py-2">
+                                    <div className="bg-[#495057]/50 rounded-lg p-3">
+                                        <p className="text-sm text-[#adb5bd]">Richiesta del cliente:</p>
+                                        <p className="text-[#f8f9fa] font-medium">{quoteToForward?.full_name || quoteToForward?.email}</p>
+                                        <p className="text-xs text-[#6c757d]">{quoteToForward?.quote_type}</p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm text-[#dee2e6]">Seleziona Fornitore:</label>
+                                        <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
+                                            <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
+                                                <SelectValue placeholder="Scegli un fornitore..." />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-[#343a40] border-[#495057]">
+                                                {suppliers.map(s => (
+                                                    <SelectItem key={s._id} value={s._id} className="text-[#f8f9fa] focus:bg-[#495057]">
+                                                        {s.name} ({s.type})
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm text-[#dee2e6]">Prezzo Preliminare (Opzionale):</label>
+                                        <Input
+                                            type="number"
+                                            placeholder="€"
+                                            value={preliminaryQuote}
+                                            onChange={(e) => setPreliminaryQuote(e.target.value)}
+                                            className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]"
+                                        />
+                                        <p className="text-[10px] text-[#6c757d]">Prezzo indicativo non vincolante tra IWHome e Fornitore.</p>
+                                    </div>
+
+                                    <Button
+                                        onClick={handleForwardToSupplier}
+                                        disabled={!selectedSupplier || isForwarding}
+                                        className="w-full bg-orange-600 hover:bg-orange-700"
+                                    >
+                                        {isForwarding ? (
+                                            <><Loader2 size={16} className="mr-2 animate-spin" /> Invio...</>
+                                        ) : (
+                                            <><Send size={16} className="mr-2" /> Invia Richiesta</>
+                                        )}
+                                    </Button>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
 
                         {/* Quote Detail Modal */}
                         <Dialog open={!!detailQuote} onOpenChange={(open) => !open && setDetailQuote(null)}>
@@ -582,9 +831,133 @@ export default function Preventivi() {
                                 </div>
                             </DialogContent>
                         </Dialog>
+
+                        {/* Convert to Order Modal */}
+                        <Dialog open={convertModalOpen} onOpenChange={setConvertModalOpen}>
+                            <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle className="text-[#f8f9fa] flex items-center gap-2">
+                                        <HardHat size={20} className="text-orange-400" />
+                                        Trasforma in Ordine Fornitore
+                                    </DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4 py-2">
+                                    <div className="bg-[#495057]/50 rounded-lg p-3">
+                                        <p className="text-sm text-[#adb5bd]">Preventivo approvato dal cliente:</p>
+                                        <p className="text-[#f8f9fa] font-medium">{quoteToConvert?.full_name || quoteToConvert?.email}</p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm text-[#dee2e6]">Seleziona la Richiesta del Fornitore da convertire in Ordine:</label>
+                                        <Select value={selectedRequestToConvert} onValueChange={setSelectedRequestToConvert}>
+                                            <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
+                                                <SelectValue placeholder="Seleziona la richiesta..." />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-[#343a40] border-[#495057]">
+                                                {/* Allow selecting requests that are basically accepted/evaluated */}
+                                                {supplierRequests
+                                                    .filter(r => r.status !== "draft" && r.status !== "rejected")
+                                                    .map(req => {
+                                                        const supplier = suppliers.find(s => s._id === req.supplier_id);
+                                                        return (
+                                                            <SelectItem key={req._id} value={req._id} className="text-[#f8f9fa] focus:bg-[#495057]">
+                                                                {req.title} {supplier ? `(${supplier.name})` : ''} - {req.quoted_price ? `€${req.quoted_price}` : 'Da definire'}
+                                                            </SelectItem>
+                                                        )
+                                                    })}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <Button
+                                        onClick={handleConvertToOrder}
+                                        disabled={!selectedRequestToConvert || isConverting}
+                                        className="w-full bg-orange-600 hover:bg-orange-700"
+                                    >
+                                        {isConverting ? (
+                                            <><Loader2 size={16} className="mr-2 animate-spin" /> Creazione Ordine in corso...</>
+                                        ) : (
+                                            <><HardHat size={16} className="mr-2" /> Crea Ordine e Invia al Fornitore</>
+                                        )}
+                                    </Button>
+                                    <p className="text-xs text-[#6c757d] text-center">
+                                        Creerà automaticamente l'OdA (Ordine di Acquisto Fornitore) e avviserà il fornitore dell'inizio produzione, generando il pagamento in attesa.
+                                    </p>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
                     </div>
                 )}
             </div>
+
+            {/* Modal: Finalize for Client */}
+            <Dialog open={finalizeModalOpen} onOpenChange={setFinalizeModalOpen}>
+                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <TrendingUp className="text-orange-500" size={20} />
+                            Finalizza Preventivo per Cliente
+                        </DialogTitle>
+                    </DialogHeader>
+                    {selectedRequestToFinalize && (
+                        <div className="space-y-4 py-4">
+                            <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-lg">
+                                <p className="text-[10px] text-blue-400 uppercase font-bold mb-1">Dati Fornitore</p>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span>Prezzo Fornitore:</span>
+                                    <span className="font-medium">€{selectedRequestToFinalize.quoted_price}</span>
+                                </div>
+                                {selectedRequestToFinalize.supplier_notes && (
+                                    <p className="text-xs text-[#6c757d] mt-1">Notes: {selectedRequestToFinalize.supplier_notes}</p>
+                                )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs text-[#adb5bd] uppercase font-bold">Prezzo Finale al Cliente (con margine)</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#adb5bd]">€</span>
+                                    <Input
+                                        type="number"
+                                        placeholder="Inserisci prezzo finale..."
+                                        className="bg-[#212529] border-[#495057] pl-8 text-[#f8f9fa]"
+                                        value={marginPrice}
+                                        onChange={(e) => setMarginPrice(e.target.value)}
+                                    />
+                                </div>
+                                <p className="text-[10px] text-orange-400">
+                                    Il margine di ricarico è di: €{(parseFloat(marginPrice) - selectedRequestToFinalize.quoted_price || 0).toLocaleString()}
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs text-[#adb5bd] uppercase font-bold">PDF Definitivo da "Documenti"</label>
+                                <Select value={finalDocId} onValueChange={setFinalDocId}>
+                                    <SelectTrigger className="bg-[#212529] border-[#495057] text-[#f8f9fa]">
+                                        <SelectValue placeholder="Seleziona documento..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-[#343a40] border-[#495057]">
+                                        {myDocuments.map(doc => (
+                                            <SelectItem key={doc._id} value={doc._id} className="text-[#f8f9fa]">{doc.title}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-[#495057]">
+                                <Button variant="ghost" onClick={() => setFinalizeModalOpen(false)} className="text-[#adb5bd] hover:text-[#f8f9fa]" disabled={isFinalizing}>Annulla</Button>
+                                <Button
+                                    onClick={handleFinalizeQuote}
+                                    disabled={!marginPrice || !finalDocId || isFinalizing}
+                                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                                >
+                                    {isFinalizing ? <Loader2 className="animate-spin mr-2" size={16} /> : <TrendingUp size={16} className="mr-2" />}
+                                    Finalizza e Invia
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

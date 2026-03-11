@@ -19,8 +19,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import VerticalMenu from '../components/dashboard/VerticalMenu';
-import AnimatedBackground from '../components/dashboard/AnimatedBackground';
+
+
 
 const liveStatusConfig = {
     in_cantiere: { label: 'In Cantiere', color: 'bg-green-500', dot: 'bg-green-400 animate-pulse' },
@@ -67,7 +67,7 @@ export default function Collaboratori() {
     if (!canView('collaboratori')) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-                <AnimatedBackground /><VerticalMenu />
+                
                 <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen flex items-center justify-center">
                     <div className="text-center"><h2 className="text-xl text-[#f8f9fa] mb-2">Accesso Negato</h2><p className="text-[#adb5bd]">Non hai i permessi per accedere a questa sezione.</p></div>
                 </div>
@@ -129,8 +129,8 @@ export default function Collaboratori() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-            <AnimatedBackground />
-            <VerticalMenu />
+            
+            
             <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Header */}

@@ -54,6 +54,12 @@ export function useRBAC() {
     const isClient = role === "client";
     const isSupervisor = role === "supervisor";
 
+    // RBAC: Get linked supplier record when role is 'supplier'
+    const supplierRecord = useQuery(
+        api.suppliers.getByUserId,
+        isSupplier && convexUser?._id ? { userId: convexUser._id } : "skip"
+    );
+
     /**
      * Check if the current user can view a specific module/page.
      */
@@ -99,6 +105,8 @@ export function useRBAC() {
         canView,
         canEdit,
         getSidebarItems,
+        supplierRecord: supplierRecord || null,
+        supplierId: supplierRecord?._id || null,
         isLoading: convexUser === undefined,
     };
 }

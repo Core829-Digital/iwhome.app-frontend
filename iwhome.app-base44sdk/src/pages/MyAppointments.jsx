@@ -5,8 +5,8 @@ import { api } from '../../../../Backend/convex/_generated/api';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { Button } from '@/components/ui/button';
-import VerticalMenu from '../components/dashboard/VerticalMenu';
-import AnimatedBackground from '../components/dashboard/AnimatedBackground';
+
+
 import InteractiveCalendar from '../components/calendar/InteractiveCalendar';
 import { useUser } from "@clerk/clerk-react";
 
@@ -69,6 +69,8 @@ export default function MyAppointments() {
     switch (status) {
       case 'confirmed': return <CheckCircle className="text-green-400" size={20} />;
       case 'cancelled': return <XCircle className="text-red-400" size={20} />;
+      case 'rejected': return <XCircle className="text-red-600" size={20} />;
+      case 'pending': return <Clock className="text-yellow-400" size={20} />;
       default: return <Clock className="text-[#adb5bd]" size={20} />;
     }
   };
@@ -78,6 +80,8 @@ export default function MyAppointments() {
       case 'confirmed': return 'Confermato';
       case 'cancelled': return 'Annullato';
       case 'completed': return 'Completato';
+      case 'pending': return 'In Attesa';
+      case 'rejected': return 'Rifiutato';
       default: return status;
     }
   };
@@ -86,9 +90,9 @@ export default function MyAppointments() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-      <AnimatedBackground />
+      
 
-      <VerticalMenu />
+      
 
       <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">

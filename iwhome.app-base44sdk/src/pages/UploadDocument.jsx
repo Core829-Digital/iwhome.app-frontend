@@ -16,8 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import VerticalMenu from '../components/dashboard/VerticalMenu';
-import AnimatedBackground from '../components/dashboard/AnimatedBackground';
+
+
 import { Upload, FileText, Check, X, Loader2 } from 'lucide-react';
 import { createPageUrl } from '../utils';
 
@@ -105,8 +105,8 @@ export default function UploadDocument() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-      <AnimatedBackground />
-      <VerticalMenu />
+      
+      
 
       <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
         <div className="max-w-4xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">

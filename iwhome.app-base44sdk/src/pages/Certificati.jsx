@@ -18,8 +18,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import VerticalMenu from '../components/dashboard/VerticalMenu';
-import AnimatedBackground from '../components/dashboard/AnimatedBackground';
+
+
 
 const statusConfig = {
     valid: { label: 'Valido', icon: CheckCircle, color: 'bg-green-500/20 text-green-400 border-green-500/30' },
@@ -62,7 +62,7 @@ export default function Certificati() {
     if (!canView('certificati')) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-                <AnimatedBackground /><VerticalMenu />
+                
                 <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen flex items-center justify-center">
                     <div className="text-center"><h2 className="text-xl text-[#f8f9fa] mb-2">Accesso Negato</h2><p className="text-[#adb5bd]">Non hai i permessi per accedere a questa sezione.</p></div>
                 </div>
@@ -117,8 +117,8 @@ export default function Certificati() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-            <AnimatedBackground />
-            <VerticalMenu />
+            
+            
             <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Header */}
@@ -212,8 +212,8 @@ export default function Certificati() {
                                                                     <Badge variant="default" className={`${sts.color} border flex items-center gap-1`}>
                                                                         <StatusIcon size={14} /> {sts.label}
                                                                     </Badge>
-                                                                    <Button variant="ghost" size="sm" className="text-cyan-400 hover:bg-cyan-500/20">
-                                                                        <Download size={16} />
+                                                                    <Button variant="ghost" size="sm" className="text-cyan-400 hover:bg-cyan-500/20" onClick={() => { if (cert.file_url) window.open(cert.file_url, '_blank'); }}>
+                                                                        <Download size={14} className="mr-1" /> Scarica PDF
                                                                     </Button>
                                                                     {isAdmin && (
                                                                         <Button variant="ghost" size="sm" onClick={() => handleDelete(cert._id)} className="text-red-400 hover:bg-red-500/20 h-8 px-2">

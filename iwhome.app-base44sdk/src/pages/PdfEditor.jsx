@@ -25,8 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import VerticalMenu from '../components/dashboard/VerticalMenu';
-import AnimatedBackground from '../components/dashboard/AnimatedBackground';
+
+
 import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
 import {
   FileText,
@@ -579,8 +579,8 @@ export default function PdfEditor() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-      <AnimatedBackground />
-      <VerticalMenu />
+      
+      
       <UniversalPdfViewer
         isOpen={!!viewPdfUrl}
         onClose={() => setViewPdfUrl(null)}

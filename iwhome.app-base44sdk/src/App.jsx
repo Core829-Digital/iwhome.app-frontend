@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster"
 import VisualEditAgent from '@/lib/VisualEditAgent'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -14,14 +14,35 @@ import { ConvexReactClient } from "convex/react";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+import VerticalMenu from './components/dashboard/VerticalMenu';
+import AnimatedBackground from './components/dashboard/AnimatedBackground';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 
-const LayoutWrapper = ({ children, currentPageName }) => Layout ?
-  <Layout currentPageName={currentPageName}>{children}</Layout>
-  : <>{children}</>;
+const PUBLIC_PAGES = ['Home', 'ChiSiamo', 'Servizi', 'Calcolatore', 'Blog', 'BlogPost', 'Contatti', 'Cookie', 'Privacy', 'Termini', 'qr-access'];
+
+const GlobalLayout = ({ children }) => {
+  const location = useLocation();
+  // Attempt to derive currentPageName, defaulting to mainPageKey if at root
+  const currentPath = location.pathname.split('/')[1];
+  const currentPageName = currentPath === '' ? mainPageKey : (Object.keys(Pages).find(k => k.toLowerCase() === currentPath.toLowerCase()) || currentPath);
+
+  const isPrivate = !PUBLIC_PAGES.includes(currentPageName);
+
+  return (
+    <>
+      {isPrivate && <VerticalMenu />}
+      {isPrivate && <AnimatedBackground />}
+      {Layout ? (
+        <Layout currentPageName={currentPageName}>{children}</Layout>
+      ) : (
+        <>{children}</>
+      )}
+    </>
+  );
+};
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, logout } = useAuth();
@@ -66,25 +87,19 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
-    <Routes>
-      <Route path="/" element={
-        <LayoutWrapper currentPageName={mainPageKey}>
-          <MainPage />
-        </LayoutWrapper>
-      } />
-      {Object.entries(Pages).map(([path, Page]) => (
-        <Route
-          key={path}
-          path={`/${path}`}
-          element={
-            <LayoutWrapper currentPageName={path}>
-              <Page />
-            </LayoutWrapper>
-          }
-        />
-      ))}
-      <Route path="*" element={<PageNotFound />} />
-    </Routes>
+    <GlobalLayout>
+      <Routes>
+        <Route path="/" element={<MainPage />} />
+        {Object.entries(Pages).map(([path, Page]) => (
+          <Route
+            key={path}
+            path={`/${path}`}
+            element={<Page />}
+          />
+        ))}
+        <Route path="*" element={<PageNotFound />} />
+      </Routes>
+    </GlobalLayout>
   );
 };
 

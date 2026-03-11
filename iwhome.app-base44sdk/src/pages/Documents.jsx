@@ -22,8 +22,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import VerticalMenu from '../components/dashboard/VerticalMenu';
-import AnimatedBackground from '../components/dashboard/AnimatedBackground';
+
+
 import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
 import {
   FileText,
@@ -35,13 +35,16 @@ import {
   XCircle,
   Clock,
   AlertCircle,
-  Loader2
+  Loader2,
+  FolderOpen
 } from 'lucide-react';
 
 export default function Documents() {
   const { user } = useUser();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [viewMode, setViewMode] = useState('grid');
+  const [openFolder, setOpenFolder] = useState(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [uploadData, setUploadData] = useState({
     title: '',
@@ -125,14 +128,41 @@ export default function Documents() {
     return matchesSearch && matchesCategory;
   });
 
+  const groupedDocuments = React.useMemo(() => {
+    if (viewMode !== 'folders') return {};
+    const groups = {};
+    if (isAdmin) {
+      filteredDocuments.forEach(doc => {
+        let key = 'Documenti Generali';
+        if (doc.client_id) {
+          const clientName = clients?.find(c => c._id === doc.client_id)?.full_name || 'Cliente Sconosciuto';
+          key = clientName;
+        }
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(doc);
+      });
+    } else {
+      filteredDocuments.forEach(doc => {
+        const key = doc.category.charAt(0).toUpperCase() + doc.category.slice(1);
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(doc);
+      });
+    }
+    return groups;
+  }, [filteredDocuments, viewMode, isAdmin, clients]);
+
+  React.useEffect(() => {
+    setOpenFolder(null);
+  }, [viewMode, searchQuery, categoryFilter]);
+
   // Loading guard removed — auth handled globally by App.jsx
 
   // if (!user) check removed
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-      <AnimatedBackground />
-      <VerticalMenu />
+
+
 
       {/* Universal PDF Viewer */}
       <UniversalPdfViewer
@@ -251,7 +281,7 @@ export default function Documents() {
               />
             </div>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full sm:w-[200px] bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa]">
+              <SelectTrigger className="w-full sm:w-[160px] bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa]">
                 <SelectValue placeholder="Categoria" />
               </SelectTrigger>
               <SelectContent className="bg-[#343a40] border-[#f8f9fa]/20">
@@ -263,6 +293,25 @@ export default function Documents() {
                 <SelectItem value="altro" className="text-[#f8f9fa] focus:bg-[#495057] focus:text-white cursor-pointer">Altro</SelectItem>
               </SelectContent>
             </Select>
+
+            <div className="flex bg-[#343a40]/50 border border-[#f8f9fa]/20 rounded-md p-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewMode('grid')}
+                className={`flex-1 ${viewMode === 'grid' ? 'bg-[#495057] text-white shadow-sm' : 'text-[#adb5bd] hover:text-white'}`}
+              >
+                Griglia
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewMode('folders')}
+                className={`flex-1 ${viewMode === 'folders' ? 'bg-[#495057] text-white shadow-sm' : 'text-[#adb5bd] hover:text-white'}`}
+              >
+                {isAdmin ? 'Clienti' : 'Cartelle'}
+              </Button>
+            </div>
           </div>
 
           {/* Preventivi Section */}
@@ -325,8 +374,10 @@ export default function Documents() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className="text-[#f8f9fa] font-medium">
-                            {quote.quote_type === 'finestre' ? 'Infissi e Serramenti' :
-                              quote.quote_type === 'chiavi_in_mano' ? 'Ristrutturazione Chiavi in Mano' : 'Progetto Completo'}
+                            {quote.title || (
+                              quote.quote_type === 'finestre' ? 'Infissi e Serramenti' :
+                                quote.quote_type === 'chiavi_in_mano' ? 'Ristrutturazione Chiavi in Mano' : 'Progetto Completo'
+                            )}
                           </h4>
                           <Badge variant="secondary" className={`text-xs border-none ${quote.status === 'accepted' ? 'bg-green-500/20 text-green-400' :
                             quote.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
@@ -386,8 +437,8 @@ export default function Documents() {
               </div>
             </div>
           )}
-
-          {/* Documents Grid */}
+          
+          {/* Documents Grid / Folders */}
           {isLoading ? (
             <div className="text-center py-12 text-[#dee2e6]">Caricamento...</div>
           ) : filteredDocuments.length === 0 ? (
@@ -396,61 +447,89 @@ export default function Documents() {
               <p className="text-[#dee2e6] text-lg">Nessun documento trovato</p>
               <p className="text-[#adb5bd] text-sm mt-2">Carica il tuo primo documento per iniziare</p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-              {filteredDocuments.map((doc) => (
+          ) : viewMode === 'folders' && !openFolder ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Object.keys(groupedDocuments).map(folderName => (
                 <motion.div
-                  key={doc._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ y: -4 }}
-                  className="bg-[#343a40]/30 backdrop-blur-xl rounded-xl lg:rounded-2xl p-4 sm:p-5 lg:p-6 border border-[#f8f9fa]/20 shadow-xl hover:bg-[#343a40]/50 hover:shadow-2xl transition-all duration-300"
+                  key={folderName}
+                  whileHover={{ scale: 1.02 }}
+                  onClick={() => setOpenFolder(folderName)}
+                  className="bg-[#343a40]/50 hover:bg-[#495057]/50 cursor-pointer backdrop-blur-md rounded-xl p-6 border border-[#f8f9fa]/10 flex flex-col items-center justify-center text-center shadow-lg transition-all"
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-[#f8f9fa]/10 backdrop-blur-sm flex items-center justify-center">
-                      <FileText size={24} className="text-[#f8f9fa]" />
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="text-xs px-2 py-1 rounded-full bg-[#f8f9fa]/10 text-[#f8f9fa]">
-                        {doc.category}
-                      </span>
-                      {(doc.status === 'accepted' || doc.status === 'definitive') && (
-                        <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/20 flex items-center gap-1">
-                          <CheckCircle size={10} /> Accettato
-                        </span>
-                      )}
-                    </div>
+                  <div className="w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center mb-4 text-blue-400">
+                    <FolderOpen size={32} />
                   </div>
-                  <h3 className="text-lg font-medium text-[#f8f9fa] mb-2">{doc.title}</h3>
-                  {doc.description && (
-                    <p className="text-sm text-[#dee2e6] mb-4 line-clamp-2">{doc.description}</p>
-                  )}
-                  <div className="text-xs text-[#adb5bd] mb-4">
-                    {doc.file_name} • {(doc.file_size / 1024).toFixed(1)} KB
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setSelectedDocUrl(doc.file_url);
-                        setSelectedDocTitle(doc.title);
-                      }}
-                      className="flex-1 bg-[#495057] text-[#f8f9fa] hover:bg-[#6c757d] transition-colors font-medium border border-[#f8f9fa]/20"
-                    >
-                      <Eye size={14} className="mr-1" />
-                      Vedi
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => deleteDocument({ id: doc._id })}
-                      className="border-red-500/30 text-red-400 hover:bg-red-500/10"
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
+                  <h3 className="text-[#f8f9fa] font-medium text-lg leading-tight mb-1">{folderName}</h3>
+                  <p className="text-[#adb5bd] text-sm">{groupedDocuments[folderName].length} elementi</p>
                 </motion.div>
               ))}
+            </div>
+          ) : (
+            <div>
+              {openFolder && (
+                <div className="flex items-center gap-3 mb-6">
+                  <Button variant="ghost" size="sm" onClick={() => setOpenFolder(null)} className="text-[#adb5bd] hover:text-white pr-2 pl-2">
+                    <Trash2 size={16} className="rotate-90 hidden" /> {/* Just for spacing layout logic */}
+                    &larr; Indietro
+                  </Button>
+                  <h2 className="text-xl text-[#f8f9fa] font-medium">{openFolder}</h2>
+                </div>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+                {(openFolder ? groupedDocuments[openFolder] : filteredDocuments).map((doc) => (
+                  <motion.div
+                    key={doc._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    whileHover={{ y: -4 }}
+                    className="bg-[#343a40]/30 backdrop-blur-xl rounded-xl lg:rounded-2xl p-4 sm:p-5 lg:p-6 border border-[#f8f9fa]/20 shadow-xl hover:bg-[#343a40]/50 hover:shadow-2xl transition-all duration-300"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="w-12 h-12 rounded-xl bg-[#f8f9fa]/10 backdrop-blur-sm flex items-center justify-center">
+                        <FileText size={24} className="text-[#f8f9fa]" />
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="text-xs px-2 py-1 rounded-full bg-[#f8f9fa]/10 text-[#f8f9fa]">
+                          {doc.category}
+                        </span>
+                        {(doc.status === 'accepted' || doc.status === 'definitive') && (
+                          <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/20 flex items-center gap-1">
+                            <CheckCircle size={10} /> Accettato
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <h3 className="text-lg font-medium text-[#f8f9fa] mb-2">{doc.title}</h3>
+                    {doc.description && (
+                      <p className="text-sm text-[#dee2e6] mb-4 line-clamp-2">{doc.description}</p>
+                    )}
+                    <div className="text-xs text-[#adb5bd] mb-4">
+                      {doc.file_name} • {(doc.file_size / 1024).toFixed(1)} KB
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setSelectedDocUrl(doc.file_url);
+                          setSelectedDocTitle(doc.title);
+                        }}
+                        className="flex-1 bg-[#495057] text-[#f8f9fa] hover:bg-[#6c757d] transition-colors font-medium border border-[#f8f9fa]/20"
+                      >
+                        <Eye size={14} className="mr-1" />
+                        Vedi
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => deleteDocument({ id: doc._id })}
+                        className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             </div>
           )}
         </div>

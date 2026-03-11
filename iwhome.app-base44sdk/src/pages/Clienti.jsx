@@ -15,8 +15,8 @@ import { Badge } from '@/components/ui/badge';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
-import VerticalMenu from '../components/dashboard/VerticalMenu';
-import AnimatedBackground from '../components/dashboard/AnimatedBackground';
+
+
 import {
     Users, UserPlus, Search, Mail, Phone, Building2,
     Edit, Archive, Trash2, AlertCircle, Loader2
@@ -129,8 +129,8 @@ export default function Clienti() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-            <AnimatedBackground />
-            <VerticalMenu />
+            
+            
 
             <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
                 {convexUser === undefined ? (

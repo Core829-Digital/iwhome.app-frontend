@@ -4,7 +4,7 @@ import { useUser } from "@clerk/clerk-react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import VerticalMenu from '../components/dashboard/VerticalMenu';
+
 import { Card } from '@/components/ui/card';
 import { User, Mail, Phone, Building, Save, Check, Camera, Briefcase, ShieldCheck, HardHat, Users, Loader2 } from 'lucide-react';
 import { useQuery, useMutation } from "convex/react";
@@ -171,7 +171,7 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-      <VerticalMenu />
+      
 
       <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
         <div className="max-w-5xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">

@@ -5,8 +5,8 @@ import { useQuery } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import { Button } from '@/components/ui/button';
-import VerticalMenu from '../components/dashboard/VerticalMenu';
-import AnimatedBackground from '../components/dashboard/AnimatedBackground';
+
+
 import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
 import { FileText, Eye, Share2, Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -29,8 +29,8 @@ export default function SharedDocuments() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-      <AnimatedBackground />
-      <VerticalMenu />
+      
+      
       <UniversalPdfViewer
         isOpen={!!viewPdfUrl}
         onClose={() => setViewPdfUrl(null)}

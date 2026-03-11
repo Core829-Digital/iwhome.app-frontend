@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LogOut,
   ChevronRight,
+  ChevronDown,
   Menu,
   X,
   LayoutDashboard,
@@ -61,83 +62,61 @@ const getMenuItems = (user) => {
   const isSupervisor = role === 'supervisor';
   const isClient = role === 'client';
 
+  // Role display config
+  const roleConfig = {
+    admin: { label: 'Admin', color: 'text-emerald-400', ring: 'ring-emerald-500', bg: 'bg-emerald-500/20' },
+    ceo: { label: 'CEO', color: 'text-emerald-400', ring: 'ring-emerald-500', bg: 'bg-emerald-500/20' },
+    supplier: { label: 'Fornitore', color: 'text-orange-400', ring: 'ring-orange-500', bg: 'bg-orange-500/20' },
+    client: { label: 'Cliente', color: 'text-blue-400', ring: 'ring-blue-500', bg: 'bg-blue-500/20' },
+    collaborator_internal: { label: 'Collaboratore', color: 'text-indigo-400', ring: 'ring-indigo-500', bg: 'bg-indigo-500/20' },
+    collaborator_external: { label: 'Collaboratore', color: 'text-indigo-400', ring: 'ring-indigo-500', bg: 'bg-indigo-500/20' },
+    supervisor: { label: 'Supervisore', color: 'text-yellow-400', ring: 'ring-yellow-500', bg: 'bg-yellow-500/20' },
+    worker: { label: 'Operaio', color: 'text-gray-400', ring: 'ring-gray-500', bg: 'bg-gray-500/20' },
+    user: { label: 'Utente', color: 'text-gray-400', ring: 'ring-gray-500', bg: 'bg-gray-500/20' },
+  };
+  const rc = roleConfig[role] || roleConfig.user;
+
   // Build menu based on role
   const items = [];
 
   // 1. Dashboard — visible to all
-  items.push({ name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard, subItems: [] });
+  items.push({ name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard });
 
-  // 2. Fornitori — admin/ceo/supplier
-  if (isAdmin || isSupplier) {
-    items.push({ name: 'Fornitori', page: 'Fornitori', icon: Truck, subItems: [] });
-  }
+  // 2. Area Operativa
+  const opGroup = [];
+  if (isAdmin || isSupplier) opGroup.push({ name: 'Fornitori', page: 'Fornitori', icon: Truck });
+  if (isAdmin || isSupervisor) opGroup.push({ name: 'Cantieri', page: 'CantieriDashboard', icon: HardHat });
+  if (isAdmin) opGroup.push({ name: 'Preventivi', page: 'Preventivi', icon: Receipt });
+  if (isAdmin || isSupplier || isCollaborator || isClient) opGroup.push({ name: 'Pagamenti', page: 'Pagamenti', icon: CreditCard });
+  opGroup.push({ name: 'Appuntamenti', page: 'MyAppointments', icon: Calendar });
+  if (isAdmin || isSupervisor) opGroup.push({ name: 'Staff QR', page: 'StaffQR', icon: QrCode });
 
-  // 3. Collaboratori — admin/ceo
-  if (isAdmin) {
-    items.push({ name: 'Collaboratori', page: 'Collaboratori', icon: Briefcase, subItems: [] });
-  }
+  if (opGroup.length > 0) items.push({ name: 'Area Operativa', icon: Briefcase, isGroup: true, subItems: opGroup });
 
-  // 4. Staff QR — admin/ceo/supervisor
-  if (isAdmin || isSupervisor) {
-    items.push({ name: 'Staff QR', page: 'StaffQR', icon: QrCode, subItems: [] });
-  }
+  // 3. CRM & Admin
+  const crmGroup = [];
+  if (isAdmin) crmGroup.push({ name: 'Clienti', page: 'Clienti', icon: Users });
+  if (isAdmin) crmGroup.push({ name: 'Collaboratori', page: 'Collaboratori', icon: Briefcase });
+  if (isAdmin || isSupervisor) crmGroup.push({ name: 'Certificati', page: 'Certificati', icon: Shield });
+  if (isAdmin) crmGroup.push({ name: 'Pannello Admin', page: 'Admin', icon: Shield });
 
-  // 5. Certificati — admin/ceo/supervisor
-  if (isAdmin || isSupervisor) {
-    items.push({ name: 'Certificati', page: 'Certificati', icon: Shield, subItems: [] });
-  }
+  if (crmGroup.length > 0) items.push({ name: 'CRM & Admin', icon: Shield, isGroup: true, subItems: crmGroup });
 
-  // 6. Pagamenti — admin/ceo + limited view for others
-  if (isAdmin || isSupplier || isCollaborator || isClient) {
-    items.push({ name: 'Pagamenti', page: 'Pagamenti', icon: CreditCard, subItems: [] });
-  }
+  // 4. Archivio & Chat
+  const docGroup = [
+    { name: 'I Miei Documenti', page: 'Documents', icon: FolderOpen },
+    { name: 'Carica Documento', page: 'UploadDocument', icon: Upload },
+    { name: 'Condivisi con me', page: 'SharedDocuments', icon: Share2 }
+  ];
+  if (isAdmin || isClient) docGroup.push({ name: 'Messaggi', page: 'Messages', icon: MessageSquare });
 
-  // 7. Gestione Cantieri — admin/ceo/supervisor
-  if (isAdmin || isSupervisor) {
-    items.push({ name: 'Gestione Cantieri', page: 'CantieriDashboard', icon: HardHat, subItems: [] });
-  }
+  items.push({ name: 'Archivio & Chat', icon: FileText, isGroup: true, subItems: docGroup });
 
-  // 8. Clienti — admin/ceo
-  if (isAdmin) {
-    items.push({ name: 'Clienti', page: 'Clienti', icon: Users, subItems: [] });
-  }
-
-  // 9. Preventivi — admin/ceo
-  if (isAdmin) {
-    items.push({ name: 'Preventivi', page: 'Preventivi', icon: Receipt, subItems: [] });
-  }
-
-  // 10. Documenti — all authenticated users
-  items.push({
-    name: 'Documenti',
-    page: 'Documents',
-    icon: FileText,
-    subItems: [
-      { name: 'I Miei Documenti', page: 'Documents', icon: FolderOpen },
-      { name: 'Carica Documento', page: 'UploadDocument', icon: Upload },
-      { name: 'Condivisi con me', page: 'SharedDocuments', icon: Share2 }
-    ]
-  });
-
-  // 11. Messages — admin/ceo/client
-  if (isAdmin || isClient) {
-    items.push({ name: 'Messaggi', page: 'Messages', icon: MessageSquare, subItems: [] });
-  }
-
-  // 12. Appuntamenti — all
-  items.push({ name: 'Appuntamenti', page: 'MyAppointments', icon: Calendar, subItems: [] });
-
-  // 13. Admin — admin/ceo only
-  if (isAdmin) {
-    items.push({ name: 'Pannello Admin', page: 'Admin', icon: Shield, subItems: [] });
-  }
-
-  // 14. Company Dashboard (legacy)
   if (user?.is_company && user?.company_role === 'admin') {
-    items.splice(1, 0, { name: 'Azienda', page: 'CompanyDashboard', icon: Building, subItems: [] });
+    items.push({ name: 'Azienda', page: 'CompanyDashboard', icon: Building, subItems: [] });
   }
 
-  // 15. Settings — always last
+  // 5. Settings
   items.push({ name: 'Impostazioni', page: 'Settings', icon: Settings, subItems: [] });
 
   return items;
@@ -152,6 +131,8 @@ export default function VerticalMenu() {
   const { signOut } = useClerk();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState([]);
+
 
   // Fetch user role from Convex database (source of truth for roles)
   const convexUser = useQuery(api.users.getByEmail, {
@@ -167,12 +148,43 @@ export default function VerticalMenu() {
     profile_image: convexUser?.profile_image,
   } : null;
 
+  // Role display config for the UI badge
+  const roleConfig = {
+    admin: { label: 'Admin', color: 'text-emerald-400', ring: 'ring-emerald-500', bg: 'bg-emerald-500/20' },
+    ceo: { label: 'CEO', color: 'text-emerald-400', ring: 'ring-emerald-500', bg: 'bg-emerald-500/20' },
+    supplier: { label: 'Fornitore', color: 'text-orange-400', ring: 'ring-orange-500', bg: 'bg-orange-500/20' },
+    client: { label: 'Cliente', color: 'text-blue-400', ring: 'ring-blue-500', bg: 'bg-blue-500/20' },
+    collaborator_internal: { label: 'Collaboratore', color: 'text-indigo-400', ring: 'ring-indigo-500', bg: 'bg-indigo-500/20' },
+    collaborator_external: { label: 'Collaboratore', color: 'text-indigo-400', ring: 'ring-indigo-500', bg: 'bg-indigo-500/20' },
+    supervisor: { label: 'Supervisore', color: 'text-yellow-400', ring: 'ring-yellow-500', bg: 'bg-yellow-500/20' },
+    worker: { label: 'Operaio', color: 'text-gray-400', ring: 'ring-gray-500', bg: 'bg-gray-500/20' },
+    user: { label: 'Utente', color: 'text-gray-400', ring: 'ring-gray-500', bg: 'bg-gray-500/20' },
+  };
+  const rc = roleConfig[user?.role || 'user'] || roleConfig.user;
+
   // Auto-close menu on mobile when clicking a link
   React.useEffect(() => {
     if (window.innerWidth < 1024) {
       setIsMobileOpen(false);
     }
   }, [location]);
+
+  // Sincronizza il gruppo aperto in base alla route (pagina) corrente
+  React.useEffect(() => {
+    const currentPath = location.pathname.toLowerCase();
+    const items = getMenuItems(user);
+    const activeGroup = items.find(g =>
+      g.isGroup && g.subItems?.some(sub => {
+        const sp = createPageUrl(sub.page).toLowerCase();
+        return currentPath === sp || (sp !== '/' && currentPath.startsWith(sp));
+      })
+    );
+    // Se stiamo navigando su una pagina che fa parte di un gruppo e 
+    // quel gruppo non è attualmente aperto, lo aggiungiamo a quelli aperti.
+    if (activeGroup && !openGroups.includes(activeGroup.name)) {
+      setOpenGroups(prev => [...prev, activeGroup.name]);
+    }
+  }, [location.pathname, user?.role, user?.is_company]);
 
 
   const menuItems = getMenuItems(user);
@@ -225,7 +237,7 @@ export default function VerticalMenu() {
                 animate={{ opacity: 1 }}
                 className="flex items-center gap-3"
               >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold overflow-hidden border border-[#f8f9fa]/20 shadow-md">
+                <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold overflow-hidden ring-2 ${rc.ring} shadow-md`}>
                   {user?.profile_image ? (
                     <img src={user.profile_image} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
@@ -236,9 +248,9 @@ export default function VerticalMenu() {
                   <p className="text-sm font-medium text-[#f8f9fa] truncate">
                     {user?.full_name || user?.email}
                   </p>
-                  <p className="text-xs text-[#adb5bd] truncate">
-                    {user?.is_company ? 'Azienda' : 'Utente'}
-                  </p>
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${rc.bg} ${rc.color}`}>
+                    {rc.label}
+                  </span>
                 </div>
               </motion.div>
             )}
@@ -259,26 +271,92 @@ export default function VerticalMenu() {
           <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
             {menuItems.map((item) => {
               const Icon = item.icon;
-              const linkPath = createPageUrl(item.page).toLowerCase();
-              const currentPath = location.pathname.toLowerCase();
-              const isActive = currentPath === linkPath || (linkPath !== '/' && currentPath.startsWith(linkPath));
 
-              return (
-                <Link
-                  key={item.page}
-                  to={createPageUrl(item.page)}
-                  onClick={() => setIsMobileOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive
-                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-sm'
-                    : 'text-[#dee2e6] hover:bg-[#f8f9fa]/10'
-                    }`}
-                >
-                  <Icon size={20} className="flex-shrink-0" />
-                  {!isCollapsed && (
-                    <span className="font-medium text-sm">{item.name}</span>
-                  )}
-                </Link>
-              );
+              if (item.isGroup) {
+                const isOpen = openGroups.includes(item.name);
+                const hasActiveSub = item.subItems.some(sub => {
+                  const sp = createPageUrl(sub.page).toLowerCase();
+                  const cp = location.pathname.toLowerCase();
+                  return cp === sp || (sp !== '/' && cp.startsWith(sp));
+                });
+
+                return (
+                  <div key={item.name} className="mb-1 text-[#dee2e6]">
+                    <button
+                      onClick={() => {
+                        if (isCollapsed) setIsCollapsed(false);
+                        setOpenGroups(prev =>
+                          prev.includes(item.name)
+                            ? prev.filter(g => g !== item.name)
+                            : [...prev, item.name]
+                        );
+                      }}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${hasActiveSub ? 'bg-[#f8f9fa]/5' : 'hover:bg-[#f8f9fa]/10'}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon size={20} className="flex-shrink-0" />
+                        {!isCollapsed && <span className="font-medium text-sm">{item.name}</span>}
+                      </div>
+                      {!isCollapsed && (
+                        <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                      )}
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {isOpen && !isCollapsed && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden ml-4 mt-1 border-l border-[#495057] pl-2 space-y-1"
+                        >
+                          {item.subItems.map(subItem => {
+                            const SubIcon = subItem.icon;
+                            const linkPath = createPageUrl(subItem.page).toLowerCase();
+                            const currentPath = location.pathname.toLowerCase();
+                            const isActive = currentPath === linkPath || (linkPath !== '/' && currentPath.startsWith(linkPath));
+                            return (
+                              <Link
+                                key={subItem.page}
+                                to={createPageUrl(subItem.page)}
+                                onClick={() => setIsMobileOpen(false)}
+                                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-xs ${isActive
+                                  ? 'bg-blue-600/20 text-blue-400 font-medium'
+                                  : 'text-[#adb5bd] hover:bg-[#f8f9fa]/10 hover:text-[#f8f9fa]'
+                                  }`}
+                              >
+                                <SubIcon size={16} className="flex-shrink-0" />
+                                <span>{subItem.name}</span>
+                              </Link>
+                            )
+                          })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              } else {
+                const linkPath = createPageUrl(item.page).toLowerCase();
+                const currentPath = location.pathname.toLowerCase();
+                const isActive = currentPath === linkPath || (linkPath !== '/' && currentPath.startsWith(linkPath));
+
+                return (
+                  <Link
+                    key={item.page}
+                    to={createPageUrl(item.page)}
+                    onClick={() => setIsMobileOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive
+                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-sm'
+                      : 'text-[#dee2e6] hover:bg-[#f8f9fa]/10'
+                      }`}
+                  >
+                    <Icon size={20} className="flex-shrink-0" />
+                    {!isCollapsed && (
+                      <span className="font-medium text-sm">{item.name}</span>
+                    )}
+                  </Link>
+                );
+              }
             })}
           </nav>
 
