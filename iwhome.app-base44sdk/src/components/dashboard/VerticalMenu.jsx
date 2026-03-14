@@ -47,9 +47,9 @@ const createPageUrl = (page) => {
     Admin: '/Admin',
     Fornitori: '/Fornitori',
     Collaboratori: '/Collaboratori',
-    StaffQR: '/StaffQR',
     Certificati: '/Certificati',
     Pagamenti: '/Pagamenti',
+    DailyLogs: '/DailyLogs',
   };
   return routes[page] || '/Dashboard';
 };
@@ -59,7 +59,7 @@ const getMenuItems = (user) => {
   const isAdmin = role === 'admin' || role === 'ceo';
   const isSupplier = role === 'supplier';
   const isCollaborator = role === 'collaborator_internal' || role === 'collaborator_external';
-  const isSupervisor = role === 'supervisor';
+  const isSupervisor = false;
   const isClient = role === 'client';
 
   // Role display config
@@ -85,11 +85,11 @@ const getMenuItems = (user) => {
   // 2. Area Operativa
   const opGroup = [];
   if (isAdmin || isSupplier) opGroup.push({ name: 'Fornitori', page: 'Fornitori', icon: Truck });
-  if (isAdmin || isSupervisor) opGroup.push({ name: 'Cantieri', page: 'CantieriDashboard', icon: HardHat });
+  if (isAdmin || isSupervisor || isCollaborator) opGroup.push({ name: 'Cantieri', page: 'CantieriDashboard', icon: HardHat });
   if (isAdmin) opGroup.push({ name: 'Preventivi', page: 'Preventivi', icon: Receipt });
   if (isAdmin || isSupplier || isCollaborator || isClient) opGroup.push({ name: 'Pagamenti', page: 'Pagamenti', icon: CreditCard });
+  if (isCollaborator) opGroup.push({ name: 'Log Ore', page: 'DailyLogs', icon: Briefcase });
   opGroup.push({ name: 'Appuntamenti', page: 'MyAppointments', icon: Calendar });
-  if (isAdmin || isSupervisor) opGroup.push({ name: 'Staff QR', page: 'StaffQR', icon: QrCode });
 
   if (opGroup.length > 0) items.push({ name: 'Area Operativa', icon: Briefcase, isGroup: true, subItems: opGroup });
 
@@ -97,7 +97,7 @@ const getMenuItems = (user) => {
   const crmGroup = [];
   if (isAdmin) crmGroup.push({ name: 'Clienti', page: 'Clienti', icon: Users });
   if (isAdmin) crmGroup.push({ name: 'Collaboratori', page: 'Collaboratori', icon: Briefcase });
-  if (isAdmin || isSupervisor) crmGroup.push({ name: 'Certificati', page: 'Certificati', icon: Shield });
+  if (isAdmin || isSupervisor || isCollaborator) crmGroup.push({ name: 'Certificati', page: 'Certificati', icon: Shield });
   if (isAdmin) crmGroup.push({ name: 'Pannello Admin', page: 'Admin', icon: Shield });
 
   if (crmGroup.length > 0) items.push({ name: 'CRM & Admin', icon: Shield, isGroup: true, subItems: crmGroup });
@@ -108,7 +108,7 @@ const getMenuItems = (user) => {
     { name: 'Carica Documento', page: 'UploadDocument', icon: Upload },
     { name: 'Condivisi con me', page: 'SharedDocuments', icon: Share2 }
   ];
-  if (isAdmin || isClient) docGroup.push({ name: 'Messaggi', page: 'Messages', icon: MessageSquare });
+  if (isAdmin || isClient || isCollaborator) docGroup.push({ name: 'Messaggi', page: 'Messages', icon: MessageSquare });
 
   items.push({ name: 'Archivio & Chat', icon: FileText, isGroup: true, subItems: docGroup });
 
@@ -144,7 +144,7 @@ export default function VerticalMenu() {
     email: clerkUser.primaryEmailAddress?.emailAddress,
     full_name: clerkUser.fullName,
     role: convexUser?.role || 'user', // Get role from Convex, default to 'user'
-    is_company: convexUser?.is_company || false,
+    is_company: convexUser?.is_company ,
     profile_image: convexUser?.profile_image,
   } : null;
 

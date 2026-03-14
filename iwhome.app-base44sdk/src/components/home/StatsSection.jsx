@@ -4,8 +4,7 @@ import { motion, useInView } from 'framer-motion';
 const stats = [
   { value: '3K+', label: 'Progetti sviluppati' },
   { value: '20+', label: 'Membri del team' },
-  { value: '200+', label: 'Clienti globali' },
-];
+  { value: '200+', label: 'Clienti globali' }];
 
 function AnimatedCounter({ target, duration = 2 }) {
   const ref = React.useRef(null);

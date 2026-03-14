@@ -298,7 +298,7 @@ export default function Admin() {
                                                         <SelectContent className="bg-[#343a40] border-[#f8f9fa]/20 text-[#f8f9fa]">
                                                             <SelectItem value="user">Utente Base</SelectItem>
                                                             <SelectItem value="client">Cliente</SelectItem>
-                                                            <SelectItem value="operaio">Operaio</SelectItem>
+                                                            <SelectItem value="collaborator">Collaboratore</SelectItem>
                                                             <SelectItem value="company">Azienda</SelectItem>
                                                             <SelectItem value="admin">Amministratore</SelectItem>
                                                             <SelectItem value="ceo">CEO</SelectItem>

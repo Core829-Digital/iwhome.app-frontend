@@ -4,8 +4,7 @@ import { motion } from 'framer-motion';
 const partners = [
   { name: 'Immedial Work', logo: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/5b21093d8_immedial-worknewlogo.png' },
   { name: 'Stelbi', logo: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/8bbed5684_stelbinew.png' },
-  { name: 'Winex Infissi', logo: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/115ddeb1c_winex-infissinew.png' },
-];
+  { name: 'Winex Infissi', logo: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/115ddeb1c_winex-infissinew.png' }];
 
 export default function PartnersSection() {
 

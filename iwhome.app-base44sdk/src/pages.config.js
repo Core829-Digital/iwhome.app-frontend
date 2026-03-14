@@ -12,6 +12,8 @@ import CantieriDashboard from './pages/CantieriDashboard';
 import Contatti from './pages/Contatti';
 import Cookie from './pages/Cookie';
 import Clienti from './pages/Clienti';
+import DailyLogs from './pages/DailyLogs';
+import Tasks from './pages/Tasks';
 import Dashboard from './pages/Dashboard';
 import Documents from './pages/Documents';
 import Fornitori from './pages/Fornitori';
@@ -26,11 +28,12 @@ import Recensioni from './pages/Recensioni';
 import Servizi from './pages/Servizi';
 import Settings from './pages/Settings';
 import SharedDocuments from './pages/SharedDocuments';
-import StaffQR from './pages/StaffQR';
+// StaffQR removed for simplification
 import SupplierOnboarding from './pages/SupplierOnboarding';
+import OnboardingStaff from './pages/OnboardingStaff';
 import Termini from './pages/Termini';
 import UploadDocument from './pages/UploadDocument';
-import QRAccess from './pages/QRAccess';
+// QRAccess removed for simplification
 import __Layout from './Layout.jsx';
 
 
@@ -49,6 +52,8 @@ export const PAGES = {
     "Contatti": Contatti,
     "Cookie": Cookie,
     "Clienti": Clienti,
+    "DailyLogs": DailyLogs,
+    "Tasks": Tasks,
     "Dashboard": Dashboard,
     "Documents": Documents,
     "Fornitori": Fornitori,
@@ -63,12 +68,10 @@ export const PAGES = {
     "Servizi": Servizi,
     "Settings": Settings,
     "SharedDocuments": SharedDocuments,
-    "StaffQR": StaffQR,
     "SupplierOnboarding": SupplierOnboarding,
+    "onboarding-staff": OnboardingStaff,
     "Termini": Termini,
     "UploadDocument": UploadDocument,
-    "QRAccess": QRAccess,
-    "qr-access/:token": QRAccess,
 }
 
 export const pagesConfig = {

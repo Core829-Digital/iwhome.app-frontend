@@ -11,6 +11,9 @@ import { ClerkProvider, useAuth as useClerkAuth } from "@clerk/clerk-react";
 import { itIT } from "@clerk/localizations";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -107,18 +110,20 @@ const AuthenticatedApp = () => {
 function App() {
 
   return (
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} localization={itIT}>
-      <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>
-        <AuthProvider>
-          <Router>
-            <NavigationTracker />
-            <AuthenticatedApp />
-          </Router>
-          <Toaster />
-          <VisualEditAgent />
-        </AuthProvider>
-      </ConvexProviderWithClerk>
-    </ClerkProvider>
+    <QueryClientProvider client={queryClient}>
+      <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} localization={itIT}>
+        <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>
+          <AuthProvider>
+            <Router>
+              <NavigationTracker />
+              <AuthenticatedApp />
+            </Router>
+            <Toaster />
+            <VisualEditAgent />
+          </AuthProvider>
+        </ConvexProviderWithClerk>
+      </ClerkProvider>
+    </QueryClientProvider>
   )
 }
 

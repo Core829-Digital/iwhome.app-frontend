@@ -132,8 +132,7 @@ const ChartTooltipContent = React.forwardRef((
     hideLabel,
     labelClassName,
     config,
-    labelKey,
-  ])
+    labelKey])
 
   if (!active || !payload?.length) {
     return null

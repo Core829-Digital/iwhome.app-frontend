@@ -8,20 +8,19 @@ import { api } from "../../../../Backend/convex/_generated/api";
 
 // Permission map mirroring the backend rbac.ts
 const PERMISSION_MAP = {
-    "fornitori": ["admin", "ceo", "supplier"],
-    "collaboratori": ["admin", "ceo", "supervisor"],
-    "staff_qr": ["admin", "ceo", "supervisor"],
-    "certificati": ["admin", "ceo", "supervisor"],
-    "pagamenti": ["admin", "ceo", "supplier", "collaborator_internal", "collaborator_external", "client"],
-    "clienti": ["admin", "ceo"],
-    "preventivi": ["admin", "ceo"],
-    "cantieri": ["admin", "ceo", "supervisor"],
-    "admin": ["admin", "ceo"],
-    "dashboard": ["admin", "ceo", "client", "supplier", "collaborator_internal", "collaborator_external", "supervisor", "worker", "user"],
-    "messages": ["admin", "ceo", "client"],
-    "documents": ["admin", "ceo", "client", "supplier", "collaborator_internal", "collaborator_external", "supervisor", "worker", "user"],
-    "settings": ["admin", "ceo", "client", "supplier", "collaborator_internal", "collaborator_external", "supervisor", "worker", "user"],
-    "appointments": ["admin", "ceo", "client", "supplier", "collaborator_internal", "collaborator_external", "supervisor", "worker", "user"],
+    "fornitori": ["admin", "supplier"],
+    "collaboratori": ["admin"],
+    "certificati": ["admin"],
+    "pagamenti": ["admin", "supplier", "collaborator", "client"],
+    "clienti": ["admin"],
+    "preventivi": ["admin"],
+    "cantieri": ["admin"],
+    "admin": ["admin"],
+    "dashboard": ["admin", "client", "supplier", "collaborator", "user"],
+    "messages": ["admin", "client", "collaborator"],
+    "documents": ["admin", "client", "supplier", "collaborator", "user"],
+    "settings": ["admin", "client", "supplier", "collaborator", "user"],
+    "appointments": ["admin", "client", "supplier", "collaborator", "user"],
 };
 
 // Sidebar items with labels and role visibility
@@ -29,7 +28,6 @@ export const SIDEBAR_CONFIG = [
     { name: "Dashboard", page: "Dashboard", roles: PERMISSION_MAP.dashboard },
     { name: "Fornitori", page: "Fornitori", roles: PERMISSION_MAP.fornitori },
     { name: "Collaboratori", page: "Collaboratori", roles: PERMISSION_MAP.collaboratori },
-    { name: "Staff QR", page: "StaffQR", roles: PERMISSION_MAP.staff_qr },
     { name: "Certificati", page: "Certificati", roles: PERMISSION_MAP.certificati },
     { name: "Pagamenti", page: "Pagamenti", roles: PERMISSION_MAP.pagamenti },
     { name: "Gestione Cantieri", page: "CantieriDashboard", roles: PERMISSION_MAP.cantieri },
@@ -39,8 +37,7 @@ export const SIDEBAR_CONFIG = [
     { name: "Documenti", page: "Documents", roles: PERMISSION_MAP.documents },
     { name: "Appuntamenti", page: "MyAppointments", roles: PERMISSION_MAP.appointments },
     { name: "Pannello Admin", page: "Admin", roles: PERMISSION_MAP.admin },
-    { name: "Impostazioni", page: "Settings", roles: PERMISSION_MAP.settings },
-];
+    { name: "Impostazioni", page: "Settings", roles: PERMISSION_MAP.settings }];
 
 export function useRBAC() {
     const { user: clerkUser } = useUser();
@@ -48,11 +45,12 @@ export function useRBAC() {
     const convexUser = useQuery(api.users.getByEmail, email ? { email } : "skip");
 
     const role = convexUser?.role || "user";
+    const baseRole = role.startsWith("collaborator") ? "collaborator" : role;
     const isAdmin = role === "admin" || role === "ceo";
     const isSupplier = role === "supplier";
-    const isCollaborator = role === "collaborator_internal" || role === "collaborator_external";
+    const isCollaborator = baseRole === "collaborator";
     const isClient = role === "client";
-    const isSupervisor = role === "supervisor";
+    const isSupervisor = false;
 
     // RBAC: Get linked supplier record when role is 'supplier'
     const supplierRecord = useQuery(
@@ -67,7 +65,7 @@ export function useRBAC() {
         if (isAdmin) return true; // Admin sees everything
         const allowedRoles = PERMISSION_MAP[module];
         if (!allowedRoles) return false;
-        return allowedRoles.includes(role);
+        return allowedRoles.includes(baseRole);
     };
 
     /**
@@ -89,7 +87,7 @@ export function useRBAC() {
     const getSidebarItems = () => {
         return SIDEBAR_CONFIG.filter(item => {
             if (isAdmin) return true;
-            return item.roles.includes(role);
+            return item.roles.includes(baseRole);
         });
     };
 

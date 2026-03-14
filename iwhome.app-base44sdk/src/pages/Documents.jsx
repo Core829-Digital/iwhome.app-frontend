@@ -106,7 +106,7 @@ export default function Documents() {
           is_public: "false",
           created_by: user.primaryEmailAddress.emailAddress,
           created_date: new Date().toISOString(),
-          client_id: uploadData.client_id, // Link to client if selected
+          client_id: uploadData.client_id || undefined, // Link to client if selected
           shared_with: uploadData.client_email ? [uploadData.client_email] : undefined, // Optional: duplicate check
         });
       }

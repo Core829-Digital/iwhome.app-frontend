@@ -61,14 +61,12 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Chi Siamo', page: 'ChiSiamo' },
     { name: 'Servizi', page: 'Servizi' },
     { name: 'Calcolatore', page: 'Calcolatore' },
-    { name: 'Blog', page: 'Blog' },
-  ];
+    { name: 'Blog', page: 'Blog' }];
 
   const legalPages = [
     { name: 'Privacy Policy', page: 'Privacy' },
     { name: 'Cookie Policy', page: 'Cookie' },
-    { name: 'Termini di Servizio', page: 'Termini' },
-  ];
+    { name: 'Termini di Servizio', page: 'Termini' }];
 
   const [showChat, setShowChat] = React.useState(true);
 

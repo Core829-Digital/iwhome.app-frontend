@@ -36,8 +36,7 @@ export default function SEO({
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: title },
       { name: 'twitter:description', content: description },
-      { name: 'twitter:image', content: image },
-    ];
+      { name: 'twitter:image', content: image }];
 
     metaTags.forEach(({ name, property, content }) => {
       const attr = name ? 'name' : 'property';

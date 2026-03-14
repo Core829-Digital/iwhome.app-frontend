@@ -89,13 +89,71 @@ export default function Dashboard() {
   // Convex Queries
   const allQuotes = useQuery(api.quotes.get) || [];
   const convexUser = useQuery(api.users.getByEmail, { email: user?.primaryEmailAddress?.emailAddress || "" });
+  
+  // Mutations
+  const logWorkHours = useMutation(api.collaborators.logHours);
+
+  // Form State for Daily Log
+  const [logForm, setLogForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    cantiere_id: '',
+    hours: '',
+    description: ''
+  });
+  const [logSubmitting, setLogSubmitting] = useState(false);
+
+  const handleLogSubmit = async () => {
+    if (!myCollaborator?._id || !logForm.hours || !logForm.cantiere_id) {
+       // Ideally show a toast here
+       return;
+    }
+    setLogSubmitting(true);
+    try {
+      await logWorkHours({
+        collaborator_id: myCollaborator._id,
+        // @ts-ignore
+        cantiere_id: logForm.cantiere_id,
+        date: logForm.date,
+        hours_worked: parseFloat(logForm.hours),
+        description: logForm.description
+      });
+      setLogForm({
+        ...logForm,
+        hours: '',
+        description: ''
+      });
+      // Success toast would go here
+    } catch (error) {
+      console.error("Error logging hours:", error);
+    } finally {
+      setLogSubmitting(false);
+    }
+  };
+
   const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
   const isClient = convexUser?.role === 'client';
   const isSupplier = convexUser?.role === 'supplier';
-  const isUser = !isAdmin && !isClient && !isSupplier;
+  const isWorker = ['collaborator_internal', 'collaborator_external', 'worker', 'operaio'].includes(convexUser?.role);
+  const isUser = !isAdmin && !isClient && !isSupplier && !isWorker;
 
-  // RBAC: Get linked supplier record for supplier self-view
+  // RBAC: Get linked records
   const { supplierRecord, supplierId } = useRBAC();
+  const myCollaborator = useQuery(
+    api.collaborators.getByEmail, 
+    isWorker ? { email: user?.primaryEmailAddress?.emailAddress || "" } : "skip"
+  );
+  
+  // Tasks for worker
+  const myTasks = useQuery(
+    api.adminStats.getStaffTasks, 
+    isWorker ? { email: user?.primaryEmailAddress?.emailAddress || "" } : "skip"
+  ) || [];
+
+  // Hours for worker
+  const myHours = useQuery(
+    api.collaborators.listHours,
+    isWorker && myCollaborator ? { collaborator_id: myCollaborator._id } : "skip"
+  ) || [];
 
   // Admin-only comprehensive stats
   const adminStats = useQuery(api.adminStats.getAdminStats) || null;
@@ -153,6 +211,11 @@ export default function Dashboard() {
   const clientOrders = useQuery(
     api.suppliers.listClientOrders,
     isClient ? { client_email: user?.primaryEmailAddress?.emailAddress || "" } : "skip"
+  ) || [];
+
+  const clientCantieri = useQuery(
+    api.cantieri.getByClient,
+    isClient ? {} : "skip"
   ) || [];
 
   // Queries for stats
@@ -452,7 +515,214 @@ export default function Dashboard() {
 
 
       <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
+        {isWorker ? (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-[#343a40]/60 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-[#f8f9fa]/10 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -translate-y-32 translate-x-32" />
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="px-3 py-1 bg-indigo-500/20 text-indigo-300 text-[10px] font-bold uppercase tracking-widest rounded-full border border-indigo-500/30">
+                    Area Riservata Staff
+                  </span>
+                </div>
+                <h1 className="text-3xl md:text-4xl font-light tracking-tight text-[#f8f9fa]">
+                  Ciao, <span className="font-bold">{myCollaborator?.full_name?.split(' ')[0] || user?.firstName}</span>!
+                </h1>
+                <p className="text-[#dee2e6] mt-2 text-lg">
+                  Hai <span className="text-indigo-400 font-bold">{myTasks.filter(t => t.status !== 'completato').length} attività</span> da completare oggi.
+                </p>
+                <div className="flex gap-4 mt-6">
+                   <Link to={createPageUrl('CantieriDashboard')} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-900/40 border border-indigo-400/30">
+                     Vedi Miei Lavori
+                   </Link>
+                   <Link to={createPageUrl('Messages')} className="px-4 py-2 bg-[#f8f9fa]/10 hover:bg-[#f8f9fa]/20 text-[#f8f9fa] rounded-xl text-xs font-bold transition-all backdrop-blur-md border border-[#f8f9fa]/20">
+                     Contatta IWHome
+                   </Link>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 bg-[#212529]/50 p-4 rounded-2xl border border-[#f8f9fa]/10 relative z-10 shadow-inner backdrop-blur-md">
+                <div className="p-3 bg-indigo-500/20 rounded-xl shadow-sm border border-indigo-500/20">
+                  <Monitor className="w-6 h-6 text-indigo-400" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-[#adb5bd] uppercase font-black tracking-tighter">ID / CODICE ACCESSO</p>
+                  <p className="font-mono text-xl font-bold text-[#f8f9fa] flex items-center gap-2">
+                    {myCollaborator?._id.toString().substring(0, 8).toUpperCase() || '---'}
+                    <span className="text-[#adb5bd] text-sm font-normal">|</span>
+                    <span className="text-indigo-400 tracking-widest">{myCollaborator?.temporary_password || '******'}</span>
+                  </p>
+                </div>
+              </div>
+            </header>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Link to={createPageUrl('CantieriDashboard')}>
+                <Card className="bg-[#343a40]/60 backdrop-blur-xl border border-[#f8f9fa]/10 shadow-lg rounded-3xl p-6 relative overflow-hidden group hover:bg-[#343a40]/80 transition-all duration-300 h-full">
+                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform duration-500 text-indigo-400">
+                    <Building2 size={80} />
+                  </div>
+                  <p className="text-[#adb5bd] text-sm font-semibold mb-1">Miei Cantieri</p>
+                  <h2 className="text-4xl font-black text-[#f8f9fa] leading-none">
+                    {myCollaborator?.assigned_cantieri?.length || 0}
+                  </h2>
+                  <div className="mt-4 flex items-center gap-2 text-indigo-400 font-bold text-xs group-hover:gap-3 transition-all">
+                    Gestisci lavori <ArrowRight size={14} />
+                  </div>
+                </Card>
+              </Link>
+
+              <Link to={createPageUrl('DailyLogs')}>
+                <Card className="bg-[#343a40]/60 backdrop-blur-xl border border-[#f8f9fa]/10 shadow-lg rounded-3xl p-6 relative overflow-hidden group hover:bg-[#343a40]/80 transition-all duration-300 h-full">
+                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform duration-500 text-emerald-400">
+                    <Activity size={80} />
+                  </div>
+                  <p className="text-[#adb5bd] text-sm font-semibold mb-1">Ore Settimanali</p>
+                  <h2 className="text-4xl font-black text-[#f8f9fa] leading-none">
+                    {myHours.filter(h => {
+                      const date = new Date(h.date);
+                      const now = new Date();
+                      return (now.getTime() - date.getTime()) < 7 * 24 * 60 * 60 * 1000;
+                    }).reduce((acc, curr) => acc + curr.hours_worked, 0)}h
+                  </h2>
+                  <div className="mt-4 flex items-center gap-2 text-emerald-400 font-bold text-xs group-hover:gap-3 transition-all">
+                    Registro ore <ArrowRight size={14} />
+                  </div>
+                </Card>
+              </Link>
+
+              <Link to={createPageUrl('Pagamenti')}>
+                <Card className="bg-indigo-600/40 backdrop-blur-xl border border-indigo-500/30 shadow-lg rounded-3xl p-6 relative overflow-hidden group hover:bg-indigo-600/60 transition-all duration-300 h-full">
+                  <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:scale-125 transition-transform duration-500 text-white">
+                    <DollarSign size={80} />
+                  </div>
+                  <p className="text-indigo-100 text-sm font-semibold mb-1">Pagamenti</p>
+                  <h2 className="text-4xl font-black text-white leading-none">
+                    € {myCollaborator?.salary || '---'}
+                  </h2>
+                  <div className="mt-4 flex items-center justify-between text-white font-bold text-xs transition-all">
+                    <span>
+                      {myCollaborator?.payment_frequency ? `Frequenza: ${myCollaborator.payment_frequency.replace('_', ' ')}` : 'Vedi dettagli compensi'}
+                    </span>
+                    <div className="flex items-center gap-1 group-hover:gap-2 transition-all">
+                      Apri <ArrowRight size={14} />
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <Card className="bg-[#343a40]/60 backdrop-blur-xl border border-[#f8f9fa]/10 shadow-xl rounded-3xl overflow-hidden">
+                <CardHeader className="border-b border-[#f8f9fa]/10 flex flex-row items-center justify-between pb-6 p-8">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-indigo-500/20 rounded-2xl border border-indigo-500/20">
+                      <Plus className="w-6 h-6 text-indigo-400" />
+                    </div>
+                    <CardTitle className="text-2xl font-bold text-[#f8f9fa]">Log Giornaliero</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-8 space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[#adb5bd] font-bold uppercase text-[10px]">Data</Label>
+                      <Input 
+                        type="date" 
+                        value={logForm.date}
+                        onChange={(e) => setLogForm({...logForm, date: e.target.value})}
+                        className="rounded-xl bg-[#212529] border-[#495057] text-[#f8f9fa] h-12" 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                       <Label className="text-[#adb5bd] font-bold uppercase text-[10px]">Cantiere</Label>
+                       <Select value={logForm.cantiere_id} onValueChange={(val) => setLogForm({...logForm, cantiere_id: val})}>
+                        <SelectTrigger className="rounded-xl bg-[#212529] border-[#495057] text-[#f8f9fa] h-12">
+                          <SelectValue placeholder="Seleziona..." />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] rounded-xl shadow-2xl">
+                          {/* @ts-ignore */}
+                          {myCollaborator?.cantieri?.map(c => (
+                            <SelectItem key={c._id} value={c._id}>{c.nome_cantiere}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[#adb5bd] font-bold uppercase text-[10px]">Ore Lavorate</Label>
+                    <div className="relative">
+                      <Input 
+                        type="number" 
+                        step="0.5" 
+                        value={logForm.hours}
+                        onChange={(e) => setLogForm({...logForm, hours: e.target.value})}
+                        className="rounded-xl bg-[#212529] border-[#495057] text-[#f8f9fa] pl-12 h-14 text-lg font-bold" 
+                        placeholder="0.0" 
+                      />
+                      <Clock className="absolute left-4 top-4 text-indigo-400" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[#adb5bd] font-bold uppercase text-[10px]">Descrizione</Label>
+                    <Textarea 
+                      value={logForm.description}
+                      onChange={(e) => setLogForm({...logForm, description: e.target.value})}
+                      className="rounded-xl bg-[#212529] border-[#495057] text-[#f8f9fa] min-h-[120px] placeholder:text-[#6c757d]" 
+                      placeholder="Dettagli del lavoro svolto..." 
+                    />
+                  </div>
+                  <Button 
+                    onClick={handleLogSubmit}
+                    disabled={logSubmitting || !logForm.hours || !logForm.cantiere_id}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 h-14 rounded-2xl text-lg font-bold shadow-lg shadow-indigo-900/20 transition-all border border-indigo-500/30"
+                  >
+                    {logSubmitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Invia Registrazione"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <div className="space-y-8">
+                 <Card className="bg-[#343a40]/60 backdrop-blur-xl border border-[#f8f9fa]/10 shadow-xl rounded-3xl p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-bold text-[#f8f9fa]">Mie Attività</h3>
+                      <Link to={createPageUrl('/Tasks')} className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors">Vedi tutto</Link>
+                    </div>
+                    <div className="space-y-4">
+                      {myTasks.length > 0 ? myTasks.slice(0, 4).map(t => (
+                        <div key={t._id} className="p-4 bg-[#212529]/50 rounded-2xl border border-[#f8f9fa]/5 flex items-center gap-4 hover:bg-[#212529]/80 transition-all cursor-pointer group">
+                          <div className={`p-2 rounded-xl bg-[#343a40] shadow-sm border border-[#f8f9fa]/5 ${t.status === 'completato' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                            {t.status === 'completato' ? <CheckCircle size={20} /> : <Clock size={20} />}
+                          </div>
+                          <div>
+                            <p className="font-bold text-sm text-[#f8f9fa]">{t.title}</p>
+                            <p className="text-[10px] text-[#adb5bd] uppercase font-black">{t.priority}</p>
+                          </div>
+                          <ArrowRight className="ml-auto text-[#495057] group-hover:text-indigo-400 group-hover:translate-x-1 transition-all" size={16} />
+                        </div>
+                      )) : (
+                        <p className="text-center text-[#adb5bd] py-10 italic">Nessun task assegnato.</p>
+                      )}
+                    </div>
+                 </Card>
+
+                 <Card className="bg-indigo-600/20 backdrop-blur-xl border border-indigo-500/30 shadow-xl rounded-2xl p-8 text-white relative overflow-hidden group">
+                   <div className="absolute top-0 right-0 p-8 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-700">
+                     <MessageSquare size={120} />
+                   </div>
+                   <h3 className="text-2xl font-bold mb-4 relative z-10 text-[#f8f9fa]">Chat Diretta IWHome</h3>
+                   <p className="text-[#dee2e6] text-sm mb-8 relative z-10 leading-relaxed">
+                     Hai bisogno di forniture o chiarimenti? Scrivi subito al team admin tramite la chat dedicata.
+                   </p>
+                   <Link to={createPageUrl('/Messages')}>
+                    <Button className="w-full bg-[#f8f9fa] text-[#212529] hover:bg-white h-14 rounded-2xl font-bold text-lg relative z-10 shadow-lg shadow-indigo-900/20">
+                      Apri Messaggi
+                    </Button>
+                   </Link>
+                 </Card>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
           {/* Header */}
           <div className="mb-4 sm:mb-6 lg:mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
@@ -461,16 +731,11 @@ export default function Dashboard() {
                   Area Privata
                 </h1>
                 <p className="text-xs sm:text-sm text-[#dee2e6]">
-                  Benvenuto, {user.fullName}
+                  Benvenuto, {user?.fullName || 'Utente'}
                   <span className="ml-2 text-xs bg-[#f8f9fa]/10 px-2 py-0.5 rounded-full text-[#adb5bd]">
-                    {isAdmin ? 'Admin' : isClient ? 'Cliente' : isSupplier ? 'Fornitore' : 'Utente'}
+                    {isAdmin ? 'Admin' : isClient ? 'Cliente' : isSupplier ? 'Fornitore' : isWorker ? 'Staff' : 'Utente'}
                   </span>
                 </p>
-                {!isClient && (
-                  <p className="text-[10px] text-[#adb5bd] mt-1 opacity-60">
-                    Dashboard pagamenti unificata — fornitori, collaboratori e clienti
-                  </p>
-                )}
               </div>
             </div>
 
@@ -852,7 +1117,6 @@ export default function Dashboard() {
               </div>
 
               {/* Premium Stats Grid */}
-              {/* Premium Stats Grid */}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-4">
                 {[
                   {
@@ -1028,18 +1292,17 @@ export default function Dashboard() {
                     <CardContent className="pt-2">
                       {/* Animated Donut Chart */}
                       {(() => {
-                        const inLav = adminStats.cantieriByStatus?.in_lavorazione || 0;
-                        const posa = adminStats.cantieriByStatus?.posa_in_opera || 0;
-                        const compl = adminStats.cantieriByStatus?.completato || 0;
-                        // @ts-ignore — in_pausa may not be in schema type yet
-                        const pausa = adminStats.cantieriByStatus?.in_pausa || 0;
-                        const total = inLav + posa + compl + pausa || 1;
+                        const inLav = adminStats?.cantieriByStatus?.in_lavorazione || 0;
+                        const posa = adminStats?.cantieriByStatus?.posa_in_opera || 0;
+                        const compl = adminStats?.cantieriByStatus?.completato || 0;
+                        const pausa = adminStats?.cantieriByStatus?.in_pausa || 0;
+                        const displayTotal = inLav + posa + compl + pausa;
+                        const total = displayTotal || 1; // avoid division by zero
                         const segments = [
                           { count: inLav, color: '#eab308', label: 'In Lavorazione' },
                           { count: posa, color: '#3b82f6', label: 'Posa Opera' },
                           { count: compl, color: '#22c55e', label: 'Completati' },
-                          { count: pausa, color: '#6b7280', label: 'In Pausa' },
-                        ];
+                          { count: pausa, color: '#6b7280', label: 'In Pausa' }];
                         let offset = 0;
                         const radius = 40;
                         const circum = 2 * Math.PI * radius;
@@ -1070,7 +1333,7 @@ export default function Dashboard() {
                                 })}
                               </svg>
                               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-lg font-bold text-[#f8f9fa]">{total}</span>
+                                <span className="text-lg font-bold text-[#f8f9fa]">{displayTotal}</span>
                                 <span className="text-[9px] text-[#adb5bd]">Cantieri</span>
                               </div>
                             </div>
@@ -1212,15 +1475,17 @@ export default function Dashboard() {
               )}
 
               {isClient && (
-                <TabsTrigger value="client-quotes" className="data-[state=active]:bg-[#f8f9fa] data-[state=active]:text-black text-xs sm:text-sm text-gray-500">
-                  I Miei Preventivi
-                </TabsTrigger>
-              )}
-
-              {isClient && (
-                <TabsTrigger value="client-payments" className="data-[state=active]:bg-[#f8f9fa] data-[state=active]:text-black text-xs sm:text-sm text-gray-500 py-2">
-                  Pagamenti
-                </TabsTrigger>
+                <>
+                  <TabsTrigger value="client-quotes" className="data-[state=active]:bg-[#f8f9fa] data-[state=active]:text-black text-xs sm:text-sm text-gray-500">
+                    I Miei Preventivi
+                  </TabsTrigger>
+                  <TabsTrigger value="client-cantieri" className="data-[state=active]:bg-[#f8f9fa] data-[state=active]:text-black text-xs sm:text-sm text-gray-500 py-2">
+                    I Miei Progetti (Cantieri)
+                  </TabsTrigger>
+                  <TabsTrigger value="client-payments" className="data-[state=active]:bg-[#f8f9fa] data-[state=active]:text-black text-xs sm:text-sm text-gray-500 py-2">
+                    Pagamenti
+                  </TabsTrigger>
+                </>
               )}
 
               {isSupplier && (
@@ -1477,8 +1742,9 @@ export default function Dashboard() {
                                 {[
                                   { step: 'Richiesto', active: true },
                                   { step: 'Valutazione', active: ['sent', 'accepted', 'rejected'].includes(quote.status) },
-                                  { step: 'In Produzione', active: quote.status === 'accepted' },
-                                  { step: 'Consegna', active: false }
+                                  { step: 'In Produzione', active: quote.status === 'accepted' && clientOrders.some(o => o.quote_id === quote._id && ['in_production', 'ready', 'shipped', 'delivered'].includes(o.status)) },
+                                  { step: 'In Transito', active: quote.status === 'accepted' && clientOrders.some(o => o.quote_id === quote._id && ['shipped', 'delivered'].includes(o.status)) },
+                                  { step: 'Consegnato', active: quote.status === 'accepted' && clientOrders.some(o => o.quote_id === quote._id && o.status === 'delivered') }
                                 ].map((s, i) => (
                                   <div key={i} className="relative z-10 flex flex-col items-center gap-2">
                                     <div className={`w-3 h-3 rounded-full border-2 ${s.active ? 'bg-blue-500 border-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-[#16191c] border-white/10'}`} />
@@ -1495,7 +1761,90 @@ export default function Dashboard() {
               </TabsContent>
             )}
 
-            {/* Client Payments Tab - Client Only */}
+            {/* Client Cantieri Tab - Client Only */}
+            {isClient && (
+              <TabsContent value="client-cantieri" className="space-y-4">
+                <div className="grid gap-4">
+                  {clientCantieri.length === 0 ? (
+                    <div className="text-center py-12 bg-[#343a40]/30 rounded-xl border border-[#f8f9fa]/10">
+                      <Hammer size={48} className="text-[#6c757d] mx-auto mb-4" />
+                      <p className="text-[#dee2e6]">Non hai ancora progetti attivi</p>
+                      <p className="text-xs text-[#6c757d] mt-2">I tuoi progetti appariranno qui una volta che un preventivo viene accettato.</p>
+                    </div>
+                  ) : (
+                    clientCantieri.map((cantiere) => (
+                      <Card key={cantiere._id} className="bg-gradient-to-br from-[#343a40] to-[#212529] border-[#f8f9fa]/10 overflow-hidden">
+                        <CardContent className="p-6">
+                          <div className="flex flex-col md:flex-row justify-between gap-6">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2.5 bg-purple-500/20 rounded-xl">
+                                  <Building2 className="w-6 h-6 text-purple-400" />
+                                </div>
+                                <div>
+                                  <h3 className="font-bold text-[#f8f9fa] text-xl">{cantiere.nome_cantiere}</h3>
+                                  <div className="flex items-center gap-2 text-[#adb5bd] text-sm">
+                                    <MapPin size={14} />
+                                    <span>{cantiere.indirizzo || 'Indirizzo non specificato'}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="space-y-4">
+                                <div>
+                                  <div className="flex justify-between text-sm mb-2">
+                                    <span className="text-[#dee2e6] font-medium">Avanzamento Lavori</span>
+                                    <span className="text-purple-400 font-bold">{cantiere.progresso || 0}%</span>
+                                  </div>
+                                  <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                    <motion.div 
+                                      className="h-full bg-gradient-to-r from-purple-500 to-blue-500"
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${cantiere.progresso || 0}%` }}
+                                      transition={{ duration: 1, ease: "easeOut" }}
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="flex flex-wrap gap-4 pt-2">
+                                  <div className="flex items-center gap-2 text-xs text-[#adb5bd]">
+                                    <Calendar size={14} className="text-blue-400" />
+                                    <span>Creato: {new Date(cantiere.created_date || cantiere._creationTime).toLocaleDateString('it-IT')}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-xs text-[#adb5bd]">
+                                    <Activity size={14} className="text-green-400" />
+                                    <span className="capitalize">{cantiere.status?.replace(/_/g, ' ')}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col justify-between items-end gap-4 min-w-[200px]">
+                              <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[2px] border ${
+                                cantiere.status === 'completato' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                                'bg-yellow-500/20 text-yellow-400 border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.1)]'
+                              }`}>
+                                {cantiere.status?.replace(/_/g, ' ') || 'In Corso'}
+                              </div>
+                              
+                              <Button
+                                asChild
+                                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg shadow-purple-900/20"
+                              >
+                                <Link to={createPageUrl('CantieriDashboard')}>
+                                  Vai al Dettaglio Progetto
+                                  <ArrowRight size={16} className="ml-2" />
+                                </Link>
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+            )}
             {isClient && (
               <TabsContent value="client-payments" className="space-y-4">
                 <div className="grid gap-4">
@@ -1679,6 +2028,7 @@ export default function Dashboard() {
             </TabsContent>
           </Tabs>
         </div>
+        )}
       </div>
     </div>
   );

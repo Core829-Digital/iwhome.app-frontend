@@ -17,8 +17,13 @@ export const convertToWebP = (file, quality = 0.85) => {
         reader.readAsDataURL(file);
 
         reader.onload = (event) => {
+            const result = event.target?.result;
+            if (typeof result !== 'string') {
+                console.warn("FileReader result is not a string, skipping conversion.");
+                return resolve(file);
+            }
             const img = new Image();
-            img.src = event.target.result;
+            img.src = result;
 
             img.onload = () => {
                 const canvas = document.createElement('canvas');

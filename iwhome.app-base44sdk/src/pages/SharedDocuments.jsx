@@ -20,8 +20,11 @@ export default function SharedDocuments() {
 
   // Fetch documents shared with this user from Convex
   const sharedDocuments = useQuery(api.documents.getSharedWith, { email: userEmail }) || [];
+  const chatFiles = useQuery(api.documents.getChatSharedFiles, userEmail ? { email: userEmail } : "skip") || [];
 
-  const filteredDocuments = sharedDocuments.filter((doc) =>
+  const allFiles = [...sharedDocuments, ...chatFiles];
+
+  const filteredDocuments = allFiles.filter((doc) =>
     doc.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -81,8 +84,8 @@ export default function SharedDocuments() {
                     <div className="w-12 h-12 rounded-xl bg-[#f8f9fa]/10 backdrop-blur-sm flex items-center justify-center">
                       <FileText size={24} className="text-[#f8f9fa]" />
                     </div>
-                    <span className="text-xs px-2 py-1 rounded-full bg-[#f8f9fa]/10 text-[#f8f9fa] backdrop-blur-sm">
-                      {doc.category}
+                    <span className={`text-xs px-2 py-1 rounded-full backdrop-blur-sm ${doc.category === 'chat' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-[#f8f9fa]/10 text-[#f8f9fa]'}`}>
+                      {doc.category === 'chat' ? 'Chat' : doc.category}
                     </span>
                   </div>
                   <h3 className="text-lg font-medium text-[#f8f9fa] mb-2">{doc.title}</h3>

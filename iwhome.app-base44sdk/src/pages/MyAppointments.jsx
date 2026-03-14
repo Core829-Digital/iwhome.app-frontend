@@ -28,6 +28,7 @@ export default function MyAppointments() {
   });
 
   const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
+  const isWorker = convexUser?.role?.startsWith('collaborator');
   const appointments = showAll && isAdmin ? allAppointments : myAppointments;
 
   const createAppointment = useMutation(api.appointments.create);
@@ -102,7 +103,9 @@ export default function MyAppointments() {
                 {showAll ? 'Tutti gli Appuntamenti' : 'I Miei Appuntamenti'}
               </h1>
               <p className="text-xs sm:text-sm text-[#dee2e6]">
-                {showAll ? 'Gestione completa appuntamenti' : 'Gestisci le tue visite'}
+                {showAll ? 'Gestione completa appuntamenti' :
+                 isWorker ? 'I tuoi sopralluoghi e appuntamenti assegnati' :
+                 'Gestisci le tue visite'}
               </p>
             </div>
             <div className="flex gap-2">

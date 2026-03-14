@@ -28,8 +28,7 @@ const values = [
     title: 'Puntualità',
     description: 'Rispetto dei tempi e delle scadenze concordate',
     details: 'La pianificazione accurata e il coordinamento professionale ci permettono di rispettare sempre i tempi concordati, senza compromessi sulla qualità del risultato finale.'
-  },
-];
+  }];
 
 export default function ChiSiamo() {
   const { scrollYProgress } = useScroll();

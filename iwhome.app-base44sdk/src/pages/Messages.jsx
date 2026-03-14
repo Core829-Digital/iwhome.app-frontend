@@ -82,7 +82,7 @@ export default function Messages() {
   const messages = useQuery(api.chat.listMessages,
     selectedConversation ? {
       channel_id: selectedConversation._id,
-      is_admin_chat: selectedConversation.is_admin_chat || false
+      is_admin_chat: selectedConversation.is_admin_chat 
     } : "skip"
   ) || [];
 
@@ -217,7 +217,7 @@ export default function Messages() {
       sender_email: myEmail,
       sender_name: myName,
       content: messageText,
-      is_admin_chat: selectedConversation.is_admin_chat || false,
+      is_admin_chat: selectedConversation.is_admin_chat ,
       is_ephemeral: isEphemeral,
       ephemeral_expires_at: ephemeralExpiresAt,
       message_type: 'text'
@@ -309,6 +309,7 @@ export default function Messages() {
   const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
   const isClient = convexUser?.role === 'client';
   const isSupplier = convexUser?.role === 'supplier';
+  const isWorker = ['collaborator_internal', 'collaborator_external', 'worker', 'operaio'].includes(convexUser?.role);
 
   // Access check handled inline
 
@@ -330,7 +331,7 @@ export default function Messages() {
           <div className="h-[calc(100vh-76px)] flex items-center justify-center">
             <Loader2 className="animate-spin text-blue-500" size={40} />
           </div>
-        ) : (!isAdmin && !isClient && !isSupplier) ? (
+        ) : (!isAdmin && !isClient && !isSupplier && !isWorker) ? (
           <div className="h-[calc(100vh-76px)] flex items-center justify-center text-center px-4">
             <div>
               <h2 className="text-xl text-[#f8f9fa] mb-2">Accesso Limitato</h2>
@@ -753,7 +754,7 @@ export default function Messages() {
                   message_type: 'file',
                   file_url: doc.file_url,
                   file_name: doc.title,
-                  is_admin_chat: selectedConversation.is_admin_chat || false
+                  is_admin_chat: selectedConversation.is_admin_chat 
                 });
 
                 setDocumentModalOpen(false);

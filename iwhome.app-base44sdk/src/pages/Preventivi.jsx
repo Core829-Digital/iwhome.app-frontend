@@ -48,7 +48,7 @@ export default function Preventivi() {
 
     // Query cantieri for linking
     const cantieri = useQuery(api.cantieri.listCantieri, { company_email: userEmail }) || [];
-    const clientsList = useQuery(api.clients.list) || []; // Fetch clients
+    const clientsList = useQuery(api.clients.list, isAdmin ? {} : "skip") || []; // Fetch clients
     const myDocuments = useQuery(api.documents.get, {}) || [];
 
     // Query supplier requests for conversion
@@ -270,7 +270,7 @@ export default function Preventivi() {
                 is_public: 'false',
                 created_by: userEmail,
                 created_date: new Date().toISOString(),
-                shared_with: [uploadQuote.email],
+                shared_with: uploadQuote.email,
                 quote_id: uploadQuote._id,
                 status: 'definitive'
             });
@@ -560,11 +560,11 @@ export default function Preventivi() {
                                                         <div className="flex items-center gap-2">
                                                             {quote.files && quote.files.length > 0 && (
                                                                 <Button
-                                                                    variant="outline"
-                                                                    className="text-[#f8f9fa] border-[#6c757d] hover:bg-[#495057]"
+                                                                    variant="default"
+                                                                    className="bg-[#f8f9fa] text-black hover:bg-[#e9ecef] border-none font-medium"
                                                                     onClick={() => setViewPdfUrl(quote.files[0])}
                                                                 >
-                                                                    <Download size={16} className="mr-2" /> Scarica
+                                                                    <Download size={16} className="mr-2" /> Scarica Allegato
                                                                 </Button>
                                                             )}
 
@@ -1057,6 +1057,25 @@ function QuoteDetailContent({ quote, onViewPdf }) {
                 <div className="bg-[#495057]/40 rounded-lg p-3">
                     <p className="text-xs text-[#adb5bd] mb-1">Note</p>
                     <p className="text-[#f8f9fa] text-sm whitespace-pre-wrap">{quote.notes}</p>
+                </div>
+            )}
+
+            {/* Uploaded Files */}
+            {quote.files && quote.files.length > 0 && (
+                <div className="bg-[#495057]/40 rounded-lg p-3">
+                    <p className="text-xs text-[#adb5bd] mb-2">Allegati Cliente</p>
+                    <div className="flex flex-col gap-2">
+                        {quote.files.map((fileUrl, idx) => (
+                            <Button 
+                                key={idx} 
+                                variant="outline" 
+                                className="justify-start text-[#f8f9fa] border-[#6c757d] hover:bg-[#495057]"
+                                onClick={() => onViewPdf(fileUrl)}
+                            >
+                                <Eye size={16} className="mr-2" /> Visualizza Allegato {idx + 1}
+                            </Button>
+                        ))}
+                    </div>
                 </div>
             )}
 

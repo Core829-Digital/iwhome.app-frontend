@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import QRCode from "react-qr-code";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
 import { useNavigate } from 'react-router-dom';
@@ -9,7 +10,7 @@ import {
     Users, UserPlus, Search, Clock, MapPin, Phone, Mail, Briefcase,
     Edit, Trash2, Loader2, CheckCircle, XCircle, Plus, Eye,
     HardHat, Activity, ChevronRight, MessageCircle, Send, PhoneCall,
-    CreditCard, ExternalLink, CalendarDays, Building2
+    CreditCard, ExternalLink, CalendarDays, Building2, Link, Shield, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,8 +40,11 @@ export default function Collaboratori() {
     const [showModal, setShowModal] = useState(false);
     const [showChatModal, setShowChatModal] = useState(null);
     const [formData, setFormData] = useState({
-        full_name: '', email: '', phone: '', type: 'internal', job_title: '', fiscal_code: '', contract_type: 'tempo_pieno', hourly_rate: '', notes: ''
+        full_name: '', email: '', phone: '', type: 'internal', job_title: '', fiscal_code: '', contract_type: 'tempo_pieno', hourly_rate: '', salary: '', payment_frequency: 'monthly', location_type: 'site', notes: '',
+        contract_start_date: '', contract_end_date: '', assigned_cantieri: []
     });
+    const [selectedContractFile, setSelectedContractFile] = useState(null);
+    const [isUploadingContract, setIsUploadingContract] = useState(false);
 
     const collaborators = useQuery(api.collaborators.list, typeFilter !== 'all' ? { type: typeFilter } : {}) || [];
     const stats = useQuery(api.collaborators.getStats) || null;
@@ -60,6 +64,13 @@ export default function Collaboratori() {
         collaborator_id: '', cantiere_id: '', date: new Date().toISOString().split('T')[0], hours_worked: '', description: ''
     });
 
+    const jobTitles = useQuery(api.job_titles.list, {}) || [];
+    const generateOnboarding = useMutation(api.collaborators.generateOnboardingLink);
+    const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
+    const seedJobTitlesMutation = useMutation(api.job_titles.seedDefaults);
+    const [onboardingLink, setOnboardingLink] = useState(null);
+    const [selectedCollabDetailId, setSelectedCollabDetailId] = useState(null);
+
     if (rbacLoading) {
         return (<div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] flex items-center justify-center"><Loader2 className="animate-spin text-blue-500" size={40} /></div>);
     }
@@ -67,7 +78,7 @@ export default function Collaboratori() {
     if (!canView('collaboratori')) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-                
+
                 <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen flex items-center justify-center">
                     <div className="text-center"><h2 className="text-xl text-[#f8f9fa] mb-2">Accesso Negato</h2><p className="text-[#adb5bd]">Non hai i permessi per accedere a questa sezione.</p></div>
                 </div>
@@ -77,13 +88,37 @@ export default function Collaboratori() {
 
     const handleCreate = async () => {
         try {
-            await createMutation({
+            setIsUploadingContract(true);
+            let contractStorageId = undefined;
+            if (selectedContractFile) {
+                const uploadUrl = await generateUploadUrl();
+                const result = await fetch(uploadUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": selectedContractFile.type },
+                    body: selectedContractFile,
+                });
+                const { storageId } = await result.json();
+                contractStorageId = storageId;
+            }
+
+            const id = await createMutation({
                 ...formData,
                 hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : undefined,
+                salary: formData.salary ? parseFloat(formData.salary) : undefined,
+                assigned_cantieri: formData.assigned_cantieri.length > 0 ? formData.assigned_cantieri : undefined,
+                contract_start_date: formData.contract_start_date || undefined,
+                contract_end_date: formData.contract_end_date || undefined,
+                documents: contractStorageId ? [contractStorageId] : undefined,
             });
             setShowModal(false);
-            setFormData({ full_name: '', email: '', phone: '', type: 'internal', job_title: '', fiscal_code: '', contract_type: 'tempo_pieno', hourly_rate: '', notes: '' });
-        } catch (err) { console.error(err); }
+            setFormData({ full_name: '', email: '', phone: '', type: 'internal', job_title: '', fiscal_code: '', contract_type: 'tempo_pieno', hourly_rate: '', salary: '', payment_frequency: 'monthly', location_type: 'site', notes: '', contract_start_date: '', contract_end_date: '', assigned_cantieri: [] });
+            setSelectedContractFile(null);
+            
+            // Auto trigger onboarding link generation
+            if (window.confirm("Collaboratore creato con successo. Vuoi generare ora il link di accesso WhatsApp?")) {
+                handleGenerateOnboarding(id);
+            }
+        } catch (err) { console.error(err); } finally { setIsUploadingContract(false); }
     };
 
     const handleDelete = async (id) => {
@@ -121,6 +156,13 @@ export default function Collaboratori() {
         try { await updateMutation({ id, data: { live_status } }); } catch (err) { console.error(err); }
     };
 
+    const handleGenerateOnboarding = async (id) => {
+        try {
+            const res = await generateOnboarding({ id });
+            setOnboardingLink(res);
+        } catch (err) { console.error(err); }
+    };
+
     const filteredCollaborators = collaborators.filter(c => {
         if (!searchTerm) return true;
         const s = searchTerm.toLowerCase();
@@ -129,8 +171,8 @@ export default function Collaboratori() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
-            
-            
+
+
             <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Header */}
@@ -161,8 +203,7 @@ export default function Collaboratori() {
                                 { label: 'Interni', value: stats.internal, color: 'from-blue-600 to-blue-700', icon: Briefcase },
                                 { label: 'Esterni', value: stats.external, color: 'from-purple-600 to-purple-700', icon: HardHat },
                                 { label: 'Attivi', value: stats.active, color: 'from-green-600 to-green-700', icon: CheckCircle },
-                                { label: 'In Cantiere', value: stats.inCantiere, color: 'from-yellow-600 to-yellow-700', icon: MapPin },
-                            ].map(stat => (
+                                { label: 'In Cantiere', value: stats.inCantiere, color: 'from-yellow-600 to-yellow-700', icon: MapPin }].map(stat => (
                                 <Card key={stat.label} className={`bg-gradient-to-br ${stat.color} border-0`}>
                                     <CardContent className="p-3">
                                         <div className="flex items-center justify-between">
@@ -220,22 +261,36 @@ export default function Collaboratori() {
                                         const liveConfig = liveStatusConfig[collab.live_status] || liveStatusConfig.non_disponibile;
                                         return (
                                             <motion.div key={collab._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                                                <Card className="bg-[#343a40] border border-[#495057] hover:border-[#6c757d] transition-all h-full">
+                                                <Card className="bg-[#343a40] border border-[#495057] hover:border-indigo-500/50 transition-all h-full cursor-pointer group" onClick={() => setSelectedCollabDetailId(collab._id)}>
                                                     <CardContent className="p-5">
                                                         {/* Header */}
                                                         <div className="flex items-start justify-between mb-3">
                                                             <div className="flex items-center gap-3">
-                                                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
+                                                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg group-hover:scale-110 transition-transform">
                                                                     {collab.full_name[0]}
                                                                 </div>
                                                                 <div>
-                                                                    <h3 className="text-[#f8f9fa] font-medium">{collab.full_name}</h3>
+                                                                    <h3 className="text-[#f8f9fa] font-medium flex items-center gap-2">
+                                                                        {collab.full_name}
+                                                                        {!collab.user_id && <Badge variant="outline" className="text-[9px] h-4 border-yellow-500/30 text-yellow-500 bg-yellow-500/10">In Attesa</Badge>}
+                                                                    </h3>
                                                                     <p className="text-xs text-[#adb5bd]">{collab.job_title}</p>
                                                                 </div>
                                                             </div>
-                                                            <div className="flex items-center gap-1">
-                                                                <div className={`w-2 h-2 rounded-full ${liveConfig.dot}`} />
-                                                                <span className="text-[10px] text-[#adb5bd]">{liveConfig.label}</span>
+                                                            <div className="flex flex-col items-end gap-1">
+                                                                <div className="flex items-center gap-1">
+                                                                    <div className={`w-2 h-2 rounded-full ${liveConfig.dot}`} />
+                                                                    <span className="text-[10px] text-[#adb5bd]">{liveConfig.label}</span>
+                                                                </div>
+                                                                {collab.user_id ? (
+                                                                    <Badge variant="outline" className="text-[9px] h-4 border-green-500/30 text-green-400 bg-green-500/10 gap-1">
+                                                                        <CheckCircle size={8} /> Collegato
+                                                                    </Badge>
+                                                                ) : (
+                                                                    <Badge variant="outline" className="text-[9px] h-4 border-red-500/30 text-red-400 bg-red-500/10">
+                                                                        Non Collegato
+                                                                    </Badge>
+                                                                )}
                                                             </div>
                                                         </div>
 
@@ -411,14 +466,41 @@ export default function Collaboratori() {
                         <Input placeholder="Nome Completo *" value={formData.full_name} onChange={e => setFormData({ ...formData, full_name: e.target.value })} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]" />
                         <Input placeholder="Email *" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]" />
                         <Input placeholder="Telefono" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]" />
-                        <Input placeholder="Mansione / Titolo Job *" value={formData.job_title} onChange={e => setFormData({ ...formData, job_title: e.target.value })} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]" />
-                        <Select value={formData.type} onValueChange={v => setFormData({ ...formData, type: v })}>
-                            <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]"><SelectValue /></SelectTrigger>
+                        
+                        <Select value={formData.job_title} onValueChange={v => setFormData({ ...formData, job_title: v })}>
+                            <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]"><SelectValue placeholder="Seleziona Mansione *" /></SelectTrigger>
                             <SelectContent className="bg-[#343a40] border-[#495057]">
-                                <SelectItem value="internal" className="text-[#f8f9fa]">Interno (Dipendente)</SelectItem>
-                                <SelectItem value="external" className="text-[#f8f9fa]">Esterno (Per Lavoro)</SelectItem>
+                                {jobTitles.map(jt => (
+                                    <SelectItem key={jt._id} value={jt.title} className="text-[#f8f9fa]">{jt.title}</SelectItem>
+                                ))}
+                                {jobTitles.length === 0 && (
+                            <div className="p-2">
+                                <p className="text-xs text-[#adb5bd] mb-1">Nessuna mansione configurata.</p>
+                                <button onClick={async (e) => { e.preventDefault(); try { await seedJobTitlesMutation({}); } catch(err) { console.error(err); } }} className="text-xs text-indigo-400 hover:text-indigo-300 underline">
+                                    Inizializza mansioni predefinite
+                                </button>
+                            </div>
+                        )}
                             </SelectContent>
                         </Select>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <Select value={formData.type} onValueChange={v => setFormData({ ...formData, type: v })}>
+                                <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]"><SelectValue /></SelectTrigger>
+                                <SelectContent className="bg-[#343a40] border-[#495057]">
+                                    <SelectItem value="internal" className="text-[#f8f9fa]">Interno (Dipendente)</SelectItem>
+                                    <SelectItem value="external" className="text-[#f8f9fa]">Esterno (Per Lavoro)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select value={formData.location_type} onValueChange={v => setFormData({ ...formData, location_type: v })}>
+                                <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]"><SelectValue /></SelectTrigger>
+                                <SelectContent className="bg-[#343a40] border-[#495057]">
+                                    <SelectItem value="site" className="text-[#f8f9fa]">Cantiere</SelectItem>
+                                    <SelectItem value="showroom" className="text-[#f8f9fa]">Showroom / Ufficio</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
                         <Select value={formData.contract_type} onValueChange={v => setFormData({ ...formData, contract_type: v })}>
                             <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]"><SelectValue /></SelectTrigger>
                             <SelectContent className="bg-[#343a40] border-[#495057]">
@@ -428,10 +510,103 @@ export default function Collaboratori() {
                                 <SelectItem value="subappalto" className="text-[#f8f9fa]">Subappalto</SelectItem>
                             </SelectContent>
                         </Select>
-                        <Input placeholder="Codice Fiscale" value={formData.fiscal_code} onChange={e => setFormData({ ...formData, fiscal_code: e.target.value })} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]" />
-                        <Input placeholder="Tariffa Oraria (€)" type="number" value={formData.hourly_rate} onChange={e => setFormData({ ...formData, hourly_rate: e.target.value })} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]" />
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                            {formData.type === 'external' ? (
+                                <Input placeholder="Tariffa Oraria (€)" type="number" value={formData.hourly_rate} onChange={e => setFormData({ ...formData, hourly_rate: e.target.value })} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]" />
+                            ) : (
+                                <Input placeholder="Stipendio Mensile (€)" type="number" value={formData.salary} onChange={e => setFormData({ ...formData, salary: e.target.value })} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]" />
+                            )}
+                            <Input placeholder="Codice Fiscale" value={formData.fiscal_code} onChange={e => setFormData({ ...formData, fiscal_code: e.target.value })} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]" />
+                        </div>
+
+                        {/* Contract period */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="text-xs text-[#adb5bd] block mb-1">Inizio Contratto</label>
+                                <Input type="date" value={formData.contract_start_date} onChange={e => setFormData({ ...formData, contract_start_date: e.target.value })} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]" />
+                            </div>
+                            <div>
+                                <label className="text-xs text-[#adb5bd] block mb-1">Fine Contratto</label>
+                                <Input type="date" value={formData.contract_end_date} onChange={e => setFormData({ ...formData, contract_end_date: e.target.value })} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]" />
+                            </div>
+                        </div>
+
+                        {/* Assigned cantieri */}
+                        {cantieri.length > 0 && (
+                            <div>
+                                <label className="text-xs text-[#adb5bd] block mb-1">Cantieri Assegnati</label>
+                                <div className="bg-[#495057] border border-[#6c757d] rounded-md p-2 max-h-32 overflow-y-auto space-y-1">
+                                    {cantieri.filter(c => c.status !== 'completato').map(c => (
+                                        <label key={c._id} className="flex items-center gap-2 cursor-pointer text-xs text-[#f8f9fa] hover:text-white">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.assigned_cantieri.includes(c._id)}
+                                                onChange={e => {
+                                                    const ids = e.target.checked
+                                                        ? [...formData.assigned_cantieri, c._id]
+                                                        : formData.assigned_cantieri.filter(id => id !== c._id);
+                                                    setFormData({ ...formData, assigned_cantieri: ids });
+                                                }}
+                                                className="accent-indigo-500"
+                                            />
+                                            {c.nome_cantiere}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Contract document */}
+                        <div>
+                            <label className="text-xs text-[#adb5bd] block mb-1">Contratto di Lavoro (Allegato)</label>
+                            <Input
+                                type="file"
+                                accept=".pdf,.doc,.docx,image/*"
+                                onChange={e => setSelectedContractFile(e.target.files[0])}
+                                className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] text-xs file:bg-[#343a40] file:text-indigo-400 file:border-0 file:rounded file:px-2 file:py-1 file:mr-2"
+                            />
+                            {selectedContractFile && <p className="text-[10px] text-green-400 mt-1">File: {selectedContractFile.name}</p>}
+                        </div>
+
                         <Textarea placeholder="Note" value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]" />
-                        <Button onClick={handleCreate} disabled={!formData.full_name || !formData.email || !formData.job_title} className="w-full bg-indigo-600 hover:bg-indigo-700">Crea Collaboratore</Button>
+                        <Button onClick={handleCreate} disabled={!formData.full_name || !formData.email || !formData.job_title || isUploadingContract} className="w-full bg-indigo-600 hover:bg-indigo-700">
+                            {isUploadingContract ? <><Loader2 className="animate-spin mr-2" size={16} /> Caricamento...</> : 'Crea Collaboratore'}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* ONBOARDING SUCCESS MODAL */}
+            <Dialog open={!!onboardingLink} onOpenChange={() => setOnboardingLink(null)}>
+                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-sm">
+                    <DialogHeader><DialogTitle className="text-[#f8f9fa]">Eseguito!</DialogTitle></DialogHeader>
+                    <div className="flex flex-col items-center py-4 text-center">
+                        <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-4">
+                            <Send className="text-green-400" size={32} />
+                        </div>
+                        <h3 className="text-lg font-medium text-[#f8f9fa] mb-1">Link Generato</h3>
+                        <p className="text-sm text-[#adb5bd] mb-4">Invia il link e la password al collaboratore via WhatsApp.</p>
+                        
+                        <div className="w-full bg-[#212529] p-4 rounded-xl border border-[#495057] mb-6 flex flex-col items-center">
+                            <p className="text-[10px] text-[#6c757d] uppercase tracking-wider mb-2 text-center">Codice di Accesso Semplice</p>
+                            <p className="text-3xl font-mono text-indigo-400 font-bold tracking-[0.2em] mb-4">
+                                {onboardingLink?.whatsapp_url?.match(/password%20%C3%A8%3A%20%2A(\d+)%2A/)?.[1] || "******"}
+                            </p>
+                            <div className="bg-white p-2 rounded-lg mb-2">
+                                <QRCode value={onboardingLink?.link || ""} size={120} />
+                            </div>
+                            <p className="text-xs text-[#adb5bd] text-center mt-2">Inquadra per aprire il link di registrazione</p>
+                        </div>
+
+                        <div className="flex flex-col gap-2 w-full">
+                            <Button onClick={() => window.open(onboardingLink?.whatsapp_url, '_blank')} className="bg-green-600 hover:bg-green-700 w-full gap-2 font-medium">
+                                <MessageCircle size={16} /> Invia via WhatsApp
+                            </Button>
+                            <Button variant="outline" onClick={() => { navigator.clipboard.writeText(onboardingLink?.link); alert('Link copiato negli appunti!'); }} className="border-[#495057] text-[#adb5bd] w-full">
+                                Copia solo Link
+                            </Button>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>
@@ -449,6 +624,205 @@ export default function Collaboratori() {
                     )}
                 </DialogContent>
             </Dialog>
+            <CollaboratorDetailModal 
+                id={selectedCollabDetailId} 
+                onClose={() => setSelectedCollabDetailId(null)}
+                onGenerateAccess={handleGenerateOnboarding}
+            />
+        </div>
+    );
+}
+
+function CollaboratorDetailModal({ id, onClose, onGenerateAccess }) {
+    const collab = useQuery(api.collaborators.getDetailed, id ? { id } : "skip");
+    const collaboratorsCerts = useQuery(api.certificates.list, id ? { collaborator_id: id } : "skip") || [];
+
+    if (!id) return null;
+
+    return (
+        <Dialog open={!!id} onOpenChange={onClose}>
+            <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <div className="flex items-center gap-4 mb-2">
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+                            {collab?.full_name?.[0] || '?'}
+                        </div>
+                        <div>
+                            <DialogTitle className="text-2xl font-light text-[#f8f9fa]">{collab?.full_name || 'Caricamento...'}</DialogTitle>
+                            <p className="text-indigo-400 font-medium">{collab?.job_title}</p>
+                        </div>
+                    </div>
+                </DialogHeader>
+
+                {!collab ? (
+                    <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-indigo-500" /></div>
+                ) : (
+                    <Tabs defaultValue="details" className="w-full">
+                        <TabsList className="bg-[#212529] border border-[#495057] w-full mb-6">
+                            <TabsTrigger value="details" className="flex-1 data-[state=active]:bg-indigo-600">Profilo</TabsTrigger>
+                            <TabsTrigger value="docs" className="flex-1 data-[state=active]:bg-indigo-600">Documenti</TabsTrigger>
+                            <TabsTrigger value="logs" className="flex-1 data-[state=active]:bg-indigo-600">Storico Ore</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="details" className="space-y-6 outline-none">
+                            {/* Status Grid */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                <div className="bg-[#212529] p-3 rounded-xl border border-[#495057]">
+                                    <p className="text-[10px] text-[#6c757d] uppercase tracking-wider mb-1">Stato Account</p>
+                                    <Badge variant="outline" className={`w-fit border-none p-0 flex items-center gap-1 ${collab.user_id ? 'text-green-400' : 'text-red-400'}`}>
+                                        {collab.user_id ? <CheckCircle size={12} /> : <XCircle size={12} />}
+                                        {collab.user_id ? 'Collegato' : 'In Attesa'}
+                                    </Badge>
+                                </div>
+                                <div className="bg-[#212529] p-3 rounded-xl border border-[#495057]">
+                                    <p className="text-[10px] text-[#6c757d] uppercase tracking-wider mb-1">Contratto</p>
+                                    <p className="text-sm text-[#f8f9fa] capitalize">{collab.contract_type?.replace('_', ' ') || 'N/D'}</p>
+                                </div>
+                                <div className="bg-[#212529] p-3 rounded-xl border border-[#495057]">
+                                    <p className="text-[10px] text-[#6c757d] uppercase tracking-wider mb-1">Tipo</p>
+                                    <p className="text-sm text-[#f8f9fa]">{collab.type === 'internal' ? 'Interno' : 'Esterno'}</p>
+                                </div>
+                                <div className="bg-[#212529] p-3 rounded-xl border border-[#495057]">
+                                    <p className="text-[10px] text-[#6c757d] uppercase tracking-wider mb-1">Paga</p>
+                                    <p className="text-sm text-[#f8f9fa]">
+                                        {collab.type === 'internal' ? `€${collab.salary || 0}/mese` : `€${collab.hourly_rate || 0}/ora`}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Contact & Details */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <h4 className="text-sm font-semibold text-[#f8f9fa] border-b border-[#495057] pb-1">Contatti</h4>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-3 text-sm text-[#adb5bd]">
+                                            <Mail size={16} className="text-indigo-400" /> {collab.email}
+                                        </div>
+                                        <div className="flex items-center gap-3 text-sm text-[#adb5bd]">
+                                            <Phone size={16} className="text-indigo-400" /> {collab.phone || 'Non fornito'}
+                                        </div>
+                                        <div className="flex items-center gap-3 text-sm text-[#adb5bd]">
+                                            <FileText size={16} className="text-indigo-400" /> Cod. Fisc: {collab.fiscal_code || 'N/D'}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    <h4 className="text-sm font-semibold text-[#f8f9fa] border-b border-[#495057] pb-1">Note</h4>
+                                    <p className="text-sm text-[#adb5bd] leading-relaxed italic">
+                                        {collab.notes || 'Nessuna nota aggiuntiva.'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Cantieri */}
+                            <div className="space-y-3">
+                                <h4 className="text-sm font-semibold text-[#f8f9fa] border-b border-[#495057] pb-1 flex items-center justify-between">
+                                    Cantieri Attivi 
+                                    <Badge variant="outline" className="bg-indigo-500">{collab.cantieri?.length || 0}</Badge>
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {collab.cantieri?.length > 0 ? collab.cantieri.map(c => (
+                                        <div key={c._id} className="flex items-center gap-3 bg-[#212529] p-3 rounded-lg border border-[#495057]">
+                                            <HardHat size={16} className="text-yellow-500" />
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-medium text-[#f8f9fa] truncate">{c.nome_cantiere}</p>
+                                                <p className="text-[10px] text-[#6c757d]">{c.status}</p>
+                                            </div>
+                                        </div>
+                                    )) : (
+                                        <p className="text-xs text-[#6c757d] py-2 col-span-2">Nessun cantiere assegnato al momento.</p>
+                                    )}
+                                </div>
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="docs" className="space-y-4 outline-none">
+                            <h4 className="text-sm font-semibold text-[#f8f9fa] border-b border-[#495057] pb-1 flex items-center justify-between">
+                                Certificati & Documenti
+                                <Badge variant="outline" className="bg-emerald-500">{collaboratorsCerts.length}</Badge>
+                            </h4>
+                            <div className="space-y-2">
+                                {collaboratorsCerts.length > 0 ? collaboratorsCerts.map(cert => (
+                                    <div key={cert._id} className="flex items-center justify-between bg-[#212529] p-3 rounded-lg border border-[#495057]">
+                                        <div className="flex items-center gap-3">
+                                            <Shield size={16} className="text-emerald-400" />
+                                            <div>
+                                                <p className="text-xs font-medium text-[#f8f9fa]">{cert.title}</p>
+                                                <p className="text-[10px] text-[#6c757d]">Scadenza: {cert.expiry_date ? new Date(cert.expiry_date).toLocaleDateString('it-IT') : 'Indeterminata'}</p>
+                                            </div>
+                                        </div>
+                                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => window.open(cert.file_url, '_blank')}>
+                                            <ExternalLink size={14} />
+                                        </Button>
+                                    </div>
+                                )) : (
+                                    <p className="text-xs text-[#6c757d] py-2">Nessun certificato caricato per questo profilo.</p>
+                                )}
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="logs" className="space-y-4 outline-none">
+                             <CollaboratorWorkLogTab collaboratorId={id} />
+                        </TabsContent>
+
+                        {/* Management Bottom Bar */}
+                        <div className="pt-6 border-t border-[#495057] flex flex-col sm:flex-row gap-3">
+                            {!collab.user_id && (
+                                <Button onClick={() => onGenerateAccess(collab._id)} className="flex-1 bg-green-600 hover:bg-green-700 gap-2">
+                                    <Link size={16} /> Genera Link Accesso Password
+                                </Button>
+                            )}
+                            <Button variant="outline" onClick={onClose} className="flex-1 border-[#495057] text-[#adb5bd]">Chiudi</Button>
+                        </div>
+                    </Tabs>
+                )}
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function CollaboratorWorkLogTab({ collaboratorId }) {
+    const logs = useQuery(api.collaborators.listLogsForAdmin, { collaborator_id: collaboratorId }) || [];
+    const approveHours = useMutation(api.collaborators.approveHours);
+    const removeHours = useMutation(api.collaborators.removeHours);
+
+    return (
+        <div className="space-y-4">
+            <h4 className="text-sm font-semibold text-[#f8f9fa] border-b border-[#495057] pb-1 flex items-center justify-between">
+                Storico Ore Registrate
+                <Badge variant="outline" className="bg-cyan-500">{logs.length}</Badge>
+            </h4>
+            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {logs.length === 0 ? (
+                    <p className="text-xs text-[#6c757d] py-8 text-center italic">Nessun log ore trovato per questo collaboratore.</p>
+                ) : (
+                    logs.slice().reverse().map(log => (
+                        <div key={log._id} className="bg-[#212529] p-3 rounded-lg border border-[#495057] flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <CalendarDays size={14} className="text-indigo-400" />
+                                    <span className="text-xs font-bold text-[#f8f9fa]">{new Date(log.date).toLocaleDateString('it-IT')}</span>
+                                    <Badge variant="outline" className={`text-[10px] h-4 ${log.approved ? 'border-green-500/30 text-green-400' : 'border-yellow-500/30 text-yellow-400'}`}>
+                                        {log.approved ? 'Approvato' : 'Da Approvare'}
+                                    </Badge>
+                                </div>
+                                <span className="text-sm font-black text-[#f8f9fa]">{log.hours_worked}h</span>
+                            </div>
+                            
+                            {log.description && (
+                                <p className="text-[11px] text-[#adb5bd] leading-tight italic">"{log.description}"</p>
+                            )}
+
+                            {!log.approved && (
+                                <div className="flex justify-end gap-2 mt-1">
+                                    <Button size="sm" variant="ghost" onClick={() => removeHours({ id: log._id })} className="h-7 text-[10px] text-red-400 hover:bg-red-500/10">Elimina</Button>
+                                    <Button size="sm" onClick={() => approveHours({ id: log._id })} className="h-7 text-[10px] bg-green-600 hover:bg-green-700">Approva</Button>
+                                </div>
+                            )}
+                        </div>
+                    ))
+                )}
+            </div>
         </div>
     );
 }

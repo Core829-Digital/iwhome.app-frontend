@@ -56,9 +56,9 @@ export default function TeamManagement({ cantiereId }) {
     const removeTeamMember = useMutation(api.cantieri.removeTeamMember);
     const logActivity = useMutation(api.team_members.logActivity);
 
-    const canManageTeam = userRole?.permissions?.canManageTeam || false;
-    const canChangeRoles = userRole?.permissions?.canChangeRoles || false;
-    const canRemoveMembers = userRole?.permissions?.canRemoveMembers || false;
+    const canManageTeam = userRole?.permissions?.canManageTeam ;
+    const canChangeRoles = userRole?.permissions?.canChangeRoles ;
+    const canRemoveMembers = userRole?.permissions?.canRemoveMembers ;
 
     const handleInvite = async () => {
         if (!newMemberEmail) return;

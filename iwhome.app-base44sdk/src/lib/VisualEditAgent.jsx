@@ -429,7 +429,7 @@ export default function VisualEditAgent() {
 						updateElementClasses(
 							message.data.visualSelectorId,
 							message.data.classes,
-							message.data.replace || false
+							message.data.replace 
 						);
 					} else {
 						console.warn('[Agent] Invalid update-classes message:', message);

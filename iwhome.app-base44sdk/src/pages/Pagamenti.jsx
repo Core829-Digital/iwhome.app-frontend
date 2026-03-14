@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
@@ -10,7 +10,7 @@ import {
     CreditCard, DollarSign, Search, Plus, Loader2,
     CheckCircle, Clock, AlertTriangle, TrendingUp,
     Users, Truck, Briefcase, Calendar, Eye, ExternalLink, Building2,
-    Settings, Upload
+    Settings, Upload, ChevronLeft, ChevronRight, CheckCircle2, MessageSquare, Briefcase as BriefcaseIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,6 +73,11 @@ export default function Pagamenti() {
     const confirmPaymentMutation = useMutation(api.payments.confirmPayment);
     const uploadPaymentProofMutation = useMutation(api.payments.uploadPaymentProof);
     const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+    
+    // NEW Calendar Queries
+    const appointments = useQuery(api.appointments.get) || [];
+    const myCantieri = useQuery(api.cantieri.getByWorker, (role === 'collaborator_internal' || role === 'collaborator_external') ? {} : "skip") || [];
+    const staffTasks = useQuery(api.adminStats.getStaffTasks, { email: userEmail }) || [];
 
     // PDF State
     const [pdfUrl, setPdfUrl] = useState(null);
@@ -209,6 +214,97 @@ export default function Pagamenti() {
         return p.description.toLowerCase().includes(s) || p.reference_name?.toLowerCase().includes(s) || p.invoice_number?.toLowerCase().includes(s);
     });
 
+    // ─── Calendar Logic ──────────────────────────────────────────
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const events = useMemo(() => {
+        const evs = [];
+
+        // 1. Payments
+        payments.forEach(p => {
+            if (p.due_date) {
+                evs.push({
+                    date: p.due_date,
+                    type: 'payment',
+                    title: `Pagamento: ${p.amount}€`,
+                    description: p.description,
+                    color: p.status === 'pagato' ? 'bg-emerald-500' : 'bg-amber-500',
+                    icon: CreditCard
+                });
+            }
+        });
+
+        // 2. Appointments
+        appointments.forEach(a => {
+            if (a.appointment_date) {
+                evs.push({
+                    date: a.appointment_date,
+                    type: 'appointment',
+                    title: `Appunto: ${a.appointment_time}`,
+                    description: `${a.project_type} - ${a.notes || ''}`,
+                    color: 'bg-blue-500',
+                    icon: MessageSquare
+                });
+            }
+        });
+
+        // 3. Project Starts (Cantieri created_date)
+        myCantieri.forEach(c => {
+            if (c.created_date) {
+                evs.push({
+                    date: c.created_date.split('T')[0],
+                    type: 'cantiere',
+                    title: `Inizio Project: ${c.nome_cantiere}`,
+                    description: `Progetto avviato il ${new Date(c.created_date).toLocaleDateString()}`,
+                    color: 'bg-indigo-500',
+                    icon: Building2
+                });
+            }
+        });
+
+        // 4. Tasks
+        staffTasks.forEach(t => {
+            if (t.due_date) {
+                evs.push({
+                    date: t.due_date,
+                    type: 'task',
+                    title: `Task: ${t.title || 'In Attesa'}`,
+                    description: t.description || 'Completamento task assegnato',
+                    color: t.status === 'completed' ? 'bg-green-500' : 'bg-purple-500',
+                    icon: CheckCircle2
+                });
+            }
+        });
+
+        return evs;
+    }, [payments, appointments, myCantieri, staffTasks]);
+
+    const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+    const firstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
+
+    const calendarGrid = useMemo(() => {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const days = daysInMonth(year, month);
+        const startDay = firstDayOfMonth(year, month);
+        const grid = [];
+
+        // Padding for previous month
+        for (let i = 0; i < (startDay === 0 ? 6 : startDay - 1); i++) {
+            grid.push(null);
+        }
+
+        for (let d = 1; d <= days; d++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            grid.push({
+                day: d,
+                date: dateStr,
+                events: events.filter(e => e.date === dateStr)
+            });
+        }
+
+        return grid;
+    }, [currentDate, events]);
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
 
@@ -224,6 +320,7 @@ export default function Pagamenti() {
                             <p className="text-[#adb5bd]">
                                 {role === 'supplier' ? 'I pagamenti incassati da IWHome per i tuoi servizi' :
                                  role === 'client' ? 'I tuoi pagamenti e le tue ricevute' :
+                                 role?.startsWith('collaborator') ? 'Visualizza i tuoi compensi e stipendi' :
                                  'Dashboard pagamenti unificata — Gestione spese e incassi'}
                             </p>
                         </div>
@@ -256,8 +353,7 @@ export default function Pagamenti() {
                                 { label: 'In Ritardo', value: `€${stats.totalOverdue?.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: 'from-red-600/80 to-red-700/80' },
                                 { label: 'Fornitori', value: stats.supplierCount, color: 'from-orange-600/80 to-orange-700/80' },
                                 { label: 'Collaboratori', value: stats.collaboratorCount, color: 'from-indigo-600/80 to-indigo-700/80' },
-                                { label: 'Clienti', value: stats.clientCount, color: 'from-blue-600/80 to-blue-700/80' },
-                            ].map(s => (
+                                { label: 'Clienti', value: stats.clientCount, color: 'from-blue-600/80 to-blue-700/80' }].map(s => (
                                 <Card key={s.label} className={`bg-gradient-to-br ${s.color} border-0`}>
                                     <CardContent className="p-3 text-center">
                                         <span className="text-xl font-light text-white">{s.value}</span>
@@ -289,9 +385,9 @@ export default function Pagamenti() {
                     </Card>
 
                     {/* Type Tabs */}
-                    {isAdmin && (
+                    {(isAdmin || role?.includes('collaborator')) && (
                         <Tabs value={activeTab} onValueChange={setActiveTab}>
-                            <TabsList className="bg-[#343a40] border border-[#495057] w-full grid grid-cols-3 mb-6">
+                            <TabsList className="bg-[#343a40] border border-[#495057] w-full grid grid-cols-4 mb-6">
                                 <TabsTrigger value="supplier" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white text-[#adb5bd]">
                                     <Truck size={16} className="mr-2" /> Fornitori <span className="ml-1.5 text-[10px] opacity-70">(Uscite)</span>
                                 </TabsTrigger>
@@ -300,6 +396,9 @@ export default function Pagamenti() {
                                 </TabsTrigger>
                                 <TabsTrigger value="client" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-[#adb5bd]">
                                     <Users size={16} className="mr-2" /> Clienti <span className="ml-1.5 text-[10px] opacity-70">(Entrate)</span>
+                                </TabsTrigger>
+                                <TabsTrigger value="calendar" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-[#adb5bd]">
+                                    <Calendar size={16} className="mr-2" /> Calendario <span className="ml-1.5 text-[10px] opacity-70">(Agenda)</span>
                                 </TabsTrigger>
                             </TabsList>
                         </Tabs>
@@ -326,118 +425,194 @@ export default function Pagamenti() {
                         </Card>
                     )}
 
-                    {/* Payments List */}
-                    {filteredPayments.length === 0 ? (
-                        <div className="text-center py-12 bg-[#343a40]/50 rounded-2xl border border-[#495057]">
-                            <DollarSign size={48} className="text-[#6c757d] mx-auto mb-4" />
-                            <h3 className="text-xl text-[#dee2e6]">Nessun pagamento trovato</h3>
+                    {/* Main Content Area */}
+                    {activeTab === 'calendar' ? (
+                        <div className="space-y-6">
+                            {/* Calendar Header */}
+                            <div className="flex items-center justify-between bg-[#343a40]/50 backdrop-blur-xl border border-[#495057] p-4 rounded-2xl">
+                                <Button variant="ghost" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="text-[#adb5bd] hover:text-[#f8f9fa]">
+                                    <ChevronLeft size={20} />
+                                </Button>
+                                <h2 className="text-xl font-medium text-[#f8f9fa] capitalize">
+                                    {currentDate.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}
+                                </h2>
+                                <Button variant="ghost" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} className="text-[#adb5bd] hover:text-[#f8f9fa]">
+                                    <ChevronRight size={20} />
+                                </Button>
+                            </div>
+
+                            {/* Calendar Grid */}
+                            <div className="grid grid-cols-7 gap-2">
+                                {['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map(day => (
+                                    <div key={day} className="text-center py-2 text-xs font-black uppercase text-[#6c757d] tracking-widest">{day}</div>
+                                ))}
+                                {calendarGrid.map((day, idx) => (
+                                    <div 
+                                        key={idx} 
+                                        className={`min-h-[120px] bg-[#343a40]/30 backdrop-blur-sm border border-[#495057]/50 rounded-xl p-2 transition-all hover:bg-[#343a40]/50 ${!day ? 'opacity-20' : ''}`}
+                                    >
+                                        {day && (
+                                            <>
+                                                <span className={`text-sm font-bold ${new Date().toISOString().split('T')[0] === day.date ? 'text-blue-400' : 'text-[#adb5bd]'}`}>
+                                                    {day.day}
+                                                </span>
+                                                <div className="mt-2 space-y-1">
+                                                    {day.events.map((ev, eIdx) => (
+                                                        <div 
+                                                            key={eIdx} 
+                                                            className={`group relative p-1.5 rounded-lg ${ev.color} bg-opacity-20 border border-current border-opacity-30 cursor-pointer hover:bg-opacity-30 transition-all`}
+                                                            title={ev.description}
+                                                        >
+                                                            <div className="flex items-center gap-1.5 overflow-hidden">
+                                                                <ev.icon size={10} className="shrink-0" />
+                                                                <span className="text-[9px] font-bold truncate leading-none">{ev.title}</span>
+                                                            </div>
+                                                            {/* Detailed Tooltip on hover */}
+                                                            <div className="absolute z-50 invisible group-hover:visible bg-[#212529] border border-[#495057] p-3 rounded-xl shadow-2xl w-48 left-1/2 -translate-x-1/2 bottom-full mb-2 pointer-events-none">
+                                                                <p className="text-[10px] font-black uppercase tracking-widest text-[#6c757d] mb-1">{ev.type}</p>
+                                                                <p className="text-xs font-bold text-[#f8f9fa] mb-1">{ev.title}</p>
+                                                                <p className="text-[10px] text-[#adb5bd] leading-tight">{ev.description}</p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Legend */}
+                            <div className="flex flex-wrap gap-4 mt-6 p-4 bg-[#343a40]/30 rounded-2xl border border-[#495057]/30">
+                                <div className="flex items-center gap-2 text-[10px] font-bold text-[#adb5bd]">
+                                    <div className="w-3 h-3 rounded bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]" /> Pagamenti
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] font-bold text-[#adb5bd]">
+                                    <div className="w-3 h-3 rounded bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.3)]" /> Appuntamenti
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] font-bold text-[#adb5bd]">
+                                    <div className="w-3 h-3 rounded bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.3)]" /> Inizio Cantieri
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] font-bold text-[#adb5bd]">
+                                    <div className="w-3 h-3 rounded bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.3)]" /> Task & Scadenze
+                                </div>
+                            </div>
                         </div>
                     ) : (
-                        <div className="space-y-3">
-                            {filteredPayments.map(payment => {
-                                const sts = paymentStatusConfig[payment.status] || paymentStatusConfig.in_attesa;
-                                const StatusIcon = sts.icon;
-                                return (
-                                    <motion.div key={payment._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                                        <Card className="bg-[#343a40] border border-[#495057] hover:border-[#6c757d] transition-all">
-                                            <CardContent className="p-5">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-3 mb-1">
-                                                            <h3 className="text-lg font-medium text-[#f8f9fa]">{payment.description}</h3>
-                                                            {payment.payment_type && (
-                                                                <Badge variant="default" className="bg-[#495057] text-[#adb5bd] text-xs capitalize">{payment.payment_type}</Badge>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex items-center gap-4 text-sm text-[#adb5bd] mt-1">
-                                                            {payment.reference_name && <span>{payment.reference_name}</span>}
-                                                            {payment.invoice_number && <span>Fattura: {payment.invoice_number}</span>}
-                                                            {payment.cantiere_id && (() => {
-                                                                const cantiere = cantieri.find(c => c._id === payment.cantiere_id);
-                                                                return cantiere ? <span className="flex items-center gap-1 text-emerald-400 font-medium"><Building2 size={12} /> {cantiere.nome_cantiere}</span> : null;
-                                                            })()}
-                                                        </div>
-                                                        <div className="flex items-center gap-4 text-xs text-[#6c757d] mt-2">
-                                                            {payment.due_date && <span className="flex items-center gap-1"><Calendar size={12} /> Scadenza: {new Date(payment.due_date).toLocaleDateString('it-IT')}</span>}
-                                                            {payment.paid_date && <span className="flex items-center gap-1"><CheckCircle size={12} className="text-green-400" /> Pagato: {new Date(payment.paid_date).toLocaleDateString('it-IT')}</span>}
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-4">
-                                                        <span className="text-xl font-medium text-[#f8f9fa]">€{payment.amount?.toLocaleString()}</span>
-                                                        <Badge variant="default" className={`${sts.color} border flex items-center gap-1`}>
-                                                            <StatusIcon size={14} /> {sts.label}
-                                                        </Badge>
-                                                    </div>
-                                                </div>
-                                                {/* Cross-navigation: link to source entity */}
-                                                <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#495057]">
-                                                    <div className="flex gap-2">
-                                                        {payment.type === 'supplier' && payment.reference_name && (
-                                                            <button onClick={() => navigate('/Fornitori')} className="flex items-center gap-1 text-[10px] bg-orange-500/10 text-orange-400 px-2 py-1 rounded-md hover:bg-orange-500/20 transition-all">
-                                                                <Truck size={10} /> {payment.reference_name}
-                                                            </button>
-                                                        )}
-                                                        {payment.type === 'collaborator' && payment.reference_name && (
-                                                            <button onClick={() => navigate('/Collaboratori')} className="flex items-center gap-1 text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-1 rounded-md hover:bg-indigo-500/20 transition-all">
-                                                                <Briefcase size={10} /> {payment.reference_name}
-                                                            </button>
-                                                        )}
-                                                        {payment.type === 'client' && payment.reference_name && (
-                                                            <button onClick={() => navigate('/Clienti')} className="flex items-center gap-1 text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded-md hover:bg-emerald-500/20 transition-all">
-                                                                <Users size={10} /> {payment.reference_name}
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                        {isAdmin && (
-                                                            <Button size="sm" variant="ghost" onClick={() => handleDelete(payment._id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2 h-8 mr-1">
-                                                                ×
-                                                            </Button>
-                                                        )}
-                                                        {( (isAdmin && payment.type === 'supplier' && payment.status === 'in_attesa') || 
-                                                           (isClient && payment.type === 'client' && payment.status === 'in_attesa') ) && (
-                                                            <div className="flex items-center gap-2 mr-1">
-                                                                <Input type="file" id={`proof-${payment._id}`} className="hidden" onChange={(e) => handleUploadPaymentProof(payment._id, e.target.files[0])} />
-                                                                <Button size="sm" onClick={() => document.getElementById(`proof-${payment._id}`).click()} className="bg-blue-600 hover:bg-blue-700 text-xs h-8">
-                                                                    <Upload size={14} className="mr-1" /> Carica Prova
-                                                                </Button>
+                        <>
+                            {/* Payments List */}
+                            {filteredPayments.length === 0 ? (
+                                <div className="text-center py-12 bg-[#343a40]/50 rounded-2xl border border-[#495057]">
+                                    <DollarSign size={48} className="text-[#6c757d] mx-auto mb-4" />
+                                    <h3 className="text-xl text-[#dee2e6]">Nessun pagamento trovato</h3>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {filteredPayments.map(payment => {
+                                        const sts = paymentStatusConfig[payment.status] || paymentStatusConfig.in_attesa;
+                                        const StatusIcon = sts.icon;
+                                        return (
+                                            <motion.div key={payment._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                                                <Card className="bg-[#343a40] border border-[#495057] hover:border-[#6c757d] transition-all">
+                                                    <CardContent className="p-5">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-3 mb-1">
+                                                                    <h3 className="text-lg font-medium text-[#f8f9fa]">{payment.description}</h3>
+                                                                    {payment.payment_type && (
+                                                                        <Badge variant="default" className="bg-[#495057] text-[#adb5bd] text-xs capitalize">{payment.payment_type}</Badge>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex items-center gap-4 text-sm text-[#adb5bd] mt-1">
+                                                                    {payment.reference_name && <span>{payment.reference_name}</span>}
+                                                                    {payment.invoice_number && <span>Fattura: {payment.invoice_number}</span>}
+                                                                    {payment.cantiere_id && (() => {
+                                                                        const cantiere = cantieri.find(c => c._id === payment.cantiere_id);
+                                                                        return cantiere ? <span className="flex items-center gap-1 text-emerald-400 font-medium"><Building2 size={12} /> {cantiere.nome_cantiere}</span> : null;
+                                                                    })()}
+                                                                </div>
+                                                                <div className="flex items-center gap-4 text-xs text-[#6c757d] mt-2">
+                                                                    {payment.due_date && <span className="flex items-center gap-1"><Calendar size={12} /> Scadenza: {new Date(payment.due_date).toLocaleDateString('it-IT')}</span>}
+                                                                    {payment.paid_date && <span className="flex items-center gap-1"><CheckCircle size={12} className="text-green-400" /> Pagato: {new Date(payment.paid_date).toLocaleDateString('it-IT')}</span>}
+                                                                </div>
                                                             </div>
-                                                        )}
-                                                        {payment.proof_url && (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
-                                                                onClick={() => {
-                                                                    setPdfUrl(payment.proof_url);
-                                                                    setPdfTitle(`Prova: ${payment.description}`);
-                                                                    setIsPdfOpen(true);
-                                                                }}
-                                                                className="bg-cyan-500/10 border-cyan-500/30 text-cyan-400 h-8 text-xs mr-1"
-                                                            >
-                                                                <Eye size={14} className="mr-1" /> Vedi Prova
-                                                            </Button>
-                                                        )}
-                                                        {( (isAdmin && payment.status === 'in_verifica' && payment.type === 'client') || 
-                                                           (isSupplier && payment.status === 'in_verifica' && payment.type === 'supplier') ||
-                                                           (isAdmin && payment.status === 'in_verifica' && payment.type === 'supplier')
-                                                        ) && (
-                                                            <Button size="sm" onClick={() => handleConfirmPayment(payment._id)} className="bg-cyan-600 hover:bg-cyan-700 text-xs h-8 mr-1">
-                                                                <CheckCircle size={14} className="mr-1" /> {isSupplier ? 'Conferma Ricezione' : 'Conferma'}
-                                                            </Button>
-                                                        )}
-                                                        {isAdmin && payment.status !== 'pagato' && payment.status !== 'in_verifica' && (
-                                                            <Button size="sm" onClick={() => handleMarkPaid(payment._id)} className="bg-green-600 hover:bg-green-700 text-xs h-8 text-nowrap">
-                                                                <CheckCircle size={14} className="mr-1" /> Segna Pagato
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    </motion.div>
-                                );
-                            })}
-                        </div>
+                                                            <div className="flex items-center gap-4">
+                                                                <span className="text-xl font-medium text-[#f8f9fa]">€{payment.amount?.toLocaleString()}</span>
+                                                                <Badge variant="default" className={`${sts.color} border flex items-center gap-1`}>
+                                                                    <StatusIcon size={14} /> {sts.label}
+                                                                </Badge>
+                                                            </div>
+                                                        </div>
+                                                        {/* Cross-navigation: link to source entity */}
+                                                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#495057]">
+                                                            <div className="flex gap-2">
+                                                                {payment.type === 'supplier' && payment.reference_name && (
+                                                                    <button onClick={() => navigate('/Fornitori')} className="flex items-center gap-1 text-[10px] bg-orange-500/10 text-orange-400 px-2 py-1 rounded-md hover:bg-orange-500/20 transition-all">
+                                                                        <Truck size={10} /> {payment.reference_name}
+                                                                    </button>
+                                                                )}
+                                                                {payment.type === 'collaborator' && payment.reference_name && (
+                                                                    <button onClick={() => navigate('/Collaboratori')} className="flex items-center gap-1 text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-1 rounded-md hover:bg-indigo-500/20 transition-all">
+                                                                        <Briefcase size={10} /> {payment.reference_name}
+                                                                    </button>
+                                                                )}
+                                                                {payment.type === 'client' && payment.reference_name && (
+                                                                    <button onClick={() => navigate('/Clienti')} className="flex items-center gap-1 text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded-md hover:bg-emerald-500/20 transition-all">
+                                                                        <Users size={10} /> {payment.reference_name}
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex gap-2">
+                                                                {isAdmin && (
+                                                                    <Button size="sm" variant="ghost" onClick={() => handleDelete(payment._id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2 h-8 mr-1">
+                                                                        ×
+                                                                    </Button>
+                                                                )}
+                                                                {( (isAdmin && payment.type === 'supplier' && payment.status === 'in_attesa') || 
+                                                                    (isClient && payment.type === 'client' && payment.status === 'in_attesa') ) && (
+                                                                    <div className="flex items-center gap-2 mr-1">
+                                                                        <Input type="file" id={`proof-${payment._id}`} className="hidden" onChange={(e) => handleUploadPaymentProof(payment._id, e.target.files[0])} />
+                                                                        <Button size="sm" onClick={() => document.getElementById(`proof-${payment._id}`).click()} className="bg-blue-600 hover:bg-blue-700 text-xs h-8">
+                                                                            <Upload size={14} className="mr-1" /> Carica Prova
+                                                                        </Button>
+                                                                    </div>
+                                                                )}
+                                                                {payment.proof_url && (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        onClick={() => {
+                                                                            setPdfUrl(payment.proof_url);
+                                                                            setPdfTitle(`Prova: ${payment.description}`);
+                                                                            setIsPdfOpen(true);
+                                                                        }}
+                                                                        className="bg-cyan-500/10 border-cyan-500/30 text-cyan-400 h-8 text-xs mr-1"
+                                                                    >
+                                                                        <Eye size={14} className="mr-1" /> Vedi Prova
+                                                                    </Button>
+                                                                )}
+                                                                {( (isAdmin && payment.status === 'in_verifica' && payment.type === 'client') || 
+                                                                    (isSupplier && payment.status === 'in_verifica' && payment.type === 'supplier')
+                                                                ) && (
+                                                                    <Button size="sm" onClick={() => handleConfirmPayment(payment._id)} className="bg-cyan-600 hover:bg-cyan-700 text-xs h-8 mr-1">
+                                                                        <CheckCircle size={14} className="mr-1" /> {isSupplier ? 'Conferma Ricezione' : 'Conferma'}
+                                                                    </Button>
+                                                                )}
+                                                                {isAdmin && payment.status !== 'pagato' && payment.status !== 'in_verifica' && (
+                                                                    <Button size="sm" onClick={() => handleMarkPaid(payment._id)} className="bg-green-600 hover:bg-green-700 text-xs h-8 text-nowrap">
+                                                                        <CheckCircle size={14} className="mr-1" /> Segna Pagato
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            </motion.div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>

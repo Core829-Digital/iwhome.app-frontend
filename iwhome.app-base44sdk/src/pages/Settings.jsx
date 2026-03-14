@@ -155,6 +155,9 @@ export default function Settings() {
       ceo: { label: 'CEO', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
       client: { label: 'Cliente', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
       operaio: { label: 'Operaio', color: 'bg-orange-500/20 text-orange-300 border-orange-500/30' },
+      collaborator_internal: { label: 'Collaboratore Interno', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
+      collaborator_external: { label: 'Collaboratore Esterno', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
+      worker: { label: 'Collaboratore', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
       user: { label: 'Utente', color: 'bg-green-500/20 text-green-300 border-green-500/30' },
     };
     const role = convexUser?.role || 'user';
@@ -319,6 +322,27 @@ export default function Settings() {
                         <li>Visualizza i cantieri della tua squadra</li>
                         <li>Aggiorna lo stato dei task assegnati</li>
                         <li>Comunica con la squadra nella chat dedicata</li>
+                      </ul>
+                    </div>
+                  </Card>
+                </div>
+              )}
+
+              {/* Staff-only Info */}
+              {(convexUser?.role === 'collaborator_internal' || convexUser?.role === 'collaborator_external') && (
+                <div className="pt-6 border-t border-[#f8f9fa]/10 space-y-4">
+                  <h2 className="text-xl font-medium text-[#f8f9fa] flex items-center gap-2">
+                    <Briefcase size={20} />
+                    Info Collaboratore
+                  </h2>
+                  <Card className="bg-indigo-500/10 border-indigo-500/20 p-4">
+                    <div className="space-y-2">
+                      <p className="text-sm text-indigo-200 font-medium">Accesso privilegiato staff</p>
+                      <ul className="text-xs text-indigo-300/80 space-y-1 list-disc list-inside">
+                        <li>Registrazione ore settimanali e log storico</li>
+                        <li>Visualizzazione pagamenti e scadenze</li>
+                        <li>Chat diretta con l'amministrazione sbloccata</li>
+                        <li>Certificati personali e professionali</li>
                       </ul>
                     </div>
                   </Card>

@@ -18,8 +18,7 @@ const categories = [
   { id: 'materiali', name: 'Materiali' },
   { id: 'design', name: 'Design' },
   { id: 'guide', name: 'Guide' },
-  { id: 'novita', name: 'Novità' },
-];
+  { id: 'novita', name: 'Novità' }];
 
 const categoryFallbackImages = {
   ristrutturazioni: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&q=80',
@@ -38,8 +37,7 @@ const getFallbackImage = (category, index) => {
     'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800&q=80',
     'https://images.unsplash.com/photo-1618219908412-a29a1bb7b86e?w=800&q=80',
     'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80',
-    'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=800&q=80',
-  ];
+    'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=800&q=80'];
   return categoryFallbackImages[category] || indexFallbacks[index % indexFallbacks.length] || categoryFallbackImages.default;
 };
 

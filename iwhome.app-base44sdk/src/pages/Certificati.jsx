@@ -37,15 +37,21 @@ export default function Certificati() {
     const { isAdmin, canView, isLoading: rbacLoading } = useRBAC();
     const { user } = useUser();
     const userEmail = user?.primaryEmailAddress?.emailAddress || "";
+    if (!userEmail) return null;
+    
+    const convexUser = useQuery(api.users.getByEmail, { email: userEmail });
+    const isWorker = convexUser?.role?.startsWith("collaborator");
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [activeCategory, setActiveCategory] = useState('edilizia');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [formData, setFormData] = useState({
         title: '', category: 'edilizia', subcategory: '', description: '',
-        file_url: '', file_name: '', issue_date: '', expiry_date: '',
+        issue_date: '', expiry_date: '',
         cantiere_id: '', supplier_id: '', collaborator_id: '',
     });
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [isUploading, setIsUploading] = useState(false);
 
     const certificates = useQuery(api.certificates.list, { category: activeCategory }) || [];
     const stats = useQuery(api.certificates.getStats) || null;
@@ -54,6 +60,7 @@ export default function Certificati() {
     const cantieri = useQuery(api.cantieri.listCantieri, { company_email: userEmail }) || [];
     const createMutation = useMutation(api.certificates.create);
     const removeMutation = useMutation(api.certificates.remove);
+    const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
 
     if (rbacLoading) {
         return (<div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] flex items-center justify-center"><Loader2 className="animate-spin text-blue-500" size={40} /></div>);
@@ -71,15 +78,26 @@ export default function Certificati() {
     }
 
     const handleCreate = async () => {
-        if (!formData.title || !formData.file_url || !formData.file_name) return;
+        if (!formData.title || !selectedFile) return;
+        setIsUploading(true);
         try {
+            const postUrl = await generateUploadUrl();
+            const result = await fetch(postUrl, {
+                method: "POST",
+                headers: { "Content-Type": selectedFile.type },
+                body: selectedFile,
+            });
+            const { storageId } = await result.json();
+            const fileId = storageId;
+            const fileName = selectedFile.name;
+
             const payload = /** @type {any} */ ({
                 title: formData.title,
                 category: formData.category,
                 subcategory: formData.subcategory,
                 description: formData.description,
-                file_url: formData.file_url,
-                file_name: formData.file_name,
+                file_url: fileId,
+                file_name: fileName,
                 issue_date: formData.issue_date || undefined,
                 expiry_date: formData.expiry_date || undefined,
                 cantiere_id: formData.cantiere_id || undefined,
@@ -90,10 +108,16 @@ export default function Certificati() {
             setShowCreateModal(false);
             setFormData({
                 title: '', category: 'edilizia', subcategory: '', description: '',
-                file_url: '', file_name: '', issue_date: '', expiry_date: '',
+                issue_date: '', expiry_date: '',
                 cantiere_id: '', supplier_id: '', collaborator_id: '',
             });
-        } catch (err) { console.error(err); }
+            setSelectedFile(null);
+        } catch (err) {
+            console.error(err);
+            alert("Errore durante il caricamento del file.");
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     const handleDelete = async (id) => {
@@ -127,7 +151,9 @@ export default function Certificati() {
                             <h1 className="text-3xl font-light text-[#f8f9fa] mb-2 flex items-center gap-3">
                                 <Shield className="text-amber-400" /> Certificati
                             </h1>
-                            <p className="text-[#adb5bd]">Gestione certificati edilizia, infissi e documenti con scadenzario</p>
+                            <p className="text-[#adb5bd]">
+                                {isWorker ? 'Consulta i tuoi documenti e certificazioni personali' : 'Gestione certificati edilizia, infissi e documenti con scadenzario'}
+                            </p>
                         </div>
                         {isAdmin && (
                             <Button onClick={() => setShowCreateModal(true)} className="bg-amber-600 hover:bg-amber-700">
@@ -146,8 +172,7 @@ export default function Certificati() {
                                 { label: 'Scaduti', value: stats.expired, color: 'from-red-600/80 to-red-700/80' },
                                 { label: 'Edilizia', value: stats.edilizia, color: 'from-orange-600/80 to-orange-700/80' },
                                 { label: 'Infissi', value: stats.infissi, color: 'from-blue-600/80 to-blue-700/80' },
-                                { label: 'Documenti', value: stats.documenti, color: 'from-purple-600/80 to-purple-700/80' },
-                            ].map(s => (
+                                { label: 'Documenti', value: stats.documenti, color: 'from-purple-600/80 to-purple-700/80' }].map(s => (
                                 <Card key={s.label} className={`bg-gradient-to-br ${s.color} border-0`}>
                                     <CardContent className="p-3 text-center">
                                         <span className="text-xl font-light text-white">{s.value}</span>
@@ -305,8 +330,16 @@ export default function Certificati() {
                             </Select>
                         </div>
                         <Textarea placeholder="Descrizione" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]" />
-                        <Input placeholder="URL File (Storage ID) *" value={formData.file_url} onChange={e => setFormData({ ...formData, file_url: e.target.value })} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]" />
-                        <Input placeholder="Nome File *" value={formData.file_name} onChange={e => setFormData({ ...formData, file_name: e.target.value })} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]" />
+                        <div className="space-y-2">
+                            <label className="text-xs text-orange-400 font-medium">Allegato PDF/Certificato *</label>
+                            <Input 
+                                type="file" 
+                                accept=".pdf,.doc,.docx,image/*" 
+                                onChange={e => setSelectedFile(e.target.files[0])} 
+                                className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] text-xs file:bg-[#343a40] file:text-orange-400 file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 hover:file:bg-[#212529]" 
+                            />
+                            {selectedFile && <p className="text-[10px] text-green-400">File selezionato: {selectedFile.name}</p>}
+                        </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="text-xs text-[#adb5bd] block mb-1">Data Emissione</label>
@@ -317,7 +350,9 @@ export default function Certificati() {
                                 <Input type="date" value={formData.expiry_date} onChange={e => setFormData({ ...formData, expiry_date: e.target.value })} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]" />
                             </div>
                         </div>
-                        <Button onClick={handleCreate} disabled={!formData.title || !formData.file_url || !formData.file_name} className="w-full bg-amber-600 hover:bg-amber-700">Crea Certificato</Button>
+                        <Button onClick={handleCreate} disabled={!formData.title || !selectedFile || isUploading} className="w-full bg-amber-600 hover:bg-amber-700">
+                            {isUploading ? <><Loader2 className="animate-spin mr-2" size={16} /> Caricamento...</> : 'Crea Certificato'}
+                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>

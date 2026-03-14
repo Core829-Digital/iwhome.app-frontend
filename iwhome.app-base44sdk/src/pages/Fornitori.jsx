@@ -95,9 +95,10 @@ function MiniChat({ channelType, channelId, channelName, currentUserEmail, conta
     const [mentionQuery, setMentionQuery] = useState('');
     const [showMentions, setShowMentions] = useState(false);
     
-    // Fetch mentionables (requests and orders for this supplier)
-    const supplierRequests = useQuery(api.suppliers.listRequests, { supplier_id: channelId }) || [];
-    const supplierOrders = useQuery(api.suppliers.listOrders, { supplier_id: channelId }) || [];
+    // Fetch mentionables ONLY if the channel is a supplier chat to avoid ID validation errors
+    const isSupplierChannel = channelType === 'supplier';
+    const supplierRequests = useQuery(api.suppliers.listRequests, isSupplierChannel ? { supplier_id: channelId } : "skip") || [];
+    const supplierOrders = useQuery(api.suppliers.listOrders, isSupplierChannel ? { supplier_id: channelId } : "skip") || [];
     
     const mentionables = [
         ...supplierRequests.map(r => ({ id: r._id, type: 'Richiesta', label: r.title, description: r.material || r.fixture_type })),
@@ -345,6 +346,9 @@ export default function Fornitori() {
     const [editingDelivery, setEditingDelivery] = useState({ id: undefined, estimated_arrival: '', confirmed_arrival: '', client_delivery_date: '' }); // Task 13
     const [newSupplier, setNewSupplier] = useState({ name: '', email: '', phone: '', address: '', piva: '', type: 'subprod', notes: '', contact_person: '' });
     const [quoteData, setQuoteData] = useState({ quoted_price: '', preliminary_quote: '', supplier_notes: '', supplier_quote_doc_id: undefined });
+    const [showPaymentPlanModal, setShowPaymentPlanModal] = useState(null); // order object
+    const [paymentProposal, setPaymentProposal] = useState([{ amount: 0, due_date: '', description: 'Acconto' }]);
+    const [proposalNotes, setProposalNotes] = useState('');
 
     // Payment Proof Viewer State
     const [isPdfOpen, setIsPdfOpen] = useState(false);
@@ -390,6 +394,23 @@ export default function Fornitori() {
     const advanceWorkflow = useMutation(api.suppliers.advanceWorkflow);
     const markAccontoPaid = useMutation(api.suppliers.markAccontoPaid);
     const confirmPaymentMutation = useMutation(api.payments.confirmPayment);
+    const proposePaymentPlan = useMutation(api.suppliers.proposePaymentPlan);
+
+    const handleProposePaymentPlan = async () => {
+        if (!showPaymentPlanModal) return;
+        try {
+            await proposePaymentPlan({
+                order_id: showPaymentPlanModal._id,
+                proposal: paymentProposal,
+                notes: proposalNotes,
+            });
+            setShowPaymentPlanModal(null);
+            alert("Proposta inviata correttamente all'amministrazione.");
+        } catch (err) {
+            console.error(err);
+            alert("Errore nell'invio della proposta.");
+        }
+    };
 
     // WhatsApp link state
     const [whatsappPassword, setWhatsappPassword] = useState('');
@@ -615,16 +636,14 @@ export default function Fornitori() {
         { key: 'produzione', label: 'Produzione', icon: Factory },
         { key: 'consegne', label: 'Consegne', icon: MapPin },
         { key: 'comunicazioni', label: 'Chat', icon: MessageCircle },
-        { key: 'calendario', label: 'Calendario', icon: Calendar },
-    ] : [
+        { key: 'calendario', label: 'Calendario', icon: Calendar }] : [
         { key: 'anagrafica', label: 'Anagrafica', icon: Building2 },
         { key: 'richieste', label: 'Richieste', icon: FileText },
         { key: 'ordini', label: 'Ordini', icon: Package },
         { key: 'produzione', label: 'Produzione', icon: Factory },
         { key: 'consegne', label: 'Consegne', icon: MapPin },
         { key: 'comunicazioni', label: 'Chat', icon: MessageCircle },
-        { key: 'calendario', label: 'Calendario', icon: Calendar },
-    ];
+        { key: 'calendario', label: 'Calendario', icon: Calendar }];
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
@@ -676,8 +695,7 @@ export default function Fornitori() {
                                 { label: 'Richieste', count: requests.filter(r => r.status === 'sent' || r.status === 'received').length, color: 'from-blue-600/80 to-blue-700/80', icon: FileText },
                                 { label: 'In Consegna', count: deliveries.filter(d => d.status !== 'consegnato').length, color: 'from-yellow-600/80 to-yellow-700/80', icon: MapPin },
                                 { label: 'Pagamenti Pendenti', count: allPayments.filter(p => p.status === 'in_attesa' || p.status === 'in_ritardo').length, color: 'from-red-600/80 to-red-700/80', icon: CreditCard },
-                                { label: 'Consegnati', count: deliveries.filter(d => d.status === 'consegnato').length, color: 'from-emerald-600/80 to-emerald-700/80', icon: CheckCircle },
-                            ].map((stat) => (
+                                { label: 'Consegnati', count: deliveries.filter(d => d.status === 'consegnato').length, color: 'from-emerald-600/80 to-emerald-700/80', icon: CheckCircle }].map((stat) => (
                                 <Card key={stat.label} className={`bg-gradient-to-br ${stat.color} border-0 cursor-pointer hover:scale-[1.02] transition-transform`} onClick={() => setActiveTab(stat.label === 'Pagamenti Pendenti' ? 'ordini' : stat.label === 'Consegnati' || stat.label === 'In Consegna' ? 'consegne' : stat.label === 'Richieste' ? 'richieste' : stat.label === 'Ordini Attivi' ? 'ordini' : 'anagrafica')}>
                                     <CardContent className="p-3">
                                         <div className="flex items-center justify-between">
@@ -1017,6 +1035,28 @@ export default function Fornitori() {
                                                             </Button>
                                                         </div>
                                                     )}
+
+                                                    {/* Supplier Propose Payment Plan (Available anytime if not yet proposed) */}
+                                                    {isSupplier && !order.payment_proposal && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 text-[10px] h-7 px-2 ml-auto mt-2"
+                                                            onClick={() => {
+                                                                setShowPaymentPlanModal(order);
+                                                                setPaymentProposal([{ amount: order.total_amount || 0, due_date: '', description: 'Saldo' }]);
+                                                            }}
+                                                        >
+                                                            <CreditCard size={12} className="mr-1" /> Proponi Piano Pagamenti
+                                                        </Button>
+                                                    )}
+                                                    {order.payment_proposal && (
+                                                        <div className="ml-auto mt-2">
+                                                            <Badge variant="outline" className={`text-[9px] ${order.payment_proposal_status === 'accepted' ? 'text-green-400 border-green-500/50' : 'text-yellow-400 border-yellow-500/50'}`}>
+                                                                Piano: {order.payment_proposal_status === 'accepted' ? 'Approvato' : 'In Attesa'}
+                                                            </Badge>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </CardContent>
                                         </Card>
@@ -1140,8 +1180,7 @@ export default function Fornitori() {
                                                             {[
                                                                 { key: 'partito', label: 'P' },
                                                                 { key: 'in_transito', label: 'T' },
-                                                                { key: 'consegnato', label: 'C' },
-                                                            ].map((state, i) => {
+                                                                { key: 'consegnato', label: 'C' }].map((state, i) => {
                                                                 const phases = ['partito', 'in_transito', 'consegnato'];
                                                                 const isPast = phases.indexOf(delivery.status) >= i;
                                                                 const colors = ['bg-yellow-500', 'bg-blue-500', 'bg-green-500'];
@@ -1842,6 +1881,131 @@ export default function Fornitori() {
                         <div className="flex justify-end gap-3 mt-4">
                             <Button variant="ghost" onClick={() => setShowQuoteModal(null)} className="text-[#adb5bd] hover:text-white">Annulla</Button>
                             <Button onClick={handleQuoteSubmit} disabled={!quoteData.quoted_price} className="bg-orange-600 hover:bg-orange-700">Invia Preventivo</Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* ═══ MODAL: Proposta Piano Pagamenti ═══ */}
+            <Dialog open={!!showPaymentPlanModal} onOpenChange={() => setShowPaymentPlanModal(null)}>
+                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-[#f8f9fa] flex items-center gap-2">
+                            <CreditCard size={18} className="text-orange-400" /> Proponi Piano Pagamenti
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <p className="text-xs text-[#adb5bd]">Definisci le rate per l'ordine #{showPaymentPlanModal?.order_number || showPaymentPlanModal?._id?.slice(-6)} per un totale di €{showPaymentPlanModal?.total_amount?.toLocaleString()}</p>
+                        
+                        <div className="flex gap-2">
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex-1 text-[10px] h-7 border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                                onClick={() => {
+                                    const total = showPaymentPlanModal?.total_amount || 0;
+                                    setPaymentProposal([
+                                        { amount: total * 0.5, due_date: '', description: 'Acconto 50%' },
+                                        { amount: total * 0.5, due_date: '', description: 'Saldo 50%' }
+                                    ]);
+                                }}
+                            >
+                                Dividi 50% - 50%
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex-1 text-[10px] h-7 border-green-500/30 text-green-400 hover:bg-green-500/10"
+                                onClick={() => {
+                                    const total = showPaymentPlanModal?.total_amount || 0;
+                                    setPaymentProposal([
+                                        { amount: total * 0.3, due_date: '', description: 'Acconto 30%' },
+                                        { amount: total * 0.3, due_date: '', description: 'Acconto intermedio 30%' },
+                                        { amount: total * 0.4, due_date: '', description: 'Saldo 40%' }
+                                    ]);
+                                }}
+                            >
+                                Dividi 30 - 30 - 40
+                            </Button>
+                        </div>
+                        
+                        {paymentProposal.map((item, index) => (
+                            <div key={index} className="space-y-2 p-3 bg-[#212529] rounded-lg border border-[#495057]">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-[10px] text-orange-400 font-bold uppercase">Rata {index + 1}</span>
+                                    {paymentProposal.length > 1 && (
+                                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-400/10" onClick={() => {
+                                            const newProposal = [...paymentProposal];
+                                            newProposal.splice(index, 1);
+                                            setPaymentProposal(newProposal);
+                                        }}>
+                                            <Trash2 size={12} />
+                                        </Button>
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="text-[10px] text-[#6c757d] block mb-1">Importo (€)</label>
+                                        <Input 
+                                            type="number" 
+                                            value={item.amount} 
+                                            onChange={e => {
+                                                const newProposal = [...paymentProposal];
+                                                newProposal[index].amount = parseFloat(e.target.value) || 0;
+                                                setPaymentProposal(newProposal);
+                                            }}
+                                            className="bg-[#343a40] border-[#495057] text-white text-xs h-8"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] text-[#6c757d] block mb-1">Scadenza</label>
+                                        <Input 
+                                            type="date" 
+                                            value={item.due_date} 
+                                            onChange={e => {
+                                                const newProposal = [...paymentProposal];
+                                                newProposal[index].due_date = e.target.value;
+                                                setPaymentProposal(newProposal);
+                                            }}
+                                            className="bg-[#343a40] border-[#495057] text-white text-xs h-8"
+                                        />
+                                    </div>
+                                </div>
+                                <Input 
+                                    placeholder="Descrizione (es. Acconto, Saldo)" 
+                                    value={item.description}
+                                    onChange={e => {
+                                        const newProposal = [...paymentProposal];
+                                        newProposal[index].description = e.target.value;
+                                        setPaymentProposal(newProposal);
+                                    }}
+                                    className="bg-[#343a40] border-[#495057] text-white text-xs h-8 mt-2"
+                                />
+                            </div>
+                        ))}
+
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full border-dashed border-[#495057] text-[#adb5bd] hover:text-white h-8 text-xs" 
+                            onClick={() => setPaymentProposal([...paymentProposal, { amount: 0, due_date: '', description: '' }])}
+                        >
+                            + Aggiungi Rata
+                        </Button>
+
+                        <div className="space-y-1">
+                            <label className="text-[10px] text-[#6c757d] block">Note (opzionale)</label>
+                            <Textarea 
+                                placeholder="Aggiungi spiegazioni sulla tua proposta..."
+                                value={proposalNotes}
+                                onChange={e => setProposalNotes(e.target.value)}
+                                className="bg-[#495057] border-[#6c757d] text-white text-xs min-h-[60px]"
+                            />
+                        </div>
+
+                        <div className="pt-2 flex gap-2">
+                            <Button variant="ghost" className="flex-1 text-xs" onClick={() => setShowPaymentPlanModal(null)}>Annulla</Button>
+                            <Button className="flex-1 bg-orange-600 hover:bg-orange-700 text-xs" onClick={handleProposePaymentPlan}>Invia Proposta</Button>
                         </div>
                     </div>
                 </DialogContent>

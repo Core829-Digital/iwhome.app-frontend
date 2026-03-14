@@ -35,8 +35,13 @@ export default function Clienti() {
         fiscal_code: '', company_name: '', notes: ''
     });
 
-    const clients = useQuery(api.clients.list) || [];
-    const registeredUsers = useQuery(api.users.list) || []; // All registered users
+    const convexUser = useQuery(api.users.getByEmail, {
+        email: user?.primaryEmailAddress?.emailAddress || ""
+    });
+    const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
+
+    const clients = useQuery(api.clients.list, isAdmin ? {} : "skip") || [];
+    const registeredUsers = useQuery(api.users.list, isAdmin ? {} : "skip") || []; // All registered users
     const createClient = useMutation(api.clients.create);
     const updateClient = useMutation(api.clients.update);
     const archiveClient = useMutation(api.clients.archive);
@@ -59,10 +64,6 @@ export default function Clienti() {
             setIsSyncing(false);
         }
     };
-
-    const convexUser = useQuery(api.users.getByEmail, {
-        email: user?.primaryEmailAddress?.emailAddress || ""
-    });
 
     // Get users who are not already clients (for dropdown)
     const clientEmails = clients.map(c => c.email);
@@ -125,7 +126,7 @@ export default function Clienti() {
     };
 
     // Check admin access — render inline with layout to prevent flash
-    const isAccessDenied = convexUser && convexUser.role !== "admin" && convexUser.role !== "ceo";
+    const isAccessDenied = convexUser && convexUser.role !== "admin";
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">

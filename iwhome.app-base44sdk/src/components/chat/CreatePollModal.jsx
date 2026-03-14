@@ -87,7 +87,7 @@ export default function CreatePollModal({ isOpen, onClose, conversationId, clien
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md">
+            <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] w-[95vw] max-w-md max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Crea Nuovo Sondaggio</DialogTitle>
                 </DialogHeader>

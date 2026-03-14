@@ -9,7 +9,8 @@ import {
     HardHat, X, Users, MessageSquare, ChevronRight, Send, Paperclip,
     GripVertical, ArrowRight, Mic, MicOff, Image, FileText,
     Volume2, UserPlus, Mail, Loader2, ClipboardList, Check, Trash2, ChevronDown,
-    Phone, MapPin, User, Receipt
+    Phone, MapPin, User, Receipt,
+    Video, Camera, Shield, Smartphone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,8 +27,7 @@ import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
 const KANBAN_PHASES = [
     { id: 'in_lavorazione', label: 'In Lavorazione', color: 'bg-yellow-500', textColor: 'text-yellow-400' },
     { id: 'posa_in_opera', label: 'Posa In Opera', color: 'bg-purple-500', textColor: 'text-purple-400' },
-    { id: 'completato', label: 'Completato', color: 'bg-green-500', textColor: 'text-green-400' },
-];
+    { id: 'completato', label: 'Completato', color: 'bg-green-500', textColor: 'text-green-400' }];
 
 export default function CantieriDashboard() {
     const { user } = useUser();
@@ -80,20 +80,26 @@ export default function CantieriDashboard() {
     // Fetch Convex User to determine role securely
     const convexUser = useQuery(api.users.getByEmail, { email: userEmail || "" });
 
-    const isClient = convexUser?.role === 'user' || convexUser?.role === 'client';
+    // Orders for Phase Lock (Task 10)
+    const dashboardOrders = useQuery(api.suppliers.listOrders, {}) || [];
+
+    const isClient = convexUser?.role === 'client' || convexUser?.role === 'user';
     const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
-    const isWorker = convexUser?.role === 'worker' || convexUser?.role === 'operaio' || convexUser?.role === 'company';
+    const isWorker = ['collaborator_internal', 'collaborator_external', 'worker', 'operaio'].includes(convexUser?.role);
+    const isSupervisor = false;
 
     // Queries for Admin/Creation
-    const allQuotes = useQuery(api.quotes.getAll) || [];
-    const clientsList = useQuery(api.clients.list) || [];
-    const collaboratoriList = useQuery(api.collaborators.list, {}) || [];
+    const allQuotes = useQuery(api.quotes.getAll, isAdmin ? {} : "skip") || [];
+    const clientsList = useQuery(api.clients.list, isAdmin ? {} : "skip") || [];
+    const collaboratoriList = useQuery(api.collaborators.list, isAdmin ? {} : "skip") || [];
 
     // Main Cantieri Query
     // Differentiate queries to avoid TS union type mismatch
     const cantieriClient = useQuery(api.cantieri.getByClient, isClient ? {} : "skip");
-    const cantieriAdmin = useQuery(api.cantieri.listCantieri, !isClient ? { company_email: userEmail } : "skip");
-    const cantieri = (isClient ? cantieriClient : cantieriAdmin) || [];
+    const cantieriAdmin = useQuery(api.cantieri.listCantieri, (isAdmin || isSupervisor) ? { company_email: userEmail } : "skip");
+    const cantieriWorker = useQuery(api.cantieri.getByWorker, isWorker ? {} : "skip");
+
+    const cantieri = (isClient ? cantieriClient : (isWorker ? cantieriWorker : cantieriAdmin)) || [];
 
     // --- Derived State for Views ---
     const filteredCantieri = cantieri.filter(c =>
@@ -191,6 +197,16 @@ export default function CantieriDashboard() {
         const cantiereId = e.dataTransfer.getData('text/plain');
 
         if (cantiereId && phaseId) {
+            // Task 10 Lock: check if moving AWAY from in_lavorazione
+            if (draggedItem.status === 'in_lavorazione' && phaseId !== 'in_lavorazione') {
+                const linkedOrders = dashboardOrders.filter(o => o.cantiere_id === cantiereId);
+                const inInProduction = linkedOrders.some(o => o.status === 'in_production');
+                if (inInProduction) {
+                    alert("⚠️ Impossibile avanzare di fase: Ci sono ancora ordini fornitore in fase di Produzione.");
+                    setDraggedItem(null);
+                    return;
+                }
+            }
             try {
                 await updateCantiereMutation({
                     id: cantiereId,
@@ -211,6 +227,18 @@ export default function CantieriDashboard() {
     // Phase Change (Dropdown)
     const handlePhaseChange = async (cantiereId, newPhase) => {
         if (!isAdmin) return;
+        
+        // Task 10 Lock
+        const cantiere = cantieri.find(c => c._id === cantiereId);
+        if (cantiere && cantiere.status === 'in_lavorazione' && newPhase !== 'in_lavorazione') {
+            const linkedOrders = dashboardOrders.filter(o => o.cantiere_id === cantiereId);
+            const inInProduction = linkedOrders.some(o => o.status === 'in_production');
+            if (inInProduction) {
+                alert("⚠️ Impossibile avanzare di fase: Ci sono ancora ordini fornitore in fase di Produzione.");
+                return;
+            }
+        }
+
         try {
             await updateCantiereMutation({
                 id: cantiereId,
@@ -811,6 +839,9 @@ export default function CantieriDashboard() {
                                     </TabsTrigger>
                                     <TabsTrigger value="messages" className="text-[#adb5bd] data-[state=active]:bg-transparent data-[state=active]:text-[#f8f9fa] data-[state=active]:border-b-2 data-[state=active]:border-[#f8f9fa] rounded-none">
                                         Messaggi
+                                    </TabsTrigger>
+                                    <TabsTrigger value="bodycam" className="text-[#adb5bd] data-[state=active]:bg-transparent data-[state=active]:text-[#f8f9fa] data-[state=active]:border-b-2 data-[state=active]:border-[#f8f9fa] rounded-none">
+                                        Bodycam
                                     </TabsTrigger>
                                 </TabsList>
 
@@ -1487,6 +1518,39 @@ export default function CantieriDashboard() {
                                             >
                                                 <Send size={18} />
                                             </Button>
+                                        </div>
+                                    </div>
+                                </TabsContent>
+
+                                {/* Bodycam Tab - Placeholder */}
+                                <TabsContent value="bodycam" className="flex-1 overflow-y-auto p-6 pt-4 m-0 min-h-0">
+                                    <div className="flex flex-col items-center justify-center h-full text-center space-y-6 max-w-sm mx-auto">
+                                        <div className="relative">
+                                            <div className="w-24 h-24 rounded-full bg-blue-500/10 flex items-center justify-center animate-pulse">
+                                                <Camera size={48} className="text-blue-400 opacity-50" />
+                                            </div>
+                                            <Shield className="absolute -top-1 -right-1 text-blue-500" size={24} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-medium text-[#f8f9fa] mb-2">IWHome Bodycam™</h3>
+                                            <p className="text-sm text-[#adb5bd]">
+                                                Stiamo lavorando per portare la trasparenza totale in cantiere. 
+                                                Presto potrai vedere lo streaming live e le registrazioni delle bodycam indossate dai nostri operai.
+                                            </p>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 w-full">
+                                            <div className="bg-[#343a40] p-4 rounded-xl border border-[#495057] flex flex-col items-center gap-2">
+                                                <Smartphone size={20} className="text-[#6c757d]" />
+                                                <span className="text-[10px] text-[#6c757d] uppercase tracking-wider">Live Stream</span>
+                                            </div>
+                                            <div className="bg-[#343a40] p-4 rounded-xl border border-[#495057] flex flex-col items-center gap-2">
+                                                <Video size={20} className="text-[#6c757d]" />
+                                                <span className="text-[10px] text-[#6c757d] uppercase tracking-wider">Cloud Storage</span>
+                                            </div>
+                                        </div>
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-medium">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                                            Sviluppo in corso
                                         </div>
                                     </div>
                                 </TabsContent>
