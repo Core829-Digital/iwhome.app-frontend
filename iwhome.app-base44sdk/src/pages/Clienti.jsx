@@ -32,13 +32,14 @@ export default function Clienti() {
     const [detailClient, setDetailClient] = useState(null); // For Details View
     const [formData, setFormData] = useState({
         full_name: '', email: '', phone: '', address: '',
-        fiscal_code: '', company_name: '', notes: ''
+        fiscal_code: '', company_name: '', notes: '',
+        client_type: 'b2c', vat_number: ''
     });
 
     const convexUser = useQuery(api.users.getByEmail, {
         email: user?.primaryEmailAddress?.emailAddress || ""
     });
-    const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
+    const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'superadmin';
 
     const clients = useQuery(api.clients.list, isAdmin ? {} : "skip") || [];
     const registeredUsers = useQuery(api.users.list, isAdmin ? {} : "skip") || []; // All registered users
@@ -78,7 +79,7 @@ export default function Clienti() {
 
     const openNewModal = () => {
         setSelectedClient(null);
-        setFormData({ full_name: '', email: '', phone: '', address: '', fiscal_code: '', company_name: '', notes: '' });
+        setFormData({ full_name: '', email: '', phone: '', address: '', fiscal_code: '', company_name: '', notes: '', client_type: 'b2c', vat_number: '' });
         setIsModalOpen(true);
     };
 
@@ -91,7 +92,9 @@ export default function Clienti() {
             address: client.address || '',
             fiscal_code: client.fiscal_code || '',
             company_name: client.company_name || '',
-            notes: client.notes || ''
+            notes: client.notes || '',
+            client_type: client.client_type || 'b2c',
+            vat_number: client.vat_number || ''
         });
         setIsModalOpen(true);
     };
@@ -126,7 +129,7 @@ export default function Clienti() {
     };
 
     // Check admin access — render inline with layout to prevent flash
-    const isAccessDenied = convexUser && convexUser.role !== "admin";
+    const isAccessDenied = convexUser && convexUser.role !== "admin" && convexUser.role !== "superadmin";
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
@@ -227,13 +230,23 @@ export default function Clienti() {
                                                             <Mail size={14} /> {client.email}
                                                         </CardDescription>
                                                     </div>
-                                                    <Badge variant="secondary" className={
-                                                        client.status === 'active' ? 'bg-green-500/20 text-green-400' :
-                                                            client.status === 'lead' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                                'bg-gray-500/20 text-gray-400'
-                                                    }>
-                                                        {client.status}
-                                                    </Badge>
+                                                    <div className="flex flex-col gap-1 items-end">
+                                                        <Badge variant="secondary" className={
+                                                            client.status === 'active' ? 'bg-green-500/20 text-green-400' :
+                                                                client.status === 'lead' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                                    'bg-gray-500/20 text-gray-400'
+                                                        }>
+                                                            {client.status}
+                                                        </Badge>
+                                                        <Badge variant="outline" className={`text-[10px] ${client.client_type === 'b2b' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'}`}>
+                                                            {client.client_type === 'b2b' ? 'B2B' : 'B2C'}
+                                                        </Badge>
+                                                        {!registeredUsers.some(u => u.email === client.email && u.role === 'client') && (
+                                                            <Badge variant="outline" className="text-[10px] bg-orange-500/10 text-orange-400 border-orange-500/30">
+                                                                Manuale
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </CardHeader>
                                             <CardContent className="pt-2 space-y-2 text-sm text-[#adb5bd]">
@@ -364,6 +377,30 @@ export default function Clienti() {
                                         onChange={(e) => setFormData({ ...formData, fiscal_code: e.target.value })}
                                         className="bg-[#495057] border-[#6c757d]" />
                                 </div>
+                            </div>
+                            {/* Tipo Cliente B2B / B2C */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Tipo Cliente</Label>
+                                    <Select value={formData.client_type} onValueChange={v => setFormData({ ...formData, client_type: v, vat_number: v === 'b2c' ? '' : formData.vat_number })}>
+                                        <SelectTrigger className="bg-[#495057] border-[#6c757d]">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-[#495057] border-[#6c757d]">
+                                            <SelectItem value="b2c">B2C — Privato</SelectItem>
+                                            <SelectItem value="b2b">B2B — Azienda</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                {formData.client_type === 'b2b' && (
+                                    <div className="space-y-2">
+                                        <Label>Partita IVA</Label>
+                                        <Input value={formData.vat_number}
+                                            onChange={(e) => setFormData({ ...formData, vat_number: e.target.value })}
+                                            placeholder="IT12345678901"
+                                            className="bg-[#495057] border-[#6c757d]" />
+                                    </div>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <Label>Nome Azienda</Label>

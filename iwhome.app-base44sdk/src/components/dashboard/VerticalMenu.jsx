@@ -39,7 +39,6 @@ const createPageUrl = (page) => {
     Messages: '/Messages',
     MyAppointments: '/MyAppointments',
     Settings: '/Settings',
-    CompanyDashboard: '/CompanyDashboard',
     ClientChat: '/ClientChat',
     CantieriDashboard: '/CantieriDashboard',
     Clienti: '/Clienti',
@@ -56,23 +55,24 @@ const createPageUrl = (page) => {
 
 const getMenuItems = (user) => {
   const role = user?.role || 'user';
-  const isAdmin = role === 'admin' || role === 'ceo';
+  const isAdmin = role === 'admin' || role === 'superadmin';
   const isSupplier = role === 'supplier';
-  const isCollaborator = role === 'collaborator_internal' || role === 'collaborator_external';
+  const isCollaborator = role === 'collaborator_internal' || role === 'collaborator_external' || role === 'collaborator';
   const isSupervisor = false;
   const isClient = role === 'client';
 
   // Role display config
   const roleConfig = {
+    superadmin: { label: 'SuperAdmin', color: 'text-purple-400', ring: 'ring-purple-500', bg: 'bg-purple-500/20' },
     admin: { label: 'Admin', color: 'text-emerald-400', ring: 'ring-emerald-500', bg: 'bg-emerald-500/20' },
-    ceo: { label: 'CEO', color: 'text-emerald-400', ring: 'ring-emerald-500', bg: 'bg-emerald-500/20' },
     supplier: { label: 'Fornitore', color: 'text-orange-400', ring: 'ring-orange-500', bg: 'bg-orange-500/20' },
     client: { label: 'Cliente', color: 'text-blue-400', ring: 'ring-blue-500', bg: 'bg-blue-500/20' },
+    collaborator: { label: 'Collaboratore', color: 'text-indigo-400', ring: 'ring-indigo-500', bg: 'bg-indigo-500/20' },
     collaborator_internal: { label: 'Collaboratore', color: 'text-indigo-400', ring: 'ring-indigo-500', bg: 'bg-indigo-500/20' },
     collaborator_external: { label: 'Collaboratore', color: 'text-indigo-400', ring: 'ring-indigo-500', bg: 'bg-indigo-500/20' },
     supervisor: { label: 'Supervisore', color: 'text-yellow-400', ring: 'ring-yellow-500', bg: 'bg-yellow-500/20' },
     worker: { label: 'Operaio', color: 'text-gray-400', ring: 'ring-gray-500', bg: 'bg-gray-500/20' },
-    user: { label: 'Utente', color: 'text-gray-400', ring: 'ring-gray-500', bg: 'bg-gray-500/20' },
+    user: { label: 'Utente Base', color: 'text-gray-400', ring: 'ring-gray-500', bg: 'bg-gray-500/20' },
   };
   const rc = roleConfig[role] || roleConfig.user;
 
@@ -112,9 +112,6 @@ const getMenuItems = (user) => {
 
   items.push({ name: 'Archivio & Chat', icon: FileText, isGroup: true, subItems: docGroup });
 
-  if (user?.is_company && user?.company_role === 'admin') {
-    items.push({ name: 'Azienda', page: 'CompanyDashboard', icon: Building, subItems: [] });
-  }
 
   // 5. Settings
   items.push({ name: 'Impostazioni', page: 'Settings', icon: Settings, subItems: [] });
@@ -144,21 +141,21 @@ export default function VerticalMenu() {
     email: clerkUser.primaryEmailAddress?.emailAddress,
     full_name: clerkUser.fullName,
     role: convexUser?.role || 'user', // Get role from Convex, default to 'user'
-    is_company: convexUser?.is_company ,
     profile_image: convexUser?.profile_image,
   } : null;
 
   // Role display config for the UI badge
   const roleConfig = {
+    superadmin: { label: 'SuperAdmin', color: 'text-purple-400', ring: 'ring-purple-500', bg: 'bg-purple-500/20' },
     admin: { label: 'Admin', color: 'text-emerald-400', ring: 'ring-emerald-500', bg: 'bg-emerald-500/20' },
-    ceo: { label: 'CEO', color: 'text-emerald-400', ring: 'ring-emerald-500', bg: 'bg-emerald-500/20' },
     supplier: { label: 'Fornitore', color: 'text-orange-400', ring: 'ring-orange-500', bg: 'bg-orange-500/20' },
     client: { label: 'Cliente', color: 'text-blue-400', ring: 'ring-blue-500', bg: 'bg-blue-500/20' },
+    collaborator: { label: 'Collaboratore', color: 'text-indigo-400', ring: 'ring-indigo-500', bg: 'bg-indigo-500/20' },
     collaborator_internal: { label: 'Collaboratore', color: 'text-indigo-400', ring: 'ring-indigo-500', bg: 'bg-indigo-500/20' },
     collaborator_external: { label: 'Collaboratore', color: 'text-indigo-400', ring: 'ring-indigo-500', bg: 'bg-indigo-500/20' },
     supervisor: { label: 'Supervisore', color: 'text-yellow-400', ring: 'ring-yellow-500', bg: 'bg-yellow-500/20' },
     worker: { label: 'Operaio', color: 'text-gray-400', ring: 'ring-gray-500', bg: 'bg-gray-500/20' },
-    user: { label: 'Utente', color: 'text-gray-400', ring: 'ring-gray-500', bg: 'bg-gray-500/20' },
+    user: { label: 'Utente Base', color: 'text-gray-400', ring: 'ring-gray-500', bg: 'bg-gray-500/20' },
   };
   const rc = roleConfig[user?.role || 'user'] || roleConfig.user;
 
@@ -184,7 +181,7 @@ export default function VerticalMenu() {
     if (activeGroup && !openGroups.includes(activeGroup.name)) {
       setOpenGroups(prev => [...prev, activeGroup.name]);
     }
-  }, [location.pathname, user?.role, user?.is_company]);
+  }, [location.pathname, user?.role]);
 
 
   const menuItems = getMenuItems(user);

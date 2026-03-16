@@ -38,7 +38,6 @@ export default function Layout({ children, currentPageName }) {
     email: clerkUser.primaryEmailAddress?.emailAddress,
     full_name: clerkUser.fullName,
     role: convexUser?.role || clerkUser.publicMetadata?.role,
-    is_company: convexUser?.is_company || clerkUser.publicMetadata?.is_company,
     profile_image: convexUser?.profile_image
   } : null;
 

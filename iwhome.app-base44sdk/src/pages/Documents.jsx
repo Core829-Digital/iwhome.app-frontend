@@ -61,7 +61,7 @@ export default function Documents() {
   const [selectedDocTitle, setSelectedDocTitle] = useState('');
 
   const convexUser = useQuery(api.users.getByEmail, { email: user?.primaryEmailAddress?.emailAddress || "" });
-  const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
+  const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'superadmin';
   const clients = useQuery(api.clients.list, isAdmin ? {} : "skip") || []; // Admin only query, safe now
 
   const documentsQuery = useQuery(api.documents.getByUser, { email: user?.primaryEmailAddress?.emailAddress || "" });

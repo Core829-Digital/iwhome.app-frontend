@@ -7,7 +7,7 @@ import Certificati from './pages/Certificati';
 import ChiSiamo from './pages/ChiSiamo';
 // import ClientChat from './pages/ClientChat'; // Removed
 import Collaboratori from './pages/Collaboratori';
-import CompanyDashboard from './pages/CompanyDashboard';
+// import CompanyDashboard from './pages/CompanyDashboard'; // Removed — ruolo company eliminato
 import CantieriDashboard from './pages/CantieriDashboard';
 import Contatti from './pages/Contatti';
 import Cookie from './pages/Cookie';
@@ -47,7 +47,7 @@ export const PAGES = {
     "ChiSiamo": ChiSiamo,
     "ClientChat": Messages, // Redirected to Messages (Unified)
     "Collaboratori": Collaboratori,
-    "CompanyDashboard": CompanyDashboard,
+    "CompanyDashboard": Dashboard, // Redirect a Dashboard — ruolo company eliminato
     "CantieriDashboard": CantieriDashboard,
     "Contatti": Contatti,
     "Cookie": Cookie,

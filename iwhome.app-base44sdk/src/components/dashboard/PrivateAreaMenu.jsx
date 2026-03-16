@@ -58,14 +58,6 @@ const getMenuItems = (user) => {
     }
   ];
 
-  if (user?.is_company && user?.company_role === 'admin') {
-    baseItems.splice(1, 0, {
-      name: 'Azienda',
-      page: 'CompanyDashboard',
-      icon: Building,
-      subItems: []
-    });
-  }
 
   if (user?.role === 'admin') {
     baseItems.splice(4, 0, {

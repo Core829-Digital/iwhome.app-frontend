@@ -156,7 +156,7 @@ export default function Admin() {
     };
 
     // Access Control (Simple client-side for now, should be backend verified)
-    const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
+    const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'superadmin';
 
     if (convexUser === undefined) return <div className="min-h-screen grid place-items-center bg-[#212529] text-white">Caricamento...</div>;
 
@@ -237,7 +237,6 @@ export default function Admin() {
                                                     <h4 className={`font-medium truncate ${u.blocked ? 'text-red-300 line-through' : 'text-[#f8f9fa]'}`}>{u.fullName || 'Utente'}</h4>
                                                     <p className="text-xs text-[#adb5bd] truncate">{u.email}</p>
                                                     <div className="flex gap-1 mt-1 flex-wrap">
-                                                        {u.is_company && <span className="text-[10px] bg-green-500/20 text-green-300 px-1.5 py-0.5 rounded inline-block">AZIENDA</span>}
                                                         {u.role && <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded inline-block">{u.role.toUpperCase()}</span>}
                                                         {u.blocked && <span className="text-[10px] bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded inline-block">BLOCCATO</span>}
                                                     </div>
@@ -290,7 +289,7 @@ export default function Admin() {
                                                     <Select
                                                         value={selectedUser.role || 'user'}
                                                         onValueChange={(v) => handleRoleChange(selectedUser._id, v)}
-                                                        disabled={actionLoading || selectedUser.role === 'ceo'}
+                                                        disabled={actionLoading || selectedUser.role === 'superadmin'}
                                                     >
                                                         <SelectTrigger className="bg-[#495057]/50 border-[#f8f9fa]/20 text-[#f8f9fa] flex-1">
                                                             <SelectValue />
@@ -298,10 +297,10 @@ export default function Admin() {
                                                         <SelectContent className="bg-[#343a40] border-[#f8f9fa]/20 text-[#f8f9fa]">
                                                             <SelectItem value="user">Utente Base</SelectItem>
                                                             <SelectItem value="client">Cliente</SelectItem>
+                                                            <SelectItem value="supplier">Fornitore</SelectItem>
                                                             <SelectItem value="collaborator">Collaboratore</SelectItem>
-                                                            <SelectItem value="company">Azienda</SelectItem>
-                                                            <SelectItem value="admin">Amministratore</SelectItem>
-                                                            <SelectItem value="ceo">CEO</SelectItem>
+                                                            <div className="px-2 py-1.5 text-[10px] text-[#6c757d] font-semibold uppercase tracking-wider border-t border-[#f8f9fa]/10 mt-1 pt-2">— Ruoli Speciali —</div>
+                                                            <SelectItem value="admin">Admin</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
@@ -310,7 +309,7 @@ export default function Admin() {
                                             {/* Block / Unblock */}
                                             <div className="space-y-2">
                                                 <Label className="text-[#dee2e6] text-sm">Accesso Utente</Label>
-                                                {selectedUser.role !== 'admin' && selectedUser.role !== 'ceo' ? (
+                                                {selectedUser.role !== 'admin' && selectedUser.role !== 'superadmin' ? (
                                                     <div className="space-y-3">
                                                         {!selectedUser.blocked && (
                                                             <Input
@@ -353,7 +352,7 @@ export default function Admin() {
                                                         <Button
                                                             variant="destructive"
                                                             className="w-full bg-red-900/40 hover:bg-red-800/60 border border-red-500/30 text-red-300"
-                                                            disabled={selectedUser.role === 'admin' || selectedUser.role === 'ceo'}
+                                                            disabled={selectedUser.role === 'admin' || selectedUser.role === 'superadmin'}
                                                         >
                                                             <Trash2 size={16} className="mr-2" />
                                                             Elimina Account

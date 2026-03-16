@@ -39,7 +39,8 @@ export default function Preventivi() {
 
     // Get role from Convex (source of truth)
     const convexUser = useQuery(api.users.getByEmail, { email: userEmail });
-    const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
+    const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'superadmin';
+    const isClient = convexUser?.role === 'client';
 
     // Queries
     const allQuotes = useQuery(api.quotes.getAll, {}) || [];
@@ -340,7 +341,7 @@ export default function Preventivi() {
                     <div className="flex items-center justify-center h-[60vh]">
                         <Loader2 className="animate-spin text-blue-500" size={40} />
                     </div>
-                ) : !isAdmin ? (
+                ) : (!isAdmin && !isClient) ? (
                     <div className="flex items-center justify-center h-[60vh]">
                         <div className="text-center">
                             <h2 className="text-xl text-[#f8f9fa] mb-2">Accesso Negato</h2>
@@ -557,7 +558,7 @@ export default function Preventivi() {
                                                             )}
                                                         </div>
 
-                                                        <div className="flex items-center gap-2">
+                                                        <div className="flex items-center gap-2 flex-wrap justify-end">
                                                             {quote.files && quote.files.length > 0 && (
                                                                 <Button
                                                                     variant="default"
@@ -769,7 +770,7 @@ export default function Preventivi() {
 
                         {/* Quote Detail Modal */}
                         <Dialog open={!!detailQuote} onOpenChange={(open) => !open && setDetailQuote(null)}>
-                            <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-xl max-h-[85vh] overflow-y-auto">
+                            <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-xl max-h-[90vh] overflow-y-auto custom-scrollbar">
                                 <DialogHeader>
                                     <DialogTitle className="text-[#f8f9fa] flex items-center gap-2">
                                         <FileText size={20} className="text-blue-400" />
@@ -1068,8 +1069,8 @@ function QuoteDetailContent({ quote, onViewPdf }) {
                         {quote.files.map((fileUrl, idx) => (
                             <Button 
                                 key={idx} 
-                                variant="outline" 
-                                className="justify-start text-[#f8f9fa] border-[#6c757d] hover:bg-[#495057]"
+                                variant="default" 
+                                className="justify-start bg-[#1A3C5E] hover:bg-[#255280] text-white border border-[#1A3C5E] font-medium transition-colors"
                                 onClick={() => onViewPdf(fileUrl)}
                             >
                                 <Eye size={16} className="mr-2" /> Visualizza Allegato {idx + 1}

@@ -354,6 +354,9 @@ export default function Fornitori() {
     const [isPdfOpen, setIsPdfOpen] = useState(false);
     const [pdfUrl, setPdfUrl] = useState('');
     const [pdfTitle, setPdfTitle] = useState('');
+
+    // Workflow advance — quote PDF input per ordine (step 3)
+    const [quotePdfInputs, setQuotePdfInputs] = useState({}); // { [orderId]: url }
     const [newRequest, setNewRequest] = useState({
         supplier_id: undefined, title: '', description: '', fixture_type: '',
         // Task 9/10: expanded fields
@@ -374,6 +377,8 @@ export default function Fornitori() {
     const orders = useQuery(api.suppliers.listOrders, isSupplier && supplierId ? { supplier_id: supplierId } : {}) || [];
     const deliveries = useQuery(api.suppliers.listDeliveries, isSupplier && supplierId ? { supplier_id: supplierId } : {}) || [];
     const allCertificates = useQuery(api.certificates.list, {}) || [];
+    const allCantieri = useQuery(api.cantieri.listCantieri, { company_email: 'contact.core829@gmail.com' }) || [];
+    const allClients = useQuery(api.clients.list, isAdmin ? {} : "skip") || [];
 
     // Mutations
     const createSupplier = useMutation(api.suppliers.create);
@@ -395,6 +400,59 @@ export default function Fornitori() {
     const markAccontoPaid = useMutation(api.suppliers.markAccontoPaid);
     const confirmPaymentMutation = useMutation(api.payments.confirmPayment);
     const proposePaymentPlan = useMutation(api.suppliers.proposePaymentPlan);
+    const updateProductionPhase = useMutation(api.suppliers.updateProductionPhase);
+    const createDocument = useMutation(api.documents.create);
+
+    const handleFatturaUpload = async (event, deliveryId) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        setIsUploading(true);
+        try {
+            const delivery = deliveries.find(d => d._id === deliveryId);
+            const order = orders.find(o => o._id === delivery?.order_id);
+            const request = requests.find(r => r._id === order?.request_id);
+            const cantiere = allCantieri.find(c => c._id === order?.cantiere_id);
+            const client = allClients.find(c => c._id === request?.client_id || c._id === cantiere?.client_id);
+
+            const clientName = client?.full_name || "Cliente Sconosciuto";
+            const cantiereName = cantiere?.nome_cantiere || "Cantiere Sconosciuto";
+            const dateStr = new Date().toLocaleDateString('it-IT').replace(/\//g, '-');
+            
+            const newName = `${clientName} - ${cantiereName} - ${dateStr}${file.name.substring(file.name.lastIndexOf('.'))}`;
+
+            // Upload
+            const postUrl = await generateUploadUrl();
+            const result = await fetch(postUrl, {
+                method: "POST",
+                headers: { "Content-Type": file.type },
+                body: file,
+            });
+            const { storageId } = await result.json();
+
+            // Create document record
+            await createDocument({
+                title: newName,
+                category: "Fatture",
+                file_url: storageId,
+                file_name: newName,
+                file_size: file.size,
+                file_type: file.type,
+                cantiere_id: order?.cantiere_id,
+                client_id: request?.client_id || cantiere?.client_id,
+                order_id: order?._id,
+                delivery_id: deliveryId,
+                status: "definitive",
+                created_date: new Date().toISOString()
+            });
+
+            alert(`Fattura caricata con successo come: ${newName}`);
+        } catch (err) {
+            console.error(err);
+            alert("Errore durante il caricamento della fattura.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
 
     const handleProposePaymentPlan = async () => {
         if (!showPaymentPlanModal) return;
@@ -412,16 +470,19 @@ export default function Fornitori() {
         }
     };
 
+    const handleAdvanceWorkflow = async (orderId, targetStep, extraData = {}) => {
+        try {
+            await advanceWorkflow({ order_id: orderId, target_step: targetStep, ...extraData });
+        } catch (err) {
+            console.error(err);
+            alert(`Errore: ${err.message || 'Impossibile avanzare il workflow.'}`);
+        }
+    };
+
     // WhatsApp link state
     const [whatsappPassword, setWhatsappPassword] = useState('');
 
-    if (rbacLoading) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] flex items-center justify-center">
-                <Loader2 className="animate-spin text-orange-500" size={40} />
-            </div>
-        );
-    }
+    if (rbacLoading) return null;
 
     if (!canView('fornitori')) {
         return (
@@ -924,8 +985,8 @@ export default function Fornitori() {
                                 const linkedRequest = requests.find(r => r._id === order.request_id);
                                 const linkedDelivery = deliveries.find(d => d.order_id === order._id);
                                 const workflowSteps = [
-                                    'Richiesta', 'Al Fornitore', 'Preventivo', 'Valutazione',
-                                    'Al Cliente', 'Risposta', 'Deal', 'Pagamento Cliente', 'Pagamento IWHome', 'Produzione'
+                                    'Richiesta', 'Al Fornitore', 'Preventivo', 'Valutazione Admin',
+                                    'Al Cliente', 'Risposta Cliente', 'Deal Chiuso', 'In Attesa Pagamento Cliente', 'Pagamento IWHome', 'In Produzione'
                                 ];
                                 return (
                                     <motion.div key={order._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
@@ -942,7 +1003,9 @@ export default function Fornitori() {
                                                     </div>
                                                     <div className="flex items-center gap-3">
                                                         {order.total_amount && <span className="text-[#f8f9fa] font-medium text-lg">€{order.total_amount?.toLocaleString()}</span>}
-                                                        <Badge variant="default" className={statusColors[order.status] || 'bg-gray-500/20 text-gray-400'}>{statusLabels[order.status] || order.status}</Badge>
+                                                        <Badge variant="default" className={order.workflow_step ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' : (statusColors[order.status] || 'bg-gray-500/20 text-gray-400')}>
+                                                            {order.workflow_step ? workflowSteps[order.workflow_step - 1] : (statusLabels[order.status] || order.status)}
+                                                        </Badge>
                                                         {isAdmin && (
                                                             <Button variant="ghost" size="sm" onClick={() => handleDeleteOrder(order._id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2 h-8 ml-2">
                                                                 <Trash2 size={14} className="mr-1" /> Elimina
@@ -973,6 +1036,104 @@ export default function Fornitori() {
                                                                 );
                                                             })}
                                                         </div>
+
+                                                        {/* Workflow Advance Buttons — RBAC gated per step */}
+                                                        {order.locked ? (
+                                                            <div className="mt-3 flex items-center gap-2 p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+                                                                <Lock size={12} className="text-red-400" />
+                                                                <p className="text-xs text-red-400">Impossibile modificare: la produzione è già iniziata.</p>
+                                                            </div>
+                                                        ) : (() => {
+                                                            const step = order.workflow_step || 0;
+                                                            // Step 2: Admin invia al fornitore
+                                                            if (step === 1 && isAdmin) return (
+                                                                <div className="mt-3 flex justify-end">
+                                                                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-xs h-7" onClick={() => handleAdvanceWorkflow(order._id, 2)}>
+                                                                        Invia al Fornitore →
+                                                                    </Button>
+                                                                </div>
+                                                            );
+                                                            // Step 3: Fornitore carica preventivo PDF
+                                                            if (step === 2 && isSupplier) return (
+                                                                <div className="mt-3 space-y-2">
+                                                                    <p className="text-[10px] text-amber-400">Carica il preventivo per procedere (URL PDF o link Drive):</p>
+                                                                    <div className="flex gap-2">
+                                                                        <input
+                                                                            type="text"
+                                                                            placeholder="URL preventivo PDF..."
+                                                                            value={quotePdfInputs[order._id] || ''}
+                                                                            onChange={e => setQuotePdfInputs(prev => ({ ...prev, [order._id]: e.target.value }))}
+                                                                            className="flex-1 bg-[#212529] border border-[#495057] text-[#f8f9fa] text-xs rounded px-2 py-1"
+                                                                        />
+                                                                        <Button
+                                                                            size="sm"
+                                                                            disabled={!quotePdfInputs[order._id]}
+                                                                            className="bg-amber-600 hover:bg-amber-700 text-xs h-7"
+                                                                            onClick={() => handleAdvanceWorkflow(order._id, 3, { quote_pdf_url: quotePdfInputs[order._id] })}
+                                                                        >
+                                                                            Invia Preventivo →
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                            // Step 4: Admin valuta preventivo
+                                                            if (step === 3 && isAdmin) return (
+                                                                <div className="mt-3 flex justify-end">
+                                                                    <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-xs h-7" onClick={() => handleAdvanceWorkflow(order._id, 4)}>
+                                                                        Valuta Preventivo →
+                                                                    </Button>
+                                                                </div>
+                                                            );
+                                                            // Step 5: Admin invia al cliente
+                                                            if (step === 4 && isAdmin) return (
+                                                                <div className="mt-3 flex justify-end">
+                                                                    <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-xs h-7" onClick={() => handleAdvanceWorkflow(order._id, 5)}>
+                                                                        Invia al Cliente →
+                                                                    </Button>
+                                                                </div>
+                                                            );
+                                                            // Step 6: Risposta cliente (admin registra)
+                                                            if (step === 5 && isAdmin) return (
+                                                                <div className="mt-3 flex justify-end">
+                                                                    <Button size="sm" className="bg-cyan-600 hover:bg-cyan-700 text-xs h-7" onClick={() => handleAdvanceWorkflow(order._id, 6)}>
+                                                                        Registra Risposta Cliente →
+                                                                    </Button>
+                                                                </div>
+                                                            );
+                                                            // Step 7: Deal chiuso (admin)
+                                                            if (step === 6 && isAdmin) return (
+                                                                <div className="mt-3 flex justify-end">
+                                                                    <Button size="sm" className="bg-green-600 hover:bg-green-700 text-xs h-7" onClick={() => handleAdvanceWorkflow(order._id, 7)}>
+                                                                        Chiudi Deal →
+                                                                    </Button>
+                                                                </div>
+                                                            );
+                                                            // Step 8: Fornitore conferma ordine (supplier)
+                                                            if (step === 7 && isSupplier) return (
+                                                                <div className="mt-3 flex justify-end">
+                                                                    <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-xs h-7" onClick={() => handleAdvanceWorkflow(order._id, 8)}>
+                                                                        Conferma Ordine →
+                                                                    </Button>
+                                                                </div>
+                                                            );
+                                                            // Step 9: Admin registra pagamento al fornitore
+                                                            if (step === 8 && isAdmin) return (
+                                                                <div className="mt-3 flex justify-end">
+                                                                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-xs h-7" onClick={() => handleAdvanceWorkflow(order._id, 9)}>
+                                                                        Pagamento Inviato al Fornitore →
+                                                                    </Button>
+                                                                </div>
+                                                            );
+                                                            // Step 10: Admin avvia produzione
+                                                            if (step === 9 && isAdmin) return (
+                                                                <div className="mt-3 flex justify-end">
+                                                                    <Button size="sm" className="bg-red-600 hover:bg-red-700 text-xs h-7" onClick={() => handleAdvanceWorkflow(order._id, 10)}>
+                                                                        Avvia Produzione →
+                                                                    </Button>
+                                                                </div>
+                                                            );
+                                                            return null;
+                                                        })()}
                                                     </div>
                                                 )}
 
@@ -1071,7 +1232,7 @@ export default function Fornitori() {
                                 <div className="text-center py-12 bg-[#343a40]/50 rounded-2xl border border-[#495057]"><Factory size={48} className="text-[#6c757d] mx-auto mb-4" /><h3 className="text-xl text-[#dee2e6]">Nessun ordine in produzione</h3></div>
                             ) : orders.filter(o => o.status === 'in_production' || o.status === 'confirmed').map(order => {
                                 const supplier = suppliers.find(s => s._id === order.supplier_id);
-                                const productionPhases = ['Materiali', 'Taglio', 'Assemblaggio', 'Verniciatura', 'Controllo Qualità', 'Pronto'];
+                                const productionPhases = ['Materiali', 'Taglio', 'Assemblaggio', 'Controllo Qualità', 'Pronto'];
                                 const currentPhase = order.production_phase || 0;
                                 return (
                                     <motion.div key={order._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
@@ -1110,10 +1271,15 @@ export default function Fornitori() {
                                                             className="bg-orange-600 hover:bg-orange-700"
                                                             onClick={async () => {
                                                                 try {
-                                                                    // @ts-ignore
-                                                                    await advanceWorkflow({ order_id: order._id, new_step: order.workflow_step + 1 });
-                                                                    alert(`Fase avanzata a: ${productionPhases[currentPhase + 1] || 'Completato'}`);
-                                                                } catch (err) { console.error(err); alert('Errore nell\'avanzamento della fase.'); }
+                                                                    await updateProductionPhase({ 
+                                                                        order_id: order._id, 
+                                                                        phase_index: currentPhase + 1 
+                                                                    });
+                                                                    alert(`Fase avanzata a: ${productionPhases[currentPhase + 1] || 'Completata'}`);
+                                                                } catch (err) { 
+                                                                    console.error(err); 
+                                                                    alert(err.message || 'Errore nell\'avanzamento della fase.'); 
+                                                                }
                                                             }}
                                                         >
                                                             <ArrowRight size={14} className="mr-1" /> Avanza Fase
@@ -1408,6 +1574,27 @@ export default function Fornitori() {
                                                                     }}>
                                                                         Edit Date
                                                                     </Button>
+                                                                    {isAdmin && (
+                                                                        <>
+                                                                            <input
+                                                                                type="file"
+                                                                                id={`fattura-upload-${d._id}`}
+                                                                                className="hidden"
+                                                                                accept=".xml,.pdf,.p7m"
+                                                                                onChange={(e) => handleFatturaUpload(e, d._id)}
+                                                                            />
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                className="h-5 px-1.5 text-orange-400 hover:bg-orange-500/20 text-[10px] flex items-center gap-1"
+                                                                                onClick={() => document.getElementById(`fattura-upload-${d._id}`).click()}
+                                                                                disabled={isUploading}
+                                                                            >
+                                                                                {isUploading ? <Loader2 size={10} className="animate-spin" /> : <FileText size={10} />}
+                                                                                Fattura
+                                                                            </Button>
+                                                                        </>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </CardContent>
@@ -1792,7 +1979,7 @@ export default function Fornitori() {
                                 <div className="border border-[#495057] rounded-lg overflow-hidden">
                                      <MiniChat 
                                          channelType="request" 
-                                         channelId={showRequestDetailsModal._id} 
+                                         channelId={isAdmin ? `${showRequestDetailsModal._id}_admin_supplier` : showRequestDetailsModal._id} 
                                          channelName={`Richiesta: ${showRequestDetailsModal.title}`} 
                                          currentUserEmail={email}
                                          contactPhone={isAdmin ? (suppliers.find(s => s._id === showRequestDetailsModal.supplier_id)?.phone) : "0039300000000"} 
@@ -1812,8 +1999,14 @@ export default function Fornitori() {
                             <MessageCircle size={18} className="text-orange-400" /> Chat con {showChatModal?.name}
                         </DialogTitle>
                     </DialogHeader>
-                    {showChatModal && (
-                        <MiniChat channelType="supplier" channelId={showChatModal._id} channelName={showChatModal.name} currentUserEmail={email} contactPhone={isAdmin ? showChatModal.phone : "0039300000000"} />
+                     {showChatModal && (
+                        <MiniChat 
+                            channelType="supplier" 
+                            channelId={isAdmin ? `${showChatModal._id}_admin_supplier` : `${showChatModal._id}_admin_supplier`} 
+                            channelName={showChatModal.name} 
+                            currentUserEmail={email} 
+                            contactPhone={isAdmin ? showChatModal.phone : "0039300000000"} 
+                        />
                     )}
                 </DialogContent>
             </Dialog>
@@ -1826,10 +2019,10 @@ export default function Fornitori() {
                             <MessageCircle size={18} className="text-blue-400" /> Chat Ordine #{showOrderChatModal?.order_number || showOrderChatModal?._id?.slice(-6)}
                         </DialogTitle>
                     </DialogHeader>
-                    {showOrderChatModal && (
+                     {showOrderChatModal && (
                         <MiniChat 
                             channelType="order" 
-                            channelId={showOrderChatModal._id} 
+                            channelId={isAdmin ? `${showOrderChatModal._id}_admin_supplier` : showOrderChatModal._id} 
                             channelName={`Ordine #${showOrderChatModal.order_number || showOrderChatModal._id.slice(-6)}`} 
                             currentUserEmail={email} 
                             contactPhone={isAdmin ? (suppliers.find(s => s._id === showOrderChatModal.supplier_id)?.phone) : "0039300000000"} 

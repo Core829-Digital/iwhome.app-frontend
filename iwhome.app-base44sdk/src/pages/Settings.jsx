@@ -36,7 +36,7 @@ export default function Settings() {
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const convexUser = useQuery(api.users.getByEmail, { email: user?.primaryEmailAddress?.emailAddress || "" });
 
-  const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
+  const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'superadmin';
   const isOperaio = convexUser?.role === 'operaio';
   const isClient = convexUser?.role === 'client';
 
@@ -152,7 +152,7 @@ export default function Settings() {
   const getRoleBadge = () => {
     const roleMap = {
       admin: { label: 'Amministratore', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
-      ceo: { label: 'CEO', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+      superadmin: { label: 'SuperAdmin', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
       client: { label: 'Cliente', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
       operaio: { label: 'Operaio', color: 'bg-orange-500/20 text-orange-300 border-orange-500/30' },
       collaborator_internal: { label: 'Collaboratore Interno', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
@@ -370,50 +370,6 @@ export default function Settings() {
                 </div>
               )}
 
-              {/* Company Info */}
-              <div className="pt-6 border-t border-[#f8f9fa]/10 space-y-6">
-                <h2 className="text-xl font-medium text-[#f8f9fa] flex items-center gap-2">
-                  <Building size={20} />
-                  Informazioni Azienda (Opzionale)
-                </h2>
-
-                {convexUser?.is_company && (
-                  <div className="bg-green-500/20 backdrop-blur-sm border border-green-500/30 rounded-xl p-4 flex items-center gap-3">
-                    <Check className="text-green-400" size={20} />
-                    <div>
-                      <p className="text-green-300 font-medium">Account Aziendale Verificato</p>
-                      <p className="text-sm text-green-300/80">Hai accesso alle funzionalità B2B</p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label className="text-[#f8f9fa]">Nome Azienda</Label>
-                  <Input
-                    value={formData.company_name}
-                    onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                    placeholder="Es: ABC S.r.l."
-                    className="bg-[#495057]/30 backdrop-blur-sm border-[#f8f9fa]/20 text-[#f8f9fa] focus:bg-[#495057]/50 transition-all"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-[#f8f9fa]">Codice di Accesso</Label>
-                  <Input
-                    value={formData.company_code}
-                    onChange={(e) => setFormData({ ...formData, company_code: e.target.value })}
-                    placeholder="IWHOMESHOWROOM1@AREAPRIVATA"
-                    className="bg-[#495057]/30 backdrop-blur-sm border-[#f8f9fa]/20 text-[#f8f9fa] focus:bg-[#495057]/50 transition-all font-mono text-sm"
-                  />
-                  <Card className="bg-blue-500/10 border-blue-500/30 p-3">
-                    <p className="text-xs text-blue-300 font-medium mb-2">💡 Codice Standard:</p>
-                    <code className="text-xs text-blue-200 bg-black/20 px-2 py-1 rounded block">
-                      IWHOMESHOWROOM1@AREAPRIVATA
-                    </code>
-                    <p className="text-xs text-blue-300 mt-2">Usa questo codice per attivare l'accesso all'area privata</p>
-                  </Card>
-                </div>
-              </div>
 
               {/* Save Button */}
               <div className="pt-6">

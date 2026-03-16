@@ -15,21 +15,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const ROLE_ICONS = {
-    ceo: Crown,
+    superadmin: Crown,
     admin: Shield,
     supervisor: HardHat,
     worker: User,
 };
 
 const ROLE_COLORS = {
-    ceo: 'from-yellow-500 to-amber-600',
+    superadmin: 'from-purple-500 to-violet-600',
     admin: 'from-purple-500 to-indigo-600',
     supervisor: 'from-blue-500 to-cyan-600',
     worker: 'from-gray-500 to-slate-600',
 };
 
 const ROLE_BADGE_COLORS = {
-    ceo: 'bg-yellow-500/20 text-yellow-400',
+    superadmin: 'bg-purple-500/20 text-purple-400',
     admin: 'bg-purple-500/20 text-purple-400',
     supervisor: 'bg-blue-500/20 text-blue-400',
     worker: 'bg-gray-500/20 text-gray-400',

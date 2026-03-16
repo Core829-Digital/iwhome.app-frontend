@@ -13,11 +13,11 @@ const PERMISSION_MAP = {
     "certificati": ["admin"],
     "pagamenti": ["admin", "supplier", "collaborator", "client"],
     "clienti": ["admin"],
-    "preventivi": ["admin"],
-    "cantieri": ["admin"],
+    "preventivi": ["admin", "client"],
+    "cantieri": ["admin", "collaborator"],
     "admin": ["admin"],
     "dashboard": ["admin", "client", "supplier", "collaborator", "user"],
-    "messages": ["admin", "client", "collaborator"],
+    "messages": ["admin", "client", "collaborator", "supplier"],
     "documents": ["admin", "client", "supplier", "collaborator", "user"],
     "settings": ["admin", "client", "supplier", "collaborator", "user"],
     "appointments": ["admin", "client", "supplier", "collaborator", "user"],
@@ -46,7 +46,7 @@ export function useRBAC() {
 
     const role = convexUser?.role || "user";
     const baseRole = role.startsWith("collaborator") ? "collaborator" : role;
-    const isAdmin = role === "admin" || role === "ceo";
+    const isAdmin = role === "admin" || role === "superadmin";
     const isSupplier = role === "supplier";
     const isCollaborator = baseRole === "collaborator";
     const isClient = role === "client";
@@ -70,7 +70,7 @@ export function useRBAC() {
 
     /**
      * Check if the current user can edit in a specific module.
-     * Only admin/ceo can edit most things.
+     * Only admin/superadmin can edit most things.
      */
     const canEdit = (module) => {
         if (isAdmin) return true;

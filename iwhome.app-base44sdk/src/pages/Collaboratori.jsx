@@ -650,6 +650,17 @@ function CollaboratorDetailModal({ id, onClose, onGenerateAccess }) {
                         <div>
                             <DialogTitle className="text-2xl font-light text-[#f8f9fa]">{collab?.full_name || 'Caricamento...'}</DialogTitle>
                             <p className="text-indigo-400 font-medium">{collab?.job_title}</p>
+                            {collab && (
+                                <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-[10px] text-[#6c757d] font-mono bg-[#212529] px-2 py-0.5 rounded border border-[#495057]">ID: {collab._id}</span>
+                                    <button
+                                        onClick={() => { navigator.clipboard.writeText(collab._id); alert('ID copiato!'); }}
+                                        className="text-[10px] text-blue-400 hover:text-blue-300 px-2 py-0.5 rounded bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-colors"
+                                    >
+                                        Copia
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </DialogHeader>

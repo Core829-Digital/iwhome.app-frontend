@@ -82,7 +82,7 @@ export default function Messages() {
   const messages = useQuery(api.chat.listMessages,
     selectedConversation ? {
       channel_id: selectedConversation._id,
-      is_admin_chat: selectedConversation.is_admin_chat 
+      is_admin_chat: !!selectedConversation?.is_admin_chat 
     } : "skip"
   ) || [];
 
@@ -306,10 +306,10 @@ export default function Messages() {
   // if (convexUser === undefined) check handling inline
 
   // Access control - only Admin, CEO, and Client can access Messages
-  const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
+  const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'superadmin';
   const isClient = convexUser?.role === 'client';
   const isSupplier = convexUser?.role === 'supplier';
-  const isWorker = ['collaborator_internal', 'collaborator_external', 'worker', 'operaio'].includes(convexUser?.role);
+  const isWorker = ['collaborator', 'collaborator_internal', 'collaborator_external', 'worker', 'operaio'].includes(convexUser?.role);
 
   // Access check handled inline
 
@@ -382,10 +382,16 @@ export default function Messages() {
                           Clienti
                         </button>
                         <button
-                          onClick={() => setConversationFilter('company')}
-                          className={`flex-1 py-1.5 text-xs sm:text-sm rounded-md transition-all ${conversationFilter === 'company' ? 'bg-[#495057] text-white shadow-sm' : 'text-[#adb5bd] hover:text-[#f8f9fa]'}`}
+                          onClick={() => setConversationFilter('supplier')}
+                          className={`flex-1 py-1.5 text-xs sm:text-sm rounded-md transition-all ${conversationFilter === 'supplier' ? 'bg-[#495057] text-white shadow-sm' : 'text-[#adb5bd] hover:text-[#f8f9fa]'}`}
                         >
-                          Azienda
+                          Fornitori
+                        </button>
+                        <button
+                          onClick={() => setConversationFilter('collaborator')}
+                          className={`flex-1 py-1.5 text-xs sm:text-sm rounded-md transition-all ${conversationFilter === 'collaborator' ? 'bg-[#495057] text-white shadow-sm' : 'text-[#adb5bd] hover:text-[#f8f9fa]'}`}
+                        >
+                          Collaboratori
                         </button>
                       </div>
                     )}
@@ -413,7 +419,7 @@ export default function Messages() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="font-medium text-[#f8f9fa] truncate text-sm sm:text-base">
-                                {conv.name || 'Conversazione'}
+                                {!isAdmin && conv?.is_admin_chat ? 'IWHome' : (conv?.name || 'Conversazione')}
                               </div>
                               <div className="text-xs sm:text-sm text-[#adb5bd] truncate">
                                 {conv.last_message || 'Inizia una conversazione'}
@@ -800,25 +806,37 @@ export default function Messages() {
                       />
                     </div>
 
-                    <div className="flex gap-1 mb-4 bg-[#212529]/50 p-1 rounded-xl">
-                      {(isAdmin ? ['Admin', 'Clienti', 'Azienda', 'Operai'] : ['Admin']).map((tab) => (
-                        <Button
-                          key={tab}
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setContactFilter(tab.toLowerCase())}
-                          className={`flex-1 text-[10px] sm:text-xs rounded-lg transition-all ${contactFilter === tab.toLowerCase()
-                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                            : 'text-[#adb5bd] hover:text-[#f8f9fa] hover:bg-[#f8f9fa]/5'
-                            }`}
-                        >
-                          {tab}
-                        </Button>
-                      ))}
-                    </div>
+                    {!isAdmin ? (
+                      <Button
+                        className="w-full mb-4 bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={() => {
+                          const adminUser = allUsers.find(u => u.role === 'admin' || u.role === 'superadmin');
+                          if (adminUser) startNewConversation(adminUser.email);
+                        }}
+                      >
+                        Scrivi a IWHome
+                      </Button>
+                    ) : (
+                      <div className="flex flex-wrap gap-1 mb-4 bg-[#212529]/50 p-1 rounded-xl">
+                        {['Tutti', 'Clienti', 'Fornitori', 'Collaboratori', 'Utenti Base', 'Admin'].map((tab) => (
+                          <Button
+                            key={tab}
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setContactFilter(tab.toLowerCase().replace(' ', '_'))}
+                            className={`flex-1 text-[10px] sm:text-xs rounded-lg transition-all ${contactFilter === tab.toLowerCase().replace(' ', '_')
+                              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                              : 'text-[#adb5bd] hover:text-[#f8f9fa] hover:bg-[#f8f9fa]/5'
+                              }`}
+                          >
+                            {tab}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
 
                     <div className="space-y-2">
-                      {allUsers
+                      {!isSupplier && allUsers
                         .filter(u => u.email !== user?.primaryEmailAddress?.emailAddress) // Prevent self-chat
                         .filter(u => {
                           const tab = contactFilter;
@@ -828,10 +846,12 @@ export default function Messages() {
                           if (!matchesSearch) return false;
 
                           const role = u.role?.toLowerCase();
-                          if (tab === 'admin') return role === 'admin' || role === 'ceo';
+                          if (tab === 'tutti') return true;
+                          if (tab === 'admin') return role === 'admin' || role === 'superadmin';
                           if (tab === 'clienti') return role === 'client';
-                          if (tab === 'azienda' || tab === 'aziende') return u.is_company === true;
-                          if (tab === 'operai') return role === 'worker' || role === 'supervisor';
+                          if (tab === 'fornitori') return role === 'supplier';
+                          if (tab === 'collaboratori') return role === 'collaborator';
+                          if (tab === 'utenti_base') return role === 'user' || !role;
                           return true;
                         })
                         .map((contact) => (
@@ -920,7 +940,7 @@ function DocumentSelectorModal({ isOpen, onClose, onSelect }) {
   // We'll use a safe approach: list documents accessible to the user
   const userEmail = user?.primaryEmailAddress?.emailAddress || "";
   const convexUser = useQuery(api.users.getByEmail, { email: userEmail });
-  const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
+  const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'superadmin';
 
   // If admin, getAll. If user, getSharedWith or get (own).
   // For simplicity, let's use listResources methodology or just 'documents.get' (own) + 'documents.getSharedWith'?

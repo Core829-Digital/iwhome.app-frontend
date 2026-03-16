@@ -84,8 +84,8 @@ export default function CantieriDashboard() {
     const dashboardOrders = useQuery(api.suppliers.listOrders, {}) || [];
 
     const isClient = convexUser?.role === 'client' || convexUser?.role === 'user';
-    const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
-    const isWorker = ['collaborator_internal', 'collaborator_external', 'worker', 'operaio'].includes(convexUser?.role);
+    const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'superadmin';
+    const isWorker = ['collaborator', 'collaborator_internal', 'collaborator_external', 'worker', 'operaio'].includes(convexUser?.role);
     const isSupervisor = false;
 
     // Queries for Admin/Creation

@@ -130,10 +130,10 @@ export default function Dashboard() {
     }
   };
 
-  const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
+  const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'superadmin';
   const isClient = convexUser?.role === 'client';
   const isSupplier = convexUser?.role === 'supplier';
-  const isWorker = ['collaborator_internal', 'collaborator_external', 'worker', 'operaio'].includes(convexUser?.role);
+  const isWorker = ['collaborator', 'collaborator_internal', 'collaborator_external', 'worker', 'operaio'].includes(convexUser?.role);
   const isUser = !isAdmin && !isClient && !isSupplier && !isWorker;
 
   // RBAC: Get linked records
@@ -153,6 +153,12 @@ export default function Dashboard() {
   const myHours = useQuery(
     api.collaborators.listHours,
     isWorker && myCollaborator ? { collaborator_id: myCollaborator._id } : "skip"
+  ) || [];
+
+  // Cantieri assegnati al collaboratore (per dropdown log giornaliero)
+  const myWorkerCantieri = useQuery(
+    api.cantieri.getByWorker,
+    isWorker ? {} : "skip"
   ) || [];
 
   // Admin-only comprehensive stats
@@ -639,8 +645,9 @@ export default function Dashboard() {
                           <SelectValue placeholder="Seleziona..." />
                         </SelectTrigger>
                         <SelectContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] rounded-xl shadow-2xl">
-                          {/* @ts-ignore */}
-                          {myCollaborator?.cantieri?.map(c => (
+                          {myWorkerCantieri.length === 0 ? (
+                            <SelectItem value="_none" disabled>Nessun cantiere assegnato</SelectItem>
+                          ) : myWorkerCantieri.map(c => (
                             <SelectItem key={c._id} value={c._id}>{c.nome_cantiere}</SelectItem>
                           ))}
                         </SelectContent>
@@ -1138,10 +1145,10 @@ export default function Dashboard() {
                   {
                     id: 'revenue',
                     title: 'Revenue Totale',
-                    value: `€${adminStats.totalRevenue?.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                    value: `€${paymentStats?.totalPaid?.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'}`,
                     icon: DollarSign,
                     gradient: 'from-green-600/90 to-green-700/90',
-                    noLink: true
+                    isModal: true
                   },
                   {
                     id: 'today',
@@ -1182,10 +1189,100 @@ export default function Dashboard() {
                     </Card>
                   );
 
+                  if (stat.isModal && stat.id === 'revenue') {
+                    return (
+                      <Dialog key={stat.id}>
+                        <DialogTrigger asChild>
+                          {Content}
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl bg-[#1e2227] border-[#f8f9fa]/10 text-[#f8f9fa] shadow-2xl">
+                          <DialogHeader>
+                            <DialogTitle className="text-xl font-light flex items-center gap-2 border-b border-[#f8f9fa]/10 pb-4">
+                              <DollarSign className="h-6 w-6 text-green-400" /> Analisi Revenue Totale
+                            </DialogTitle>
+                          </DialogHeader>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-6">
+                            <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-6 transition-all hover:bg-green-500/15">
+                              <div className="flex items-center gap-3 mb-2">
+                                <div className="p-2 bg-green-500/20 rounded-lg">
+                                  <CheckCircle className="h-5 w-5 text-green-400" />
+                                </div>
+                                <p className="text-sm font-medium text-green-300/70">Incassato Totale</p>
+                              </div>
+                              <p className="text-3xl font-light text-green-400">
+                                €{paymentStats?.totalPaid?.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                              </p>
+                              <p className="text-[10px] text-green-300/50 mt-2 uppercase tracking-wider font-semibold">Pagamenti Confermati</p>
+                            </div>
+
+                            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-6 transition-all hover:bg-yellow-500/15">
+                              <div className="flex items-center gap-3 mb-2">
+                                <div className="p-2 bg-yellow-500/20 rounded-lg">
+                                  <Clock className="h-5 w-5 text-yellow-400" />
+                                </div>
+                                <p className="text-sm font-medium text-yellow-300/70">In Attesa</p>
+                              </div>
+                              <p className="text-3xl font-light text-yellow-400">
+                                €{paymentStats?.totalPending?.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                              </p>
+                              <p className="text-[10px] text-yellow-300/50 mt-2 uppercase tracking-wider font-semibold">Prossime Scadenze</p>
+                            </div>
+
+                            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6 transition-all hover:bg-red-500/15">
+                              <div className="flex items-center gap-3 mb-2">
+                                <div className="p-2 bg-red-500/20 rounded-lg">
+                                  <XCircle className="h-5 w-5 text-red-400" />
+                                </div>
+                                <p className="text-sm font-medium text-red-300/70">Pagamenti Scaduti</p>
+                              </div>
+                              <p className="text-3xl font-light text-red-400">
+                                €{paymentStats?.totalOverdue?.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                              </p>
+                              <p className="text-[10px] text-red-300/50 mt-2 uppercase tracking-wider font-semibold">Azione Richiesta</p>
+                            </div>
+
+                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-6 transition-all hover:bg-blue-500/15">
+                              <div className="flex items-center gap-3 mb-2">
+                                <div className="p-2 bg-blue-500/20 rounded-lg">
+                                  <TrendingUp className="h-5 w-5 text-blue-400" />
+                                </div>
+                                <p className="text-sm font-medium text-blue-300/70">Contratti Lordi</p>
+                              </div>
+                              <p className="text-3xl font-light text-blue-400">
+                                €{paymentStats?.grossContractRevenue?.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                              </p>
+                              <p className="text-[10px] text-blue-300/50 mt-2 uppercase tracking-wider font-semibold">Valore Contrattuale Totale</p>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 p-4 bg-white/5 rounded-xl border border-white/10">
+                            <h4 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">Rendimento Netto (Calcolo Stimato)</h4>
+                            <div className="flex justify-between items-end">
+                              <div>
+                                <p className="text-2xl font-light text-[#f8f9fa]">
+                                  €{adminStats?.netRevenue?.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                                </p>
+                                <p className="text-[10px] text-white/40 italic">Al netto di costi materiali e ritenute (Dati Dashboard Admin)</p>
+                              </div>
+                              <div className="text-right">
+                                <Link to={createPageUrl('Pagamenti')}>
+                                  <Button variant="outline" size="sm" className="bg-transparent border-white/10 hover:bg-white/10 text-white text-xs h-8">
+                                    Gestione Completa <ArrowRight className="ml-2 h-3 w-3" />
+                                  </Button>
+                                </Link>
+                              </div>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    );
+                  }
+
                   return stat.noLink ? (
                     <div key={stat.id}>{Content}</div>
                   ) : (
-                    <Link key={stat.id} to={createPageUrl(stat.to)}>
+                    <Link key={stat.id} to={stat.to ? createPageUrl(stat.to) : '#'}>
                       {Content}
                     </Link>
                   );
@@ -1460,7 +1557,7 @@ export default function Dashboard() {
 
           {/* Tabs - Conditionally Rendered */}
           <Tabs defaultValue={isAdmin ? "quotes" : isSupplier ? "supplier-requests" : "appointments"} className="space-y-4 sm:space-y-6">
-            <TabsList className={`bg-white border border-[#f8f9fa]/20 w-full grid ${isAdmin ? 'grid-cols-3' : isClient ? 'grid-cols-4' : isSupplier ? 'grid-cols-3' : 'grid-cols-3'} flex-wrap h-auto`}>
+            <TabsList className={`bg-white border border-[#f8f9fa]/20 w-full grid ${isAdmin ? 'grid-cols-3' : isClient ? 'grid-cols-4' : isSupplier ? 'grid-cols-3' : 'grid-cols-2'} flex-wrap h-auto`}>
 
               {isAdmin && (
                 <TabsTrigger value="quotes" className="data-[state=active]:bg-[#f8f9fa] data-[state=active]:text-black text-xs sm:text-sm text-gray-500 py-2">

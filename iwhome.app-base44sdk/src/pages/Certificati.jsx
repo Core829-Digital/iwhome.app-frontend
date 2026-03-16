@@ -37,10 +37,8 @@ export default function Certificati() {
     const { isAdmin, canView, isLoading: rbacLoading } = useRBAC();
     const { user } = useUser();
     const userEmail = user?.primaryEmailAddress?.emailAddress || "";
-    if (!userEmail) return null;
-    
-    const convexUser = useQuery(api.users.getByEmail, { email: userEmail });
-    const isWorker = convexUser?.role?.startsWith("collaborator");
+
+    // ─── Tutti gli hook PRIMA di qualsiasi early return (Rules of Hooks) ───
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [activeCategory, setActiveCategory] = useState('edilizia');
@@ -53,14 +51,18 @@ export default function Certificati() {
     const [selectedFile, setSelectedFile] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
 
+    const convexUser = useQuery(api.users.getByEmail, userEmail ? { email: userEmail } : "skip");
+    const isWorker = convexUser?.role?.startsWith("collaborator");
     const certificates = useQuery(api.certificates.list, { category: activeCategory }) || [];
     const stats = useQuery(api.certificates.getStats) || null;
     const suppliers = useQuery(api.suppliers.list) || [];
     const collaborators = useQuery(api.collaborators.list, {}) || [];
-    const cantieri = useQuery(api.cantieri.listCantieri, { company_email: userEmail }) || [];
+    const cantieri = useQuery(api.cantieri.listCantieri, userEmail ? { company_email: userEmail } : "skip") || [];
     const createMutation = useMutation(api.certificates.create);
     const removeMutation = useMutation(api.certificates.remove);
     const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
+
+    if (!userEmail) return null;
 
     if (rbacLoading) {
         return (<div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] flex items-center justify-center"><Loader2 className="animate-spin text-blue-500" size={40} /></div>);
@@ -237,7 +239,14 @@ export default function Certificati() {
                                                                     <Badge variant="default" className={`${sts.color} border flex items-center gap-1`}>
                                                                         <StatusIcon size={14} /> {sts.label}
                                                                     </Badge>
-                                                                    <Button variant="ghost" size="sm" className="text-cyan-400 hover:bg-cyan-500/20" onClick={() => { if (cert.file_url) window.open(cert.file_url, '_blank'); }}>
+                                                                    <Button variant="ghost" size="sm" className="text-cyan-400 hover:bg-cyan-500/20" onClick={() => {
+                                                                        if (cert.file_url) {
+                                                                            const url = cert.file_url.startsWith('http')
+                                                                                ? cert.file_url
+                                                                                : `${import.meta.env.VITE_CONVEX_URL}/api/storage/${cert.file_url}`;
+                                                                            window.open(url, '_blank');
+                                                                        }
+                                                                    }}>
                                                                         <Download size={14} className="mr-1" /> Scarica PDF
                                                                     </Button>
                                                                     {isAdmin && (

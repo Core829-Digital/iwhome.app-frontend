@@ -27,7 +27,7 @@ export default function MyAppointments() {
     email: user?.primaryEmailAddress?.emailAddress || ""
   });
 
-  const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'ceo';
+  const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'superadmin';
   const isWorker = convexUser?.role?.startsWith('collaborator');
   const appointments = showAll && isAdmin ? allAppointments : myAppointments;
 
