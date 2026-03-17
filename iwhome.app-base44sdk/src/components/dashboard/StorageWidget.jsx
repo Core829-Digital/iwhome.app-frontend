@@ -1,9 +1,16 @@
 import { HardDrive } from 'lucide-react';
 
+function formatSize(totalBytes) {
+  if (totalBytes < 1024) return `${totalBytes} B`;
+  if (totalBytes < 1024 * 1024) return `${(totalBytes / 1024).toFixed(1)} KB`;
+  if (totalBytes < 1024 * 1024 * 1024) return `${(totalBytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(totalBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
 export default function StorageWidget({ isCollapsed, storageData }) {
   if (storageData === undefined || storageData === null) return null;
 
-  const { totalGB, limitGB, percentage } = storageData;
+  const { totalBytes, limitGB, percentage } = storageData;
 
   const barColor =
     percentage >= 90
@@ -12,8 +19,9 @@ export default function StorageWidget({ isCollapsed, storageData }) {
       ? 'bg-amber-500'
       : 'bg-emerald-500';
 
-  const formattedGB = totalGB.toFixed(2);
-  const formattedPct = Math.round(percentage);
+  // Larghezza minima del 3% per renderla sempre visibile
+  const barWidth = Math.max(percentage, totalBytes > 0 ? 3 : 0);
+  const formattedPct = percentage < 0.1 ? '<0.1' : Math.round(percentage);
 
   if (isCollapsed) {
     return (
@@ -32,11 +40,11 @@ export default function StorageWidget({ isCollapsed, storageData }) {
       <div className="w-full bg-white/10 rounded-full h-1.5 mb-2">
         <div
           className={`h-1.5 rounded-full transition-all duration-500 ${barColor}`}
-          style={{ width: `${percentage}%` }}
+          style={{ width: `${barWidth}%` }}
         />
       </div>
       <p className="text-xs text-[#adb5bd]">
-        {formattedGB} GB / {limitGB} GB
+        {formatSize(totalBytes)} / {limitGB} GB
         <span className="ml-1 text-[#6c757d]">· {formattedPct}%</span>
       </p>
     </div>
