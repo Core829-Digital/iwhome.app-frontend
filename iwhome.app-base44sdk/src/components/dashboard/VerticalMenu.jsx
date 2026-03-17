@@ -28,6 +28,7 @@ import {
 import { useUser, useClerk } from '@clerk/clerk-react';
 import { useQuery } from "convex/react";
 import { api } from "../../../../../Backend/convex/_generated/api";
+import StorageWidget from "./StorageWidget";
 
 // Helper function to create page URLs (simplified for now)
 const createPageUrl = (page) => {
@@ -135,6 +136,13 @@ export default function VerticalMenu() {
   const convexUser = useQuery(api.users.getByEmail, {
     email: clerkUser?.primaryEmailAddress?.emailAddress || ""
   });
+
+  const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'superadmin';
+
+  const storageStats = useQuery(
+    api.storageStats.getStats,
+    isAdmin ? {} : "skip"
+  );
 
   // Map user data for getMenuItems - using Convex role instead of Clerk metadata
   const user = clerkUser ? {
@@ -356,6 +364,11 @@ export default function VerticalMenu() {
               }
             })}
           </nav>
+
+          {/* Storage widget - solo admin */}
+          {isAdmin && (
+            <StorageWidget isCollapsed={isCollapsed} storageData={storageStats} />
+          )}
 
           {/* Footer */}
           <div className="p-3 border-t border-[#f8f9fa]/10">
