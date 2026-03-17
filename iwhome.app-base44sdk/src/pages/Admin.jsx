@@ -31,11 +31,14 @@ import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
 export default function Admin() {
     const { user } = useUser();
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedUser, setSelectedUser] = useState(null);
+    const [selectedUserId, setSelectedUserId] = useState(null);
 
     // Queries
     const allUsers = useQuery(api.users.list) || [];
     const convexUser = useQuery(api.users.getByEmail, { email: user?.primaryEmailAddress?.emailAddress || "" });
+
+    // Derive selectedUser reactively from allUsers so UI always reflects latest DB state
+    const selectedUser = allUsers.find(u => u._id === selectedUserId) || null;
 
     const selectedUserDocs = useQuery(api.documents.getByUser, selectedUser ? { email: selectedUser.email } : "skip") || [];
     const selectedUserQuotes = useQuery(api.quotes.getByUser, selectedUser ? { email: selectedUser.email } : "skip") || [];
@@ -93,7 +96,7 @@ export default function Admin() {
         setActionLoading(true);
         try {
             await deleteUserMutation({ userId });
-            setSelectedUser(null);
+            setSelectedUserId(null);
             setDeleteConfirmOpen(false);
         } catch (error) {
             alert(error.message || 'Errore eliminazione utente');
@@ -226,8 +229,8 @@ export default function Admin() {
                                     {filteredUsers.map(u => (
                                         <div
                                             key={u._id}
-                                            onClick={() => setSelectedUser(u)}
-                                            className={`p-4 border-b border-[#f8f9fa]/5 cursor-pointer hover:bg-[#f8f9fa]/5 transition-colors ${selectedUser?._id === u._id ? 'bg-[#f8f9fa]/10 border-l-4 border-l-blue-500' : ''}`}
+                                            onClick={() => setSelectedUserId(u._id)}
+                                            className={`p-4 border-b border-[#f8f9fa]/5 cursor-pointer hover:bg-[#f8f9fa]/5 transition-colors ${selectedUserId === u._id ? 'bg-[#f8f9fa]/10 border-l-4 border-l-blue-500' : ''}`}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium ${u.blocked ? 'bg-gradient-to-br from-red-600 to-red-800' : 'bg-gradient-to-br from-blue-500 to-purple-500'}`}>
