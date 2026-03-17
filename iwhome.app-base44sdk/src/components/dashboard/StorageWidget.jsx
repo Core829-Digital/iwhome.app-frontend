@@ -21,7 +21,7 @@ export default function StorageWidget({ isCollapsed, storageData }) {
 
   // Larghezza minima del 3% per renderla sempre visibile
   const barWidth = Math.max(percentage, totalBytes > 0 ? 3 : 0);
-  const formattedPct = percentage < 0.1 ? '<0.1' : Math.round(percentage);
+  const formattedPct = percentage === 0 ? '0' : percentage < 0.1 ? '<0.1' : Math.round(percentage);
 
   if (isCollapsed) {
     return (
