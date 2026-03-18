@@ -1,4 +1,5 @@
 import './App.css'
+import { useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import VisualEditAgent from '@/lib/VisualEditAgent'
 import NavigationTracker from '@/lib/NavigationTracker'
@@ -17,6 +18,7 @@ const queryClient = new QueryClient();
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
 import VerticalMenu from './components/dashboard/VerticalMenu';
 import AnimatedBackground from './components/dashboard/AnimatedBackground';
 
@@ -108,6 +110,10 @@ const AuthenticatedApp = () => {
 
 
 function App() {
+  useEffect(() => {
+    const el = document.getElementById('initial-loader');
+    if (el) el.remove();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
