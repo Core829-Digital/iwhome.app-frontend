@@ -23,6 +23,7 @@ import MyAppointments from './pages/MyAppointments';
 import Pagamenti from './pages/Pagamenti';
 import PdfEditor from './pages/PdfEditor';
 import Preventivi from './pages/Preventivi';
+import Prezzi from './pages/Prezzi';
 import Privacy from './pages/Privacy';
 import Recensioni from './pages/Recensioni';
 import Servizi from './pages/Servizi';
@@ -63,6 +64,7 @@ export const PAGES = {
     "Pagamenti": Pagamenti,
     "PdfEditor": PdfEditor,
     "Preventivi": Preventivi,
+    "Prezzi": Prezzi,
     "Privacy": Privacy,
     "Recensioni": Recensioni,
     "Servizi": Servizi,

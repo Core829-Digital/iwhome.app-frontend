@@ -197,7 +197,7 @@ export default function Certificati() {
 
                     {/* Category Tabs */}
                     <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-                        <TabsList className="bg-[#343a40] border border-[#495057] w-full grid grid-cols-3 mb-6">
+                        <TabsList className="bg-[#343a40] border border-[#495057] w-full flex overflow-x-auto sm:grid sm:grid-cols-3 mb-6 h-auto">
                             {Object.entries(categoryConfig).map(([key, conf]) => (
                                 <TabsTrigger key={key} value={key} className="data-[state=active]:bg-amber-600 data-[state=active]:text-white text-[#adb5bd]">
                                     <conf.icon size={16} className="mr-2" /> {conf.label}
@@ -222,20 +222,20 @@ export default function Certificati() {
                                                 <motion.div key={cert._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                                                     <Card className="bg-[#343a40] border border-[#495057] hover:border-[#6c757d] transition-all">
                                                         <CardContent className="p-5">
-                                                            <div className="flex items-center justify-between">
-                                                                <div className="flex-1">
-                                                                    <div className="flex items-center gap-3 mb-2">
-                                                                        <h3 className="text-lg font-medium text-[#f8f9fa]">{cert.title}</h3>
+                                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                                                                        <h3 className="text-base sm:text-lg font-medium text-[#f8f9fa]">{cert.title}</h3>
                                                                         {cert.subcategory && <Badge variant="default" className="bg-[#495057] text-[#adb5bd] text-xs">{getSubcategoryLabel(cert.subcategory)}</Badge>}
                                                                     </div>
                                                                     {cert.description && <p className="text-sm text-[#adb5bd] mb-2">{cert.description}</p>}
-                                                                    <div className="flex items-center gap-4 text-xs text-[#6c757d]">
+                                                                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-[#6c757d]">
                                                                         {cert.issue_date && <span className="flex items-center gap-1"><Calendar size={12} /> Emesso: {new Date(cert.issue_date).toLocaleDateString('it-IT')}</span>}
                                                                         {cert.expiry_date && <span className="flex items-center gap-1"><Clock size={12} /> Scade: {new Date(cert.expiry_date).toLocaleDateString('it-IT')}</span>}
-                                                                        <span>{cert.file_name}</span>
+                                                                        <span className="truncate max-w-[150px]">{cert.file_name}</span>
                                                                     </div>
                                                                 </div>
-                                                                <div className="flex items-center gap-3">
+                                                                <div className="flex items-center gap-3 flex-shrink-0">
                                                                     <Badge variant="default" className={`${sts.color} border flex items-center gap-1`}>
                                                                         <StatusIcon size={14} /> {sts.label}
                                                                     </Badge>

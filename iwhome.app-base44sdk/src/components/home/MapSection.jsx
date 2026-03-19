@@ -5,7 +5,7 @@ import { MapPin, Clock, Phone } from 'lucide-react';
 
 export default function MapSection() {
   const [mapUrl, setMapUrl] = useState('');
-  const address = "Via Emilio All'angelo 22/F, Reggio Emilia, Italia";
+  const address = "Via Emilia 22/F, Reggio Emilia, Italia";
 
   useEffect(() => {
     const encodedAddress = encodeURIComponent(address);

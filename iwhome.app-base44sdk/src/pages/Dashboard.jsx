@@ -1557,7 +1557,7 @@ export default function Dashboard() {
 
           {/* Tabs - Conditionally Rendered */}
           <Tabs defaultValue={isAdmin ? "quotes" : isSupplier ? "supplier-requests" : "appointments"} className="space-y-4 sm:space-y-6">
-            <TabsList className={`bg-white border border-[#f8f9fa]/20 w-full grid ${isAdmin ? 'grid-cols-3' : isClient ? 'grid-cols-4' : isSupplier ? 'grid-cols-3' : 'grid-cols-2'} flex-wrap h-auto`}>
+            <TabsList className={`bg-white border border-[#f8f9fa]/20 w-full overflow-x-auto flex sm:grid ${isAdmin ? 'sm:grid-cols-3' : isClient ? 'sm:grid-cols-4' : isSupplier ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} h-auto`}>
 
               {isAdmin && (
                 <TabsTrigger value="quotes" className="data-[state=active]:bg-[#f8f9fa] data-[state=active]:text-black text-xs sm:text-sm text-gray-500 py-2">
@@ -1916,7 +1916,7 @@ export default function Dashboard() {
                               </div>
                             </div>
 
-                            <div className="flex flex-col justify-between items-end gap-4 min-w-[200px]">
+                            <div className="flex flex-col justify-between items-stretch sm:items-end gap-4 sm:min-w-[200px]">
                               <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[2px] border ${
                                 cantiere.status === 'completato' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
                                 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.1)]'
@@ -2072,7 +2072,7 @@ export default function Dashboard() {
               {appointments.map((apt) => (
                 <Card key={apt._id} className="bg-gradient-to-br from-[#495057] to-[#6c757d] border-[#f8f9fa]/20">
                   <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <h3 className="font-medium text-[#f8f9fa]">{apt.full_name}</h3>
                         <p className="text-sm text-[#dee2e6]">{apt.email}</p>

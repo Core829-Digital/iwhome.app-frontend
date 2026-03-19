@@ -501,18 +501,18 @@ export default function Pagamenti() {
                     {/* Type Tabs */}
                     {(isAdmin || role?.includes('collaborator')) && (
                         <Tabs value={activeTab} onValueChange={setActiveTab}>
-                            <TabsList className="bg-[#343a40] border border-[#495057] w-full grid grid-cols-4 mb-6">
-                                <TabsTrigger value="supplier" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white text-[#adb5bd]">
-                                    <Truck size={16} className="mr-2" /> Fornitori <span className="ml-1.5 text-[10px] opacity-70">(Uscite)</span>
+                            <TabsList className="bg-[#343a40] border border-[#495057] w-full flex overflow-x-auto sm:grid sm:grid-cols-4 mb-6 h-auto">
+                                <TabsTrigger value="supplier" className="flex-shrink-0 data-[state=active]:bg-orange-600 data-[state=active]:text-white text-[#adb5bd] text-xs sm:text-sm">
+                                    <Truck size={14} className="mr-1 sm:mr-2" /> <span>Fornitori</span> <span className="hidden sm:inline ml-1.5 text-[10px] opacity-70">(Uscite)</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="collaborator" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white text-[#adb5bd]">
-                                    <Briefcase size={16} className="mr-2" /> Collaboratori <span className="ml-1.5 text-[10px] opacity-70">(Uscite)</span>
+                                <TabsTrigger value="collaborator" className="flex-shrink-0 data-[state=active]:bg-indigo-600 data-[state=active]:text-white text-[#adb5bd] text-xs sm:text-sm">
+                                    <Briefcase size={14} className="mr-1 sm:mr-2" /> <span>Collaboratori</span> <span className="hidden sm:inline ml-1.5 text-[10px] opacity-70">(Uscite)</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="client" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-[#adb5bd]">
-                                    <Users size={16} className="mr-2" /> Clienti <span className="ml-1.5 text-[10px] opacity-70">(Entrate)</span>
+                                <TabsTrigger value="client" className="flex-shrink-0 data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-[#adb5bd] text-xs sm:text-sm">
+                                    <Users size={14} className="mr-1 sm:mr-2" /> <span>Clienti</span> <span className="hidden sm:inline ml-1.5 text-[10px] opacity-70">(Entrate)</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="calendar" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-[#adb5bd]">
-                                    <Calendar size={16} className="mr-2" /> Calendario <span className="ml-1.5 text-[10px] opacity-70">(Agenda)</span>
+                                <TabsTrigger value="calendar" className="flex-shrink-0 data-[state=active]:bg-blue-600 data-[state=active]:text-white text-[#adb5bd] text-xs sm:text-sm">
+                                    <Calendar size={14} className="mr-1 sm:mr-2" /> <span>Calendario</span> <span className="hidden sm:inline ml-1.5 text-[10px] opacity-70">(Agenda)</span>
                                 </TabsTrigger>
                             </TabsList>
                         </Tabs>
@@ -554,7 +554,8 @@ export default function Pagamenti() {
                                 </Button>
                             </div>
 
-                            <div className="grid grid-cols-7 gap-2">
+                            <div className="overflow-x-auto -mx-4 sm:mx-0">
+                            <div className="grid grid-cols-7 gap-1 sm:gap-2 min-w-[480px] sm:min-w-0 px-4 sm:px-0">
                                 {['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map(day => (
                                     <div key={day} className="text-center py-2 text-xs font-black uppercase text-[#6c757d] tracking-widest">{day}</div>
                                 ))}
@@ -592,6 +593,7 @@ export default function Pagamenti() {
                                     </div>
                                 ))}
                             </div>
+                            </div>
 
                             <div className="flex flex-wrap gap-4 mt-6 p-4 bg-[#343a40]/30 rounded-2xl border border-[#495057]/30">
                                 <div className="flex items-center gap-2 text-[10px] font-bold text-[#adb5bd]">
@@ -624,28 +626,28 @@ export default function Pagamenti() {
                                             <motion.div key={payment._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                                                 <Card className="bg-[#343a40] border border-[#495057] hover:border-[#6c757d] transition-all">
                                                     <CardContent className="p-5">
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex-1">
-                                                                <div className="flex items-center gap-3 mb-1">
-                                                                    <h3 className="text-lg font-medium text-[#f8f9fa]">{payment.description}</h3>
+                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                                    <h3 className="text-base sm:text-lg font-medium text-[#f8f9fa]">{payment.description}</h3>
                                                                     {payment.payment_type && (
                                                                         <Badge variant="default" className="bg-[#495057] text-[#adb5bd] text-xs capitalize">{payment.payment_type}</Badge>
                                                                     )}
                                                                 </div>
-                                                                <div className="flex items-center gap-4 text-sm text-[#adb5bd] mt-1">
-                                                                    {payment.reference_name && <span>{payment.reference_name}</span>}
+                                                                <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-[#adb5bd] mt-1">
+                                                                    {payment.reference_name && <span className="truncate max-w-[200px]">{payment.reference_name}</span>}
                                                                     {payment.invoice_number && <span>Fattura: {payment.invoice_number}</span>}
                                                                     {payment.cantiere_id && (() => {
                                                                         const cantiere = cantieri.find(c => c._id === payment.cantiere_id);
                                                                         return cantiere ? <span className="flex items-center gap-1 text-emerald-400 font-medium"><Building2 size={12} /> {cantiere.nome_cantiere}</span> : null;
                                                                     })()}
                                                                 </div>
-                                                                <div className="flex items-center gap-4 text-xs text-[#6c757d] mt-2">
+                                                                <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-[#6c757d] mt-2">
                                                                     {payment.due_date && <span className="flex items-center gap-1"><Calendar size={12} /> Scadenza: {new Date(payment.due_date).toLocaleDateString('it-IT')}</span>}
                                                                     {payment.paid_date && <span className="flex items-center gap-1"><CheckCircle size={12} className="text-green-400" /> Pagato: {new Date(payment.paid_date).toLocaleDateString('it-IT')}</span>}
                                                                 </div>
                                                             </div>
-                                                            <div className="flex items-center gap-4">
+                                                            <div className="flex items-center gap-3 flex-shrink-0">
                                                                 <span className="text-xl font-medium text-[#f8f9fa]">€{payment.amount?.toLocaleString()}</span>
                                                                 <Badge variant="default" className={`${sts.color} border flex items-center gap-1`}>
                                                                     <StatusIcon size={14} /> {sts.label}

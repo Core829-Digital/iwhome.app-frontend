@@ -142,7 +142,7 @@ export default function Admin() {
                 file_name: uploadData.file.name,
                 file_type: uploadData.file.type,
                 file_size: uploadData.file.size,
-                is_public: "false",
+                is_public: false,
                 created_by: selectedUser.email, // Upload AS selected user so they see it
                 created_date: new Date().toISOString()
             });

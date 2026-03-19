@@ -507,7 +507,7 @@ export default function PdfEditor() {
 
     // Footer
     doc.setFontSize(8);
-    doc.text('IwHome - Via Emilio All\'angelo 22/F, Reggio Emilia - 42124', 105, 285, { align: 'center' });
+    doc.text('IwHome - Via Emilia 22/F, Reggio Emilia - 42124', 105, 285, { align: 'center' });
     doc.text('Tel: +39 389 182 0808 | info@iwhome.it | amministrazione@iwhome.it | P.IVA 03096130350', 105, 290, { align: 'center' });
 
     // Add company signature if exists

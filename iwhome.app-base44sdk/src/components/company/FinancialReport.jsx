@@ -93,14 +93,14 @@ export default function FinancialReport({ user }) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-medium text-[#f8f9fa]">Report Finanziario</h2>
+          <h2 className="text-xl sm:text-2xl font-medium text-[#f8f9fa]">Report Finanziario</h2>
           <p className="text-[#adb5bd] text-sm">Ultimi 6 mesi</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <Select value={regimeFiscale} onValueChange={setRegimeFiscale}>
-            <SelectTrigger className="w-48 bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa]">
+            <SelectTrigger className="w-full sm:w-48 bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

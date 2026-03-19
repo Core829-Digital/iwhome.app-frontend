@@ -178,7 +178,7 @@ export default function Collaboratori() {
                     {/* Header */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
                         <div>
-                            <h1 className="text-3xl font-light text-[#f8f9fa] mb-2 flex items-center gap-3">
+                            <h1 className="text-2xl lg:text-3xl font-light text-[#f8f9fa] mb-2 flex items-center gap-3">
                                 <Users className="text-indigo-400" /> Collaboratori
                             </h1>
                             <p className="text-[#adb5bd]">Gestione staff interno, collaboratori esterni, ore e presenze</p>

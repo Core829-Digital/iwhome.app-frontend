@@ -520,7 +520,7 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(...secondary);
-    doc.text('Via Emilio All\'angelo 22/F, Reggio Emilia - 42124', 32, footerY + 11);
+    doc.text('Via Emilia 22/F, Reggio Emilia - 42124', 32, footerY + 11);
     doc.text('+39 389 182 0808  •  info@iwhome.it  •  amministrazione@iwhome.it  •  P.IVA 03096130350', 105, footerY + 9, { align: 'center' });
     doc.text(`#${quoteNumber}`, 190, footerY + 9, { align: 'right' });
 

@@ -26,7 +26,7 @@ const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 
-const PUBLIC_PAGES = ['Home', 'ChiSiamo', 'Servizi', 'Calcolatore', 'Blog', 'BlogPost', 'Contatti', 'Cookie', 'Privacy', 'Termini', 'qr-access'];
+const PUBLIC_PAGES = ['Home', 'ChiSiamo', 'Servizi', 'Calcolatore', 'Blog', 'BlogPost', 'Contatti', 'Cookie', 'Privacy', 'Termini'];
 
 const GlobalLayout = ({ children }) => {
   const location = useLocation();

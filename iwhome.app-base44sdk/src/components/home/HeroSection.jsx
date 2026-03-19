@@ -148,7 +148,7 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-5xl md:text-7xl lg:text-8xl font-light text-[#f8f9fa] mb-12 tracking-tight leading-relaxed"
+            className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-light text-[#f8f9fa] mb-8 sm:mb-12 tracking-tight leading-relaxed"
             style={{ overflow: 'visible' }}
           >
             Materiali.

@@ -11,10 +11,14 @@ import { api } from "../../../../Backend/convex/_generated/api";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import WindowCalculator from '../components/calculator/WindowCalculator';
 import ProjectCalculator from '../components/calculator/ProjectCalculator';
+import CalcolatoreEdilizia from '../components/calculator/CalcolatoreEdilizia';
+import CalcolatoreRender3D from '../components/calculator/CalcolatoreRender3D';
 import QuoteDownload from '../components/quote/QuoteDownload';
 import {
   Layers,
   Home,
+  HardHat,
+  Box,
   ArrowRight,
   Mail,
   Phone,
@@ -32,7 +36,7 @@ export default function Calcolatore() {
   const createQuote = useMutation(api.quotes.create);
   const upgradeToCliente = useMutation(api.users.upgradeToCliente);
 
-  const [quoteType, setQuoteType] = useState('finestre'); // 'finestre' | 'chiavi_in_mano'
+  const [quoteType, setQuoteType] = useState('finestre'); // 'finestre' | 'chiavi_in_mano' | 'edilizia' | 'render3d'
   const [includeWindows, setIncludeWindows] = useState(true);
   const [windowConfig, setWindowConfig] = useState(null);
   const [projectConfig, setProjectConfig] = useState(null);
@@ -59,11 +63,8 @@ export default function Calcolatore() {
   }, [user]);
 
   const handleRequestQuote = () => {
-    if (!user) {
-      setShowLoginPrompt(true);
-    } else {
-      setShowForm(true);
-    }
+    // Form always accessible — login optional (fields pre-filled if logged in)
+    setShowForm(true);
   };
 
   const getTotalPrice = () => {
@@ -95,8 +96,8 @@ export default function Calcolatore() {
       // Save quote to database
       await createQuote(quoteData);
 
-      // Upgrade user role to client
-      await upgradeToCliente();
+      // Upgrade user role to client (only if logged in)
+      if (user) await upgradeToCliente();
 
       // TODO: Send emails via Convex Action
       // await base44.functions.invoke('sendQuoteEmail', ...)
@@ -252,6 +253,54 @@ export default function Calcolatore() {
                 <div className="text-sm text-[#adb5bd]">Ristrutturazione completa</div>
               </div>
             </motion.button>
+
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              whileHover={{ y: -5, scale: 1.02 }}
+              onClick={() => setQuoteType('edilizia')}
+              className={`flex items-center gap-4 px-8 py-5 rounded-2xl border-2 transition-all shadow-xl hover-lift ${quoteType === 'edilizia'
+                ? 'border-orange-400 bg-gradient-to-br from-orange-400/20 to-orange-500/10 backdrop-blur-sm'
+                : 'border-[#f8f9fa]/20 bg-[#495057]/50 backdrop-blur-sm hover:border-orange-400/40'
+                }`}
+            >
+              <motion.div
+                whileHover={{ rotate: 360 }}
+                transition={{ duration: 0.6 }}
+                className={`w-12 h-12 rounded-xl flex items-center justify-center ${quoteType === 'edilizia' ? 'bg-orange-400/20' : 'bg-[#f8f9fa]/10'}`}
+              >
+                <HardHat size={24} className={quoteType === 'edilizia' ? 'text-orange-300' : 'text-[#dee2e6]'} />
+              </motion.div>
+              <div className="text-left">
+                <div className={`font-medium ${quoteType === 'edilizia' ? 'text-orange-200' : 'text-[#dee2e6]'}`}>
+                  Calcola Edilizia
+                </div>
+                <div className="text-sm text-[#adb5bd]">Preventivo ristrutturazione</div>
+              </div>
+            </motion.button>
+
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              whileHover={{ y: -5, scale: 1.02 }}
+              onClick={() => setQuoteType('render3d')}
+              className={`flex items-center gap-4 px-8 py-5 rounded-2xl border-2 transition-all shadow-xl hover-lift ${quoteType === 'render3d'
+                ? 'border-blue-400 bg-gradient-to-br from-blue-400/20 to-blue-500/10 backdrop-blur-sm'
+                : 'border-[#f8f9fa]/20 bg-[#495057]/50 backdrop-blur-sm hover:border-blue-400/40'
+                }`}
+            >
+              <motion.div
+                whileHover={{ rotate: 360 }}
+                transition={{ duration: 0.6 }}
+                className={`w-12 h-12 rounded-xl flex items-center justify-center ${quoteType === 'render3d' ? 'bg-blue-400/20' : 'bg-[#f8f9fa]/10'}`}
+              >
+                <Box size={24} className={quoteType === 'render3d' ? 'text-blue-300' : 'text-[#dee2e6]'} />
+              </motion.div>
+              <div className="text-left">
+                <div className={`font-medium ${quoteType === 'render3d' ? 'text-blue-200' : 'text-[#dee2e6]'}`}>
+                  Render 3D
+                </div>
+                <div className="text-sm text-[#adb5bd]">Visualizzazione ambienti</div>
+              </div>
+            </motion.button>
           </div>
         </div>
       </section>
@@ -265,6 +314,28 @@ export default function Calcolatore() {
         />
         <div className="max-w-5xl mx-auto px-6">
           <AnimatePresence mode="wait">
+            {quoteType === 'render3d' && (
+              <motion.div
+                key="render3d"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                <CalcolatoreRender3D />
+              </motion.div>
+            )}
+
+            {quoteType === 'edilizia' && (
+              <motion.div
+                key="edilizia"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                <CalcolatoreEdilizia />
+              </motion.div>
+            )}
+
             {quoteType === 'finestre' && (
               <motion.div
                 key="windows"
@@ -323,11 +394,11 @@ export default function Calcolatore() {
             )}
           </AnimatePresence>
 
-          {/* Download & Request Quote */}
+          {/* Download & Request Quote — hidden for edilizia tab (has own submit) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-12 space-y-6"
+            className={`mt-12 space-y-6 ${quoteType === 'edilizia' || quoteType === 'render3d' ? 'hidden' : ''}`}
           >
             {/* Download PDF Button */}
             <QuoteDownload
@@ -462,24 +533,25 @@ export default function Calcolatore() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <Label className="text-[#f8f9fa] mb-2 flex items-center gap-2">
-                          <User size={16} /> Nome e Cognome
+                          <User size={16} /> Nome e Cognome <span className="text-[#adb5bd] text-xs">(opzionale)</span>
                         </Label>
                         <Input
                           value={formData.full_name}
                           onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
-                          required
+                          placeholder="Mario Rossi"
                           disabled={!!user?.fullName}
                           className="rounded-xl bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#adb5bd] focus:border-[#f8f9fa] focus:ring-[#f8f9fa] disabled:opacity-70"
                         />
                       </div>
                       <div>
                         <Label className="text-[#f8f9fa] mb-2 flex items-center gap-2">
-                          <Phone size={16} /> Telefono
+                          <Phone size={16} /> Telefono <span className="text-[#adb5bd] text-xs">(opzionale)</span>
                         </Label>
                         <Input
                           type="tel"
                           value={formData.phone}
                           onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                          placeholder="+39 333 000 0000"
                           className="rounded-xl bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#adb5bd] focus:border-[#f8f9fa] focus:ring-[#f8f9fa]"
                         />
                       </div>
@@ -487,13 +559,13 @@ export default function Calcolatore() {
 
                     <div>
                       <Label className="text-[#f8f9fa] mb-2 flex items-center gap-2">
-                        <Mail size={16} /> Email
+                        <Mail size={16} /> Email <span className="text-[#adb5bd] text-xs">(opzionale — per ricevere il preventivo)</span>
                       </Label>
                       <Input
                         type="email"
                         value={formData.email}
                         onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                        required
+                        placeholder="mario@email.it"
                         disabled={!!user}
                         className="rounded-xl bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#adb5bd] focus:border-[#f8f9fa] focus:ring-[#f8f9fa] disabled:opacity-70"
                       />

@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { base44 } from '@/api/base44Client';
+import { useAction } from 'convex/react';
+import { api } from '../../../../Backend/convex/_generated/api';
 import { 
   Mail, 
   Phone, 
@@ -29,18 +30,33 @@ export default function Contatti() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+
+  const sendEmail = useAction(api.actions.sendEmail);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setSubmitError(null);
 
-    await base44.entities.Contact.create({
-      ...formData,
-      status: 'new'
-    });
-
-    setIsSubmitting(false);
-    setSubmitted(true);
+    try {
+      await sendEmail({
+        to: 'info@iwhome.it',
+        subject: `Nuovo Contatto: ${formData.subject || 'Richiesta dal sito'} — ${formData.full_name}`,
+        html: `<h2>Nuovo messaggio dal form di contatto</h2>
+          <p><strong>Nome:</strong> ${formData.full_name}</p>
+          <p><strong>Email:</strong> ${formData.email}</p>
+          <p><strong>Telefono:</strong> ${formData.phone || 'Non specificato'}</p>
+          <p><strong>Oggetto:</strong> ${formData.subject || 'Non specificato'}</p>
+          <p><strong>Messaggio:</strong><br/>${formData.message}</p>`
+      });
+      setSubmitted(true);
+    } catch (err) {
+      console.error('Errore invio contatto:', err);
+      setSubmitError('Errore durante l\'invio. Riprova o contattaci direttamente a info@iwhome.it');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -258,6 +274,9 @@ export default function Contatti() {
                     />
                   </div>
 
+                  {submitError && (
+                    <p className="text-red-500 text-sm text-center">{submitError}</p>
+                  )}
                   <Button
                     type="submit"
                     disabled={isSubmitting}

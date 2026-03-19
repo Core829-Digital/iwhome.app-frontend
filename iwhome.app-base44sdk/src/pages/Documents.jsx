@@ -103,7 +103,7 @@ export default function Documents() {
           file_name: uploadData.file.name,
           file_type: uploadData.file.type,
           file_size: uploadData.file.size,
-          is_public: "false",
+          is_public: false,
           created_by: user.primaryEmailAddress.emailAddress,
           created_date: new Date().toISOString(),
           client_id: uploadData.client_id || undefined, // Link to client if selected

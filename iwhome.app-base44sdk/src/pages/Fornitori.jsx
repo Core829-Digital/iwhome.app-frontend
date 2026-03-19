@@ -1631,7 +1631,6 @@ export default function Fornitori() {
                             <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]"><SelectValue /></SelectTrigger>
                             <SelectContent className="bg-[#343a40] border-[#495057]">
                                 <SelectItem value="subprod" className="text-[#f8f9fa]">Subprodotti (Infissi)</SelectItem>
-                                <SelectItem value="subeng" className="text-[#f8f9fa]">Subeng (Edilizia)</SelectItem>
                             </SelectContent>
                         </Select>
                         <Textarea placeholder="Note" value={newSupplier.notes} onChange={e => setNewSupplier({ ...newSupplier, notes: e.target.value })} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]" />

@@ -397,7 +397,7 @@ export default function Layout({ children, currentPageName }) {
                 </li>
                 <li className="flex items-start gap-3 text-[#e9ecef]/60 text-sm">
                   <MapPin size={16} className="mt-0.5" />
-                  <span>Via Emilio All'angelo 22/F<br />Reggio Emilia - 42124</span>
+                  <span>Via Emilia 22/F<br />Reggio Emilia - 42124</span>
                 </li>
               </ul>
             </div>

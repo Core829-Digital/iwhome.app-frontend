@@ -163,7 +163,7 @@ export default function CompanyDashboard() {
             <div className="flex items-center gap-3 mb-2">
               <Building className="text-[#f8f9fa]" size={32} />
               <div>
-                <h1 className="text-3xl font-medium text-[#f8f9fa]">Gestionale B2B</h1>
+                <h1 className="text-2xl sm:text-3xl font-medium text-[#f8f9fa]">Gestionale B2B</h1>
                 <p className="text-[#dee2e6]">{user.company_name}</p>
               </div>
             </div>
@@ -202,12 +202,12 @@ export default function CompanyDashboard() {
 
           {/* Main Tabs */}
           <Tabs defaultValue="preventivi" className="space-y-6">
-            <TabsList className="bg-[#343a40] border border-[#f8f9fa]/20">
-              <TabsTrigger value="preventivi">Preventivi</TabsTrigger>
-              <TabsTrigger value="cantieri">Cantieri</TabsTrigger>
-              <TabsTrigger value="fatture">Fatture</TabsTrigger>
-              <TabsTrigger value="chat">Chat Team</TabsTrigger>
-              <TabsTrigger value="finanza">Report</TabsTrigger>
+            <TabsList className="bg-[#343a40] border border-[#f8f9fa]/20 w-full flex overflow-x-auto sm:grid sm:grid-cols-5 h-auto">
+              <TabsTrigger value="preventivi" className="flex-shrink-0 text-xs sm:text-sm">Preventivi</TabsTrigger>
+              <TabsTrigger value="cantieri" className="flex-shrink-0 text-xs sm:text-sm">Cantieri</TabsTrigger>
+              <TabsTrigger value="fatture" className="flex-shrink-0 text-xs sm:text-sm">Fatture</TabsTrigger>
+              <TabsTrigger value="chat" className="flex-shrink-0 text-xs sm:text-sm">Chat Team</TabsTrigger>
+              <TabsTrigger value="finanza" className="flex-shrink-0 text-xs sm:text-sm">Report</TabsTrigger>
             </TabsList>
 
             {/* Preventivi - Kanban */}
@@ -243,9 +243,9 @@ export default function CompanyDashboard() {
                 {fatture.map((fattura) => (
                   <Card key={fattura.id} className="bg-[#343a40]/30 border-[#f8f9fa]/20">
                     <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                             <div className="font-medium text-[#f8f9fa]">
                               Fattura #{fattura.numero_fattura}
                             </div>
@@ -272,9 +272,9 @@ export default function CompanyDashboard() {
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3 flex-shrink-0">
                           <div className="text-right">
-                            <div className="text-2xl font-light text-[#f8f9fa]">
+                            <div className="text-xl sm:text-2xl font-light text-[#f8f9fa]">
                               €{fattura.importo?.toLocaleString()}
                             </div>
                           </div>

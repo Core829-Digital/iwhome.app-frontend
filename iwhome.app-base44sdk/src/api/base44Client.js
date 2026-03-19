@@ -1,4 +1,11 @@
 // Mock client to replace removed SDK
+const noopEntity = {
+  filter: async () => [],
+  create: async () => ({}),
+  update: async () => ({}),
+  delete: async () => {},
+};
+
 export const base44 = {
   auth: {
     me: async () => ({ email: 'mock@user.com', full_name: 'Mock User' }),
@@ -23,6 +30,13 @@ export const base44 = {
       delete: async (id) => { }
     },
     Cantiere: { filter: async (args) => [] },
+    // Pages still referencing these entities — kept as no-ops to prevent crashes
+    Contact: noopEntity,
+    Review: noopEntity,
+    PDFTemplate: noopEntity,
+    QuoteSignature: noopEntity,
+    QuoteCounter: { ...noopEntity, filter: async () => [] },
+    QuoteAutomation: noopEntity,
     Query: {},
   },
   appLogs: {
