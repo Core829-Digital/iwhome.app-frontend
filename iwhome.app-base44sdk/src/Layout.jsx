@@ -4,7 +4,7 @@ import { createPageUrl } from './utils';
 import ScrollToAnchor from './components/utils/ScrollToAnchor';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Phone, Mail, MapPin, Instagram, Facebook, Linkedin, User, LogOut, LayoutDashboard } from 'lucide-react';
-import ChatWidget from './components/chat/ChatWidget';
+import ReferralWidget from './components/chat/ReferralWidget';
 import PageTransition from './components/PageTransition';
 import GDPRBanner from './components/GDPRBanner';
 import { Button } from '@/components/ui/button';
@@ -296,8 +296,8 @@ export default function Layout({ children, currentPageName }) {
           </PageTransition>
         </main>
 
-        {/* Chat Widget */}
-        {showChat && <ChatWidget />}
+        {/* Referral Widget */}
+        <ReferralWidget />
 
         {/* GDPR Banner */}
         <GDPRBanner />

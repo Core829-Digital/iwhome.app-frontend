@@ -10,6 +10,7 @@ import { api } from "../../../../Backend/convex/_generated/api";
 const PERMISSION_MAP = {
     "fornitori": ["admin", "supplier"],
     "prezzi": ["admin"],
+    "referral_codes": ["admin"],
     "collaboratori": ["admin"],
     "certificati": ["admin"],
     "pagamenti": ["admin", "supplier", "collaborator", "client"],
@@ -38,7 +39,8 @@ export const SIDEBAR_CONFIG = [
     { name: "Documenti", page: "Documents", roles: PERMISSION_MAP.documents },
     { name: "Appuntamenti", page: "MyAppointments", roles: PERMISSION_MAP.appointments },
     { name: "Pannello Admin", page: "Admin", roles: PERMISSION_MAP.admin },
-    { name: "Prezzi Edilizia", page: "Prezzi", roles: PERMISSION_MAP.prezzi },
+    { name: "Prezzi", page: "Prezzi", roles: PERMISSION_MAP.prezzi },
+    { name: "Codice Referral", page: "CodiceReferral", roles: PERMISSION_MAP.referral_codes },
     { name: "Impostazioni", page: "Settings", roles: PERMISSION_MAP.settings }];
 
 export function useRBAC() {

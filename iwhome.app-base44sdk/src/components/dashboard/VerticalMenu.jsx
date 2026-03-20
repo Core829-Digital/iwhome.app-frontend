@@ -23,7 +23,9 @@ import {
   Truck,
   QrCode,
   CreditCard,
-  Briefcase
+  Briefcase,
+  Euro,
+  Tag
 } from 'lucide-react';
 import { useUser, useClerk } from '@clerk/clerk-react';
 import { useQuery } from "convex/react";
@@ -50,6 +52,8 @@ const createPageUrl = (page) => {
     Certificati: '/Certificati',
     Pagamenti: '/Pagamenti',
     DailyLogs: '/DailyLogs',
+    Prezzi: '/Prezzi',
+    CodiceReferral: '/CodiceReferral',
   };
   return routes[page] || '/Dashboard';
 };
@@ -103,7 +107,20 @@ const getMenuItems = (user) => {
 
   if (crmGroup.length > 0) items.push({ name: 'CRM & Admin', icon: Shield, isGroup: true, subItems: crmGroup });
 
-  // 4. Archivio & Chat
+  // 4. Marketing (admin only)
+  if (isAdmin) {
+    items.push({
+      name: 'Marketing',
+      icon: Tag,
+      isGroup: true,
+      subItems: [
+        { name: 'Prezzi', page: 'Prezzi', icon: Euro },
+        { name: 'Codice Referral', page: 'CodiceReferral', icon: Tag },
+      ],
+    });
+  }
+
+  // 5. Archivio & Chat
   const docGroup = [
     { name: 'I Miei Documenti', page: 'Documents', icon: FolderOpen },
     { name: 'Carica Documento', page: 'UploadDocument', icon: Upload },
@@ -114,7 +131,7 @@ const getMenuItems = (user) => {
   items.push({ name: 'Archivio & Chat', icon: FileText, isGroup: true, subItems: docGroup });
 
 
-  // 5. Settings
+  // 6. Settings
   items.push({ name: 'Impostazioni', page: 'Settings', icon: Settings, subItems: [] });
 
   return items;

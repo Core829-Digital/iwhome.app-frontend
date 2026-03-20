@@ -24,6 +24,7 @@ import Pagamenti from './pages/Pagamenti';
 import PdfEditor from './pages/PdfEditor';
 import Preventivi from './pages/Preventivi';
 import Prezzi from './pages/Prezzi';
+import CodiceReferral from './pages/CodiceReferral';
 import Privacy from './pages/Privacy';
 import Recensioni from './pages/Recensioni';
 import Servizi from './pages/Servizi';
@@ -65,6 +66,7 @@ export const PAGES = {
     "PdfEditor": PdfEditor,
     "Preventivi": Preventivi,
     "Prezzi": Prezzi,
+    "CodiceReferral": CodiceReferral,
     "Privacy": Privacy,
     "Recensioni": Recensioni,
     "Servizi": Servizi,
