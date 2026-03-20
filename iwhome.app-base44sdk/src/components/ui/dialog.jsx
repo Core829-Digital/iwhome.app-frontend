@@ -18,7 +18,9 @@ const DialogOverlay = React.forwardRef((/** @type {any} */ { className, ...props
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      // z-[200] ensures the overlay sits above the sidebar (z-[145]) and any other
+      // fixed UI so the entire screen — including the sidebar — dims when a dialog opens.
+      "fixed inset-0 z-[200] bg-black/75 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props} />
@@ -31,23 +33,22 @@ const DialogContent = React.forwardRef((/** @type {any} */ { className, children
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        // left-[50%] omitted — overridden via inline style for sidebar-aware centering.
-        // max-h-[80dvh] and overflow-y-auto are defaults; any consumer max-h-* class
-        // passed via `className` will override them through Tailwind's last-class-wins rule.
-        "fixed top-[50%] z-50 grid w-full max-w-lg max-h-[80dvh] overflow-y-auto translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+        // z-[201]: above the overlay (z-[200]) and the sidebar (z-[145]).
+        // left-[50%]: centered on the full viewport — works correctly because the overlay
+        //   now covers the sidebar, so the visual background IS the full viewport.
+        // max-h-[80dvh] + overflow-y-auto: sensible height defaults, overridable by
+        //   consumer via their own max-h-* class (Tailwind last-class-wins).
+        "fixed left-[50%] z-[201] grid w-full max-w-lg max-h-[80dvh] overflow-y-auto translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
         className
       )}
       style={{
-        // Horizontal: center within the sidebar-aware content area.
-        // --sidebar-w is set by VerticalMenu (0px mobile / 80px collapsed / 280px expanded).
-        left: 'calc(50% + var(--sidebar-w, 0px) / 2)',
-        // Vertical: center within the area below the fixed navbar.
-        // --private-header-h is set by VerticalMenu (76px in private area, else 0px).
+        // Shift the vertical center down by half the fixed header height so the dialog
+        // appears symmetrically centered in the visible content area, not behind the navbar.
+        // --private-header-h is 76px in the private area (set by VerticalMenu), 0px elsewhere.
         top: 'calc(50% + var(--private-header-h, 0px) / 2)',
-        // Width = content area minus comfortable side margins (3rem = 1.5rem per side).
-        // Capped by the element's Tailwind max-w-* class via CSS min(width, max-width).
-        // Also adds automatic gutters on mobile where `w-full` would reach screen edges.
-        width: 'calc(100vw - var(--sidebar-w, 0px) - var(--sal, 0px) - var(--sar, 0px) - 3rem)',
+        // 1.5rem gutter per side on all screens. Max-w-* Tailwind class caps actual width,
+        // so on desktop the dialog stays compact; on mobile it gets proper side margins.
+        width: 'calc(100vw - 3rem)',
         // Consumer style always wins (spread last).
         ...style,
       }}
