@@ -1819,7 +1819,7 @@ export default function Fornitori() {
 
             {/* ═══ MODAL: Dettagli Richiesta ═══ */}
             <Dialog open={!!showRequestDetailsModal} onOpenChange={(open) => !open && setShowRequestDetailsModal(null)}>
-                <DialogContent className="bg-[#212529] text-[#f8f9fa] border-[#495057] w-[95vw] max-w-2xl" style={{ maxWidth: 'min(90vw, 40rem)' }}>
+                <DialogContent className="bg-[#212529] text-[#f8f9fa] border-[#495057] w-[95vw] max-w-2xl" style={{ maxWidth: 'min(calc(100vw - var(--sidebar-w, 0px) - 3rem), 32rem)' }}>
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <FileText className="text-blue-500" /> Dettagli Richiesta

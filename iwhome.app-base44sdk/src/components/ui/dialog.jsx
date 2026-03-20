@@ -34,23 +34,34 @@ const DialogContent = React.forwardRef((/** @type {any} */ { className, children
       ref={ref}
       className={cn(
         // z-[201]: above the overlay (z-[200]) and the sidebar (z-[145]).
-        // left-[50%]: centered on the full viewport — works correctly because the overlay
-        //   now covers the sidebar, so the visual background IS the full viewport.
+        // left-[50%]: CSS fallback only — overridden by the sidebar-aware inline style below.
         // max-h-[80dvh] + overflow-y-auto: sensible height defaults, overridable by
         //   consumer via their own max-h-* class (Tailwind last-class-wins).
         "fixed left-[50%] z-[201] grid w-full max-w-lg max-h-[80dvh] overflow-y-auto translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
         className
       )}
       style={{
-        // Shift the vertical center down by half the fixed header height so the dialog
-        // appears symmetrically centered in the visible content area, not behind the navbar.
-        // --private-header-h is 76px in the private area (set by VerticalMenu), 0px elsewhere.
+        // ── Vertical ────────────────────────────────────────────────────────────────
+        // Shift center down by half the fixed navbar height so the dialog is visually
+        // symmetric in the content area below the header (not centred behind it).
+        // --private-header-h: 76px in private area (set by VerticalMenu), 0px elsewhere.
         top: 'calc(50% + var(--private-header-h, 0px) / 2)',
-        // Hard cap via inline style (always beats CSS classes, regardless of specificity
-        // or tailwind-merge behaviour).
-        // min(90vw, 28rem): on mobile keeps 5vw gutters per side; on desktop caps at 448px.
-        // Consumer can override by passing style={{ maxWidth: '42rem' }} etc.
-        maxWidth: 'min(90vw, 28rem)',
+        // ── Horizontal centering ────────────────────────────────────────────────────
+        // Center the dialog inside the content area (right of sidebar), not the full
+        // viewport.  (100vw + sidebar-w) / 2 is the midpoint of [sidebar-w … 100vw].
+        // translateX(-50%) then shifts left by half the dialog's own width, giving
+        // perfect visual balance within the available canvas.
+        // --sidebar-w: 0px mobile | 80px collapsed | 280px expanded (set by VerticalMenu).
+        left: 'calc((100vw + var(--sidebar-w, 0px)) / 2)',
+        // ── Width ────────────────────────────────────────────────────────────────────
+        // Hard-coded via inline style so it always beats any max-w-* Tailwind class,
+        // regardless of tailwind-merge conflict-resolution behaviour.
+        //   • inner cap: content-area-width minus 3rem total gutter (1.5rem per side)
+        //   • outer cap: 26rem (416px) — compact, focused, never overwhelming
+        // On mobile (sidebar=0): min(100vw − 3rem, 26rem) → tight gutters
+        // On desktop:            the 26rem cap kicks in well before the gutter limit
+        // Consumer pages can override both maxWidth and left by passing style={{ … }}
+        maxWidth: 'min(calc(100vw - var(--sidebar-w, 0px) - 3rem), 26rem)',
         // Consumer style always wins (spread last).
         ...style,
       }}
