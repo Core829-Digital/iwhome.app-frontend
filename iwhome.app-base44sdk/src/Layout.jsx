@@ -67,8 +67,6 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Cookie Policy', page: 'Cookie' },
     { name: 'Termini di Servizio', page: 'Termini' }];
 
-  const [showChat, setShowChat] = React.useState(true);
-
   return (
     <div className="min-h-screen bg-[#E8E8E4] font-sans relative overflow-x-hidden">
       <ScrollToAnchor />
