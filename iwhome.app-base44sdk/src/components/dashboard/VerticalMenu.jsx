@@ -191,6 +191,28 @@ export default function VerticalMenu() {
     }
   }, [location]);
 
+  // Sync CSS variables so Radix UI dialogs/overlays center within the actual content area
+  // --sidebar-w   : width occupied by the sidebar (0px on mobile, 80/280px on desktop)
+  // --private-header-h : height of the fixed top navbar (always 76px in private area)
+  React.useEffect(() => {
+    const update = () => {
+      const isMobile = window.innerWidth < 1024;
+      document.documentElement.style.setProperty(
+        '--sidebar-w',
+        isMobile ? '0px' : (isCollapsed ? '80px' : '280px')
+      );
+      document.documentElement.style.setProperty('--private-header-h', '76px');
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      // Reset when leaving private area
+      document.documentElement.style.removeProperty('--sidebar-w');
+      document.documentElement.style.removeProperty('--private-header-h');
+    };
+  }, [isCollapsed]);
+
   // Sincronizza il gruppo aperto in base alla route (pagina) corrente
   React.useEffect(() => {
     const currentPath = location.pathname.toLowerCase();
