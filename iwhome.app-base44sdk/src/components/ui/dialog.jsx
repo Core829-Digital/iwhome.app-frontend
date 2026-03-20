@@ -31,43 +31,24 @@ const DialogContent = React.forwardRef((/** @type {any} */ { className, children
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        // left-[50%] is intentionally omitted — overridden by the inline style below
-        // so dialogs center within the actual content area (sidebar + header aware)
-        "fixed top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+        // left-[50%] omitted — overridden via inline style for sidebar-aware centering.
+        // max-h-[80dvh] and overflow-y-auto are defaults; any consumer max-h-* class
+        // passed via `className` will override them through Tailwind's last-class-wins rule.
+        "fixed top-[50%] z-50 grid w-full max-w-lg max-h-[80dvh] overflow-y-auto translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
         className
       )}
       style={{
-        /**
-         * Center the dialog within the AVAILABLE content area, not the full viewport.
-         *
-         * --sidebar-w        : set by VerticalMenu (0px on mobile, 80/280px on desktop)
-         * --private-header-h : set by VerticalMenu (76px in private area, else 0px)
-         * --sat / --sab      : safe-area-inset-top/bottom (set in index.css)
-         * --sal / --sar      : safe-area-inset-left/right
-         *
-         * left  : shift the 50%-anchor right by half the sidebar width → dialog center
-         *         lands in the middle of the visible content area horizontally.
-         *
-         * top   : shift the 50%-anchor down by half the header height → dialog center
-         *         lands in the middle of the area below the fixed top navbar.
-         *
-         * width : set to the full available content-area width (minus safe-area insets
-         *         and 2rem breathing room). Because inline `width` is overridden by
-         *         the element's `max-width`, each dialog's Tailwind max-w-* class still
-         *         governs the actual rendered width — this value only acts as the
-         *         "desired width" that gets capped by max-w-sm / max-w-lg / max-w-2xl
-         *         etc. in the consumer className. On mobile it also adds automatic
-         *         horizontal gutters (1rem each side) which was missing from `w-full`.
-         *
-         * maxHeight : prevent dialogs from extending below the viewport, accounting for
-         *             the fixed header and safe-area insets.
-         */
+        // Horizontal: center within the sidebar-aware content area.
+        // --sidebar-w is set by VerticalMenu (0px mobile / 80px collapsed / 280px expanded).
         left: 'calc(50% + var(--sidebar-w, 0px) / 2)',
+        // Vertical: center within the area below the fixed navbar.
+        // --private-header-h is set by VerticalMenu (76px in private area, else 0px).
         top: 'calc(50% + var(--private-header-h, 0px) / 2)',
-        width: 'calc(100vw - var(--sidebar-w, 0px) - var(--sal, 0px) - var(--sar, 0px) - 4rem)',
-        maxHeight: 'calc(100dvh - var(--private-header-h, 0px) - var(--sat, 0px) - var(--sab, 0px) - 3rem)',
-        overflowY: 'auto',
-        // Consumer-provided style always wins (spread last)
+        // Width = content area minus comfortable side margins (3rem = 1.5rem per side).
+        // Capped by the element's Tailwind max-w-* class via CSS min(width, max-width).
+        // Also adds automatic gutters on mobile where `w-full` would reach screen edges.
+        width: 'calc(100vw - var(--sidebar-w, 0px) - var(--sal, 0px) - var(--sar, 0px) - 3rem)',
+        // Consumer style always wins (spread last).
         ...style,
       }}
       {...props}>
