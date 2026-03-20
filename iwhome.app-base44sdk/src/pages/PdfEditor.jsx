@@ -1441,7 +1441,7 @@ export default function PdfEditor() {
 
       {/* Signature Modal */}
       <Dialog open={showSignatureModal} onOpenChange={setShowSignatureModal}>
-        <DialogContent className="bg-gradient-to-br from-[#495057] to-[#6c757d] border-[#f8f9fa]/20 text-[#f8f9fa] max-w-2xl" style={{ maxWidth: 'min(calc(100vw - var(--sidebar-w, 0px) - 3rem), 30rem)' }}>
+        <DialogContent className="bg-gradient-to-br from-[#495057] to-[#6c757d] border-[#f8f9fa]/20 text-[#f8f9fa] max-w-2xl" style={{ maxWidth: 'min(calc(100vw - 3rem), 30rem)' }}>
           <DialogHeader>
             <DialogTitle className="text-[#f8f9fa]">Firma Digitale Azienda</DialogTitle>
           </DialogHeader>
@@ -1459,7 +1459,7 @@ export default function PdfEditor() {
 
       {/* Product Catalog Modal */}
       <Dialog open={showCatalogModal} onOpenChange={setShowCatalogModal}>
-        <DialogContent className="bg-gradient-to-br from-[#495057] to-[#6c757d] border-[#f8f9fa]/20 text-[#f8f9fa] max-w-4xl" style={{ maxWidth: 'min(calc(100vw - var(--sidebar-w, 0px) - 3rem), 44rem)' }}>
+        <DialogContent className="bg-gradient-to-br from-[#495057] to-[#6c757d] border-[#f8f9fa]/20 text-[#f8f9fa] max-w-4xl" style={{ maxWidth: 'min(calc(100vw - 3rem), 44rem)' }}>
           <DialogHeader>
             <DialogTitle className="text-[#f8f9fa]">Seleziona Prodotto</DialogTitle>
           </DialogHeader>

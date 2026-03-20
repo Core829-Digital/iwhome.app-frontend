@@ -41,27 +41,16 @@ const DialogContent = React.forwardRef((/** @type {any} */ { className, children
         className
       )}
       style={{
-        // ── Vertical ────────────────────────────────────────────────────────────────
-        // Shift center down by half the fixed navbar height so the dialog is visually
-        // symmetric in the content area below the header (not centred behind it).
+        // Vertical: shift center down by half the fixed navbar height so the dialog
+        // sits symmetrically in the visible content area below the header.
         // --private-header-h: 76px in private area (set by VerticalMenu), 0px elsewhere.
         top: 'calc(50% + var(--private-header-h, 0px) / 2)',
-        // ── Horizontal centering ────────────────────────────────────────────────────
-        // Center the dialog inside the content area (right of sidebar), not the full
-        // viewport.  (100vw + sidebar-w) / 2 is the midpoint of [sidebar-w … 100vw].
-        // translateX(-50%) then shifts left by half the dialog's own width, giving
-        // perfect visual balance within the available canvas.
-        // --sidebar-w: 0px mobile | 80px collapsed | 280px expanded (set by VerticalMenu).
-        left: 'calc((100vw + var(--sidebar-w, 0px)) / 2)',
-        // ── Width ────────────────────────────────────────────────────────────────────
-        // Hard-coded via inline style so it always beats any max-w-* Tailwind class,
-        // regardless of tailwind-merge conflict-resolution behaviour.
-        //   • inner cap: content-area-width minus 3rem total gutter (1.5rem per side)
-        //   • outer cap: 26rem (416px) — compact, focused, never overwhelming
-        // On mobile (sidebar=0): min(100vw − 3rem, 26rem) → tight gutters
-        // On desktop:            the 26rem cap kicks in well before the gutter limit
-        // Consumer pages can override both maxWidth and left by passing style={{ … }}
-        maxWidth: 'min(calc(100vw - var(--sidebar-w, 0px) - 3rem), 26rem)',
+        // Width: hard cap via inline style — always beats any max-w-* Tailwind class.
+        // min(100vw − 3rem, 26rem):
+        //   mobile  → 100vw − 3rem keeps 1.5rem gutters per side within the viewport
+        //   desktop → the 26rem (416px) cap kicks in; compact and never overwhelming
+        // Consumer can override by passing style={{ maxWidth: '…' }}
+        maxWidth: 'min(calc(100vw - 3rem), 26rem)',
         // Consumer style always wins (spread last).
         ...style,
       }}
