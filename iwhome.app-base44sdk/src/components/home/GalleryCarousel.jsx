@@ -15,18 +15,72 @@ const images = [
   'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/d71c5f8f3_minimalistic-25-g.jpg',
 ];
 
-// Triplicate so the seamless loop never shows a gap at any screen size
-const STRIP = [...images, ...images, ...images];
-
-// Each card is 320px wide + 16px gap = 336px per card.
-// 11 images × 336px = 3696px per loop. We animate by -3696px.
 const CARD_W = 320;
 const GAP = 16;
-const LOOP_PX = images.length * (CARD_W + GAP);
+// Width of exactly one full set — used as the seamless loop offset
+const LOOP_PX = images.length * (CARD_W + GAP); // 11 × 336 = 3696 px
+
+// Row 1: original order, scrolls left
+const ROW1 = [...images, ...images, ...images];
+
+// Row 2: reversed order for visual contrast, scrolls right
+const ROW2 = [...[...images].reverse(), ...[...images].reverse(), ...[...images].reverse()];
+
+// Shared CSS edge-fade mask for both rows
+const MASK_STYLE = {
+  maskImage:
+    'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)',
+  WebkitMaskImage:
+    'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)',
+};
+
+/**
+ * A single infinite-scroll marquee row.
+ * direction='left'  → strip moves from x=0 to x=-LOOP_PX (content enters from right)
+ * direction='right' → strip moves from x=-LOOP_PX to x=0  (content enters from left)
+ *
+ * Both directions are seamless because the strip contains 3× the images,
+ * so the content at x=0 is visually identical to the content at x=-LOOP_PX.
+ */
+function MarqueeRow({ strip, direction, duration }) {
+  const xAnim = direction === 'left' ? [0, -LOOP_PX] : [-LOOP_PX, 0];
+
+  return (
+    <div className="relative w-full overflow-hidden" style={MASK_STYLE}>
+      <motion.div
+        className="flex"
+        style={{ gap: GAP }}
+        animate={{ x: xAnim }}
+        transition={{
+          duration,
+          repeat: Infinity,
+          ease: 'linear',
+          repeatType: 'loop',
+        }}
+      >
+        {strip.map((src, i) => (
+          <div
+            key={i}
+            className="flex-shrink-0 rounded-2xl overflow-hidden shadow-xl"
+            style={{ width: CARD_W, height: 230 }}
+          >
+            <img
+              src={src}
+              alt={`IwHome showroom ${(i % images.length) + 1}`}
+              className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+              loading="lazy"
+              draggable={false}
+            />
+          </div>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
 
 export default function GalleryCarousel() {
   return (
-    <section className="relative py-20 lg:py-32 bg-gradient-to-b from-[#343a40] via-[#495057] to-[#6c757d] overflow-hidden">
+    <section className="relative py-24 lg:py-40 bg-gradient-to-b from-[#343a40] via-[#495057] to-[#6c757d] overflow-hidden">
       {/* Ambient glow */}
       <motion.div
         animate={{ scale: [1, 1.3, 1], opacity: [0.12, 0.25, 0.12] }}
@@ -37,11 +91,14 @@ export default function GalleryCarousel() {
       {/* Dot grid */}
       <div
         className="absolute inset-0 opacity-[0.04] pointer-events-none"
-        style={{ backgroundImage: 'radial-gradient(circle, #f8f9fa 1px, transparent 1px)', backgroundSize: '50px 50px' }}
+        style={{
+          backgroundImage: 'radial-gradient(circle, #f8f9fa 1px, transparent 1px)',
+          backgroundSize: '50px 50px',
+        }}
       />
 
       {/* Section header */}
-      <div className="relative max-w-7xl mx-auto px-6 mb-12">
+      <div className="relative max-w-7xl mx-auto px-6 mb-14">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -58,49 +115,14 @@ export default function GalleryCarousel() {
         </motion.div>
       </div>
 
-      {/* Infinite scroll strip — full width, clipped, with edge fade mask */}
-      <div
-        className="relative w-full overflow-hidden"
-        style={{
-          // CSS mask: transparent at edges → solid in center → transparent at edges
-          // This creates a smooth fade-out as photos approach the boundaries
-          maskImage: 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)',
-        }}
-      >
-        <div className="flex" style={{ gap: GAP }}>
-          {/* Two identical strips for seamless loop */}
-          {[0, 1].map(stripIdx => (
-            <motion.div
-              key={stripIdx}
-              className="flex flex-shrink-0"
-              style={{ gap: GAP }}
-              animate={{ x: [0, -LOOP_PX] }}
-              transition={{
-                duration: 35,
-                repeat: Infinity,
-                ease: 'linear',
-                repeatType: 'loop',
-              }}
-            >
-              {STRIP.map((src, i) => (
-                <div
-                  key={`${stripIdx}-${i}`}
-                  className="flex-shrink-0 rounded-2xl overflow-hidden shadow-xl"
-                  style={{ width: CARD_W, height: 220 }}
-                >
-                  <img
-                    src={src}
-                    alt={`IwHome showroom ${(i % images.length) + 1}`}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-              ))}
-            </motion.div>
-          ))}
-        </div>
-      </div>
+      {/* ── Row 1 — scrolls LEFT (→ content enters from right) ── */}
+      <MarqueeRow strip={ROW1} direction="left" duration={35} />
+
+      {/* Vertical gap between the two rows */}
+      <div className="h-4" />
+
+      {/* ── Row 2 — scrolls RIGHT (→ content enters from left) ── */}
+      <MarqueeRow strip={ROW2} direction="right" duration={42} />
     </section>
   );
 }
