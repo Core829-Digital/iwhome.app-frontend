@@ -92,7 +92,10 @@ export default function Layout({ children, currentPageName }) {
             }`}
           style={{
             backdropFilter: atTop && currentPageName === 'Home' ? 'none' : 'blur(24px)',
-            WebkitBackdropFilter: atTop && currentPageName === 'Home' ? 'none' : 'blur(24px)'
+            WebkitBackdropFilter: atTop && currentPageName === 'Home' ? 'none' : 'blur(24px)',
+            paddingTop: 'env(safe-area-inset-top)',
+            paddingLeft: 'env(safe-area-inset-left)',
+            paddingRight: 'env(safe-area-inset-right)',
           }}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-5 md:px-6 lg:px-8">

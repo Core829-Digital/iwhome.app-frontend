@@ -222,7 +222,8 @@ export default function VerticalMenu() {
       {/* Mobile Toggle */}
       <button
         onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="lg:hidden fixed top-4 left-4 z-[150] p-3 bg-[#343a40] rounded-xl shadow-2xl hover:bg-[#495057] transition-all"
+        className="lg:hidden fixed z-[150] p-3 bg-[#343a40] rounded-xl shadow-2xl hover:bg-[#495057] transition-all"
+        style={{ top: 'calc(1rem + env(safe-area-inset-top))', left: 'calc(1rem + env(safe-area-inset-left))' }}
       >
         {isMobileOpen ? <X size={20} className="text-[#f8f9fa]" /> : <Menu size={20} className="text-[#f8f9fa]" />}
       </button>
@@ -249,6 +250,7 @@ export default function VerticalMenu() {
         }}
         className={`fixed left-0 top-0 lg:top-[76px] h-screen lg:h-[calc(100vh-76px)] bg-gradient-to-b from-[#212529] to-[#343a40] border-r border-[#f8f9fa]/10 z-[145] shadow-2xl ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           } transition-transform lg:transition-none`}
+        style={{ paddingLeft: 'env(safe-area-inset-left)' }}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
@@ -388,7 +390,7 @@ export default function VerticalMenu() {
           )}
 
           {/* Footer */}
-          <div className="p-3 border-t border-[#f8f9fa]/10">
+          <div className="p-3 border-t border-[#f8f9fa]/10" style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}>
 
             <button
               onClick={handleLogout}
