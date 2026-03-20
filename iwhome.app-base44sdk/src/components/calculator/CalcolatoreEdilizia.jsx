@@ -58,12 +58,7 @@ function calculateEdilizia(form, prices) {
     base += mq * prices.riscaldamento_adeguamento;
   }
 
-  // 8. Quality
-  if (form.finiture === 'alta_qualita') {
-    base *= (1 + prices.finiture_alta_qualita_extra);
-  }
-
-  // 9. Completamento
+  // 8. Completamento
   let extra = 0;
   extra += (Number(form.controsoffittature_mq) || 0) * prices.controsoffittature_mq;
   extra += (Number(form.porte_num) || 0) * prices.porta_unit;
@@ -230,7 +225,7 @@ export default function CalcolatoreEdilizia() {
           Il nostro team ha ricevuto la tua richiesta. Ti contatteremo entro 24/48h per concordare un sopralluogo gratuito e fornirti un preventivo definitivo.
         </p>
         <div className="bg-[#343a40]/60 rounded-xl p-4 mb-6 text-left">
-          <p className="text-[#adb5bd] text-xs uppercase tracking-wider mb-2">Stima indicativa inviata</p>
+          <p className="text-[#adb5bd] text-xs uppercase tracking-wider mb-2">Preventivo calcolato</p>
           <p className="text-[#f8f9fa] text-2xl font-light">€{estimatedPrice.toLocaleString('it-IT')}</p>
         </div>
         <button
@@ -389,18 +384,6 @@ export default function CalcolatoreEdilizia() {
           </div>
         </div>
 
-        {/* Finiture */}
-        <div>
-          <Label className="text-[#dee2e6] text-xs mb-2 flex items-center gap-1.5">
-            <Paintbrush size={12} /> Finiture e materiali
-          </Label>
-          <div className="flex gap-2 flex-wrap">
-            {[
-              { v: 'standard_q', l: 'Standard', sub: 'Materiali da costruzione standard' },
-              { v: 'alta_qualita', l: 'Alta qualità', sub: 'Materiali premium (+20%)' },
-            ].map(o => <RadioCard key={o.v} value={o.v} current={form.finiture} onChange={v => set('finiture', v)} label={o.l} sub={o.sub} />)}
-          </div>
-        </div>
       </div>
 
       {/* ── Sezione 4 — Completamento ── */}
@@ -415,7 +398,7 @@ export default function CalcolatoreEdilizia() {
             {showCompletamento ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
           </div>
         </button>
-        <p className="text-[#adb5bd] text-xs -mt-3 mb-4">Opzionale — aggiungi le opere per affinare la stima</p>
+        <p className="text-[#adb5bd] text-xs -mt-3 mb-4">Aggiungi le opere di completamento per perfezionare il preventivo</p>
 
         <AnimatePresence>
           {showCompletamento && (
@@ -467,7 +450,7 @@ export default function CalcolatoreEdilizia() {
       <div className="bg-gradient-to-r from-[#212529] to-[#343a40] border border-[#f8f9fa]/20 rounded-2xl p-6 shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
           <div>
-            <p className="text-[#adb5bd] text-xs uppercase tracking-wider">Stima preventivo</p>
+            <p className="text-[#adb5bd] text-xs uppercase tracking-wider">Preventivo</p>
             <AnimatePresence mode="wait">
               <motion.p
                 key={estimatedPrice}
@@ -483,7 +466,7 @@ export default function CalcolatoreEdilizia() {
               </motion.p>
             </AnimatePresence>
             <p className="text-[#6c757d] text-xs mt-1 flex items-center gap-1">
-              <AlertCircle size={10} /> Stima indicativa — il preventivo definitivo verrà inviato via email
+              <AlertCircle size={10} /> Il preventivo definitivo verrà inviato via email entro 24/48 ore
             </p>
           </div>
           {estimatedPrice > 0 && (
