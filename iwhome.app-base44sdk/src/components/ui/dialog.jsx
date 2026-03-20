@@ -46,9 +46,11 @@ const DialogContent = React.forwardRef((/** @type {any} */ { className, children
         // appears symmetrically centered in the visible content area, not behind the navbar.
         // --private-header-h is 76px in the private area (set by VerticalMenu), 0px elsewhere.
         top: 'calc(50% + var(--private-header-h, 0px) / 2)',
-        // 1.5rem gutter per side on all screens. Max-w-* Tailwind class caps actual width,
-        // so on desktop the dialog stays compact; on mobile it gets proper side margins.
-        width: 'calc(100vw - 3rem)',
+        // Hard cap via inline style (always beats CSS classes, regardless of specificity
+        // or tailwind-merge behaviour).
+        // min(90vw, 28rem): on mobile keeps 5vw gutters per side; on desktop caps at 448px.
+        // Consumer can override by passing style={{ maxWidth: '42rem' }} etc.
+        maxWidth: 'min(90vw, 28rem)',
         // Consumer style always wins (spread last).
         ...style,
       }}

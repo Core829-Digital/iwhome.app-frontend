@@ -641,7 +641,7 @@ function CollaboratorDetailModal({ id, onClose, onGenerateAccess }) {
 
     return (
         <Dialog open={!!id} onOpenChange={onClose}>
-            <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-2xl max-h-[90vh] overflow-y-auto" style={{ maxWidth: 'min(90vw, 38rem)' }}>
                 <DialogHeader>
                     <div className="flex items-center gap-4 mb-2">
                         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-2xl shadow-lg">
