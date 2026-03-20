@@ -64,8 +64,8 @@ const DialogContent = React.forwardRef((/** @type {any} */ { className, children
          */
         left: 'calc(50% + var(--sidebar-w, 0px) / 2)',
         top: 'calc(50% + var(--private-header-h, 0px) / 2)',
-        width: 'calc(100vw - var(--sidebar-w, 0px) - var(--sal, 0px) - var(--sar, 0px) - 2rem)',
-        maxHeight: 'calc(100dvh - var(--private-header-h, 0px) - var(--sat, 0px) - var(--sab, 0px) - 2rem)',
+        width: 'calc(100vw - var(--sidebar-w, 0px) - var(--sal, 0px) - var(--sar, 0px) - 4rem)',
+        maxHeight: 'calc(100dvh - var(--private-header-h, 0px) - var(--sat, 0px) - var(--sab, 0px) - 3rem)',
         overflowY: 'auto',
         // Consumer-provided style always wins (spread last)
         ...style,
