@@ -207,11 +207,13 @@ img, video, iframe, embed, object {
 }
 
 /* ── Dialog / Modal responsive constraints ────────────────────────────────── */
+/* max-width is intentionally NOT set here — it is controlled per-dialog in
+   dialog.jsx via inline style so that each dialog can have its own compact
+   width without a global !important rule overriding everything.           */
 [role="dialog"],
 [data-radix-dialog-content] {
   max-height: calc(100dvh - var(--sat) - var(--sab) - 2rem) !important;
   overflow-y: auto;
-  max-width: calc(100vw - var(--sal) - var(--sar) - 1rem) !important;
 }
 
 /* ── Custom scrollbar ─────────────────────────────────────────────────────── */
