@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -73,7 +73,31 @@ function calculateEdilizia(form, prices) {
   return Math.round(base + extra);
 }
 
+const EMPTY_FORM = {
+  email: '',
+  full_name: '',
+  mq: '',
+  tipo_immobile: '',
+  ubicazione: '',
+  stato_conservazione: '',
+  spostamento_tramezzi: '',
+  impianto_elettrico: '',
+  riscaldamento: '',
+  controsoffittature_mq: '',
+  porte_num: '',
+  finestre_num: '',
+  parquet_mq: '',
+  marmo_mq: '',
+  monocottura_mq: '',
+  resina_mq: '',
+  bagni_num: '',
+  pittura: '',
+  notes: '',
+};
+
 // ── Small helper components ───────────────────────────────────────────────────
+
+/** @param {{ icon: import('react').ElementType, title: string, step: string }} props */
 const SectionHeader = ({ icon: Icon, title, step }) => (
   <div className="flex items-center gap-3 mb-5">
     <div className="w-9 h-9 rounded-xl bg-[#f8f9fa]/10 flex items-center justify-center flex-shrink-0">
@@ -86,6 +110,7 @@ const SectionHeader = ({ icon: Icon, title, step }) => (
   </div>
 );
 
+/** @param {{ value: string, current: string, onChange: (v: string) => void, label: string, sub?: string }} props */
 const RadioCard = ({ value, current, onChange, label, sub }) => (
   <button
     type="button"
@@ -101,6 +126,7 @@ const RadioCard = ({ value, current, onChange, label, sub }) => (
   </button>
 );
 
+/** @param {{ label: string, value: string, onChange: (v: string) => void, unit: string, placeholder?: string }} props */
 const NumberField = ({ label, value, onChange, unit, placeholder = '0' }) => (
   <div>
     <Label className="text-[#dee2e6] text-xs mb-1.5 block">{label} <span className="text-[#adb5bd]">({unit})</span></Label>
@@ -108,7 +134,7 @@ const NumberField = ({ label, value, onChange, unit, placeholder = '0' }) => (
       type="number"
       min="0"
       value={value}
-      onChange={e => onChange(e.target.value)}
+      onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className="rounded-xl bg-[#212529]/60 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#6c757d] focus:border-[#f8f9fa]/50 h-9 text-sm"
     />
@@ -121,36 +147,14 @@ export default function CalcolatoreEdilizia() {
   const prices = useQuery(api.edilizia.getPrices);
   const createRequest = useMutation(api.edilizia.createRequest);
 
-  const [form, setForm] = useState({
-    email: user?.primaryEmailAddress?.emailAddress || '',
-    full_name: user?.fullName || '',
-    mq: '',
-    tipo_immobile: '',
-    ubicazione: '',
-    stato_conservazione: '',
-    spostamento_tramezzi: '',
-    impianto_elettrico: '',
-    riscaldamento: '',
-    finiture: '',
-    controsoffittature_mq: '',
-    porte_num: '',
-    finestre_num: '',
-    parquet_mq: '',
-    marmo_mq: '',
-    monocottura_mq: '',
-    resina_mq: '',
-    bagni_num: '',
-    pittura: '',
-    notes: '',
-  });
-
+  const [form, setForm] = useState(EMPTY_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState(/** @type {Record<string, string>} */({}));
   const [showCompletamento, setShowCompletamento] = useState(false);
 
   // Sync Clerk data when user logs in
-  React.useEffect(() => {
+  useEffect(() => {
     if (user) {
       setForm(prev => ({
         ...prev,
@@ -160,11 +164,13 @@ export default function CalcolatoreEdilizia() {
     }
   }, [user]);
 
+  /** @param {string} key @param {string} value */
   const set = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
   const estimatedPrice = useMemo(() => calculateEdilizia(form, prices), [form, prices]);
 
   const validate = () => {
+    /** @type {Record<string, string>} */
     const e = {};
     if (!form.email) e.email = 'Email obbligatoria';
     if (!form.full_name) e.full_name = 'Nome obbligatorio';
@@ -174,6 +180,7 @@ export default function CalcolatoreEdilizia() {
     return Object.keys(e).length === 0;
   };
 
+  /** @param {import('react').FormEvent<HTMLFormElement>} e */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
@@ -189,7 +196,6 @@ export default function CalcolatoreEdilizia() {
         spostamento_tramezzi: form.spostamento_tramezzi || undefined,
         impianto_elettrico: form.impianto_elettrico || undefined,
         riscaldamento: form.riscaldamento || undefined,
-        finiture: form.finiture || undefined,
         controsoffittature_mq: form.controsoffittature_mq ? Number(form.controsoffittature_mq) : undefined,
         porte_num: form.porte_num ? Number(form.porte_num) : undefined,
         finestre_num: form.finestre_num ? Number(form.finestre_num) : undefined,
@@ -210,6 +216,15 @@ export default function CalcolatoreEdilizia() {
     }
   };
 
+  const handleReset = () => {
+    setSubmitted(false);
+    setForm({
+      ...EMPTY_FORM,
+      email: user?.primaryEmailAddress?.emailAddress || '',
+      full_name: user?.fullName || '',
+    });
+  };
+
   if (submitted) {
     return (
       <motion.div
@@ -228,10 +243,7 @@ export default function CalcolatoreEdilizia() {
           <p className="text-[#adb5bd] text-xs uppercase tracking-wider mb-2">Preventivo calcolato</p>
           <p className="text-[#f8f9fa] text-2xl font-light">€{estimatedPrice.toLocaleString('it-IT')}</p>
         </div>
-        <button
-          onClick={() => { setSubmitted(false); setForm({ email: user?.primaryEmailAddress?.emailAddress || '', full_name: user?.fullName || '', mq: '', tipo_immobile: '', ubicazione: '', stato_conservazione: '', spostamento_tramezzi: '', impianto_elettrico: '', riscaldamento: '', finiture: '', controsoffittature_mq: '', porte_num: '', finestre_num: '', parquet_mq: '', marmo_mq: '', monocottura_mq: '', resina_mq: '', bagni_num: '', pittura: '', notes: '' }); }}
-          className="text-[#adb5bd] text-sm hover:text-[#f8f9fa] transition-colors"
-        >
+        <button onClick={handleReset} className="text-[#adb5bd] text-sm hover:text-[#f8f9fa] transition-colors">
           Nuova richiesta
         </button>
       </motion.div>
@@ -251,7 +263,7 @@ export default function CalcolatoreEdilizia() {
             </Label>
             <Input
               value={form.full_name}
-              onChange={e => set('full_name', e.target.value)}
+              onChange={(e) => set('full_name', e.target.value)}
               disabled={!!user?.fullName}
               placeholder="Mario Rossi"
               className={`rounded-xl bg-[#212529]/60 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#6c757d] focus:border-[#f8f9fa]/50 disabled:opacity-60 ${errors.full_name ? 'border-red-400' : ''}`}
@@ -265,7 +277,7 @@ export default function CalcolatoreEdilizia() {
             <Input
               type="email"
               value={form.email}
-              onChange={e => set('email', e.target.value)}
+              onChange={(e) => set('email', e.target.value)}
               disabled={!!user}
               placeholder="mario@email.it"
               className={`rounded-xl bg-[#212529]/60 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#6c757d] focus:border-[#f8f9fa]/50 disabled:opacity-60 ${errors.email ? 'border-red-400' : ''}`}
@@ -286,13 +298,13 @@ export default function CalcolatoreEdilizia() {
 
         {/* MQ */}
         <div className="mb-5">
-          <Label className="text-[#dee2e6] text-xs mb-1.5 block">Metri quadri dell'immobile *</Label>
+          <Label className="text-[#dee2e6] text-xs mb-1.5 block">Metri quadri dell&apos;immobile *</Label>
           <div className="flex items-center gap-3">
             <Input
               type="number"
               min="1"
               value={form.mq}
-              onChange={e => set('mq', e.target.value)}
+              onChange={(e) => set('mq', e.target.value)}
               placeholder="es. 80"
               className={`w-36 rounded-xl bg-[#212529]/60 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#6c757d] focus:border-[#f8f9fa]/50 ${errors.mq ? 'border-red-400' : ''}`}
             />
@@ -309,7 +321,7 @@ export default function CalcolatoreEdilizia() {
               { v: 'villa_unifamiliare', l: 'Villa unifamiliare' },
               { v: 'casale', l: 'Casale' },
               { v: 'appartamento', l: 'Appartamento' },
-            ].map(o => <RadioCard key={o.v} value={o.v} current={form.tipo_immobile} onChange={v => set('tipo_immobile', v)} label={o.l} />)}
+            ].map(o => <RadioCard key={o.v} value={o.v} current={form.tipo_immobile} onChange={(v) => set('tipo_immobile', v)} label={o.l} />)}
           </div>
         </div>
 
@@ -324,7 +336,7 @@ export default function CalcolatoreEdilizia() {
               { v: 'nord', l: 'Nord Italia' },
               { v: 'centro', l: 'Centro Italia' },
               { v: 'sud', l: 'Sud Italia' },
-            ].map(o => <RadioCard key={o.v} value={o.v} current={form.ubicazione} onChange={v => set('ubicazione', v)} label={o.l} />)}
+            ].map(o => <RadioCard key={o.v} value={o.v} current={form.ubicazione} onChange={(v) => set('ubicazione', v)} label={o.l} />)}
           </div>
         </div>
 
@@ -335,7 +347,7 @@ export default function CalcolatoreEdilizia() {
             {[
               { v: 'media', l: 'Nella media', sub: 'Condizioni normali' },
               { v: 'degradato', l: 'Degradato', sub: 'Richiede interventi significativi' },
-            ].map(o => <RadioCard key={o.v} value={o.v} current={form.stato_conservazione} onChange={v => set('stato_conservazione', v)} label={o.l} sub={o.sub} />)}
+            ].map(o => <RadioCard key={o.v} value={o.v} current={form.stato_conservazione} onChange={(v) => set('stato_conservazione', v)} label={o.l} sub={o.sub} />)}
           </div>
         </div>
       </div>
@@ -352,7 +364,7 @@ export default function CalcolatoreEdilizia() {
               { v: '20pct', l: '20%', sub: 'Variazione minima' },
               { v: '50pct', l: '50%', sub: 'Variazione media' },
               { v: '100pct', l: '100%', sub: 'Completa ridistribuzione' },
-            ].map(o => <RadioCard key={o.v} value={o.v} current={form.spostamento_tramezzi} onChange={v => set('spostamento_tramezzi', v)} label={o.l} sub={o.sub} />)}
+            ].map(o => <RadioCard key={o.v} value={o.v} current={form.spostamento_tramezzi} onChange={(v) => set('spostamento_tramezzi', v)} label={o.l} sub={o.sub} />)}
           </div>
         </div>
 
@@ -366,7 +378,7 @@ export default function CalcolatoreEdilizia() {
               { v: 'piccole', l: 'Piccole modifiche' },
               { v: 'standard', l: 'Nuovo impianto standard' },
               { v: 'domotico', l: 'Nuovo impianto domotico' },
-            ].map(o => <RadioCard key={o.v} value={o.v} current={form.impianto_elettrico} onChange={v => set('impianto_elettrico', v)} label={o.l} />)}
+            ].map(o => <RadioCard key={o.v} value={o.v} current={form.impianto_elettrico} onChange={(v) => set('impianto_elettrico', v)} label={o.l} />)}
           </div>
         </div>
 
@@ -380,7 +392,7 @@ export default function CalcolatoreEdilizia() {
               { v: 'incluso', l: 'Incluso' },
               { v: 'escluso', l: 'Escluso' },
               { v: 'adeguamento', l: 'Lavori di adeguamento' },
-            ].map(o => <RadioCard key={o.v} value={o.v} current={form.riscaldamento} onChange={v => set('riscaldamento', v)} label={o.l} />)}
+            ].map(o => <RadioCard key={o.v} value={o.v} current={form.riscaldamento} onChange={(v) => set('riscaldamento', v)} label={o.l} />)}
           </div>
         </div>
 
@@ -409,14 +421,14 @@ export default function CalcolatoreEdilizia() {
               className="overflow-hidden"
             >
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-5">
-                <NumberField label="Controsoffittature" value={form.controsoffittature_mq} onChange={v => set('controsoffittature_mq', v)} unit="MQ" />
-                <NumberField label="Porte" value={form.porte_num} onChange={v => set('porte_num', v)} unit="n." />
-                <NumberField label="Finestre" value={form.finestre_num} onChange={v => set('finestre_num', v)} unit="n." />
-                <NumberField label="Parquet" value={form.parquet_mq} onChange={v => set('parquet_mq', v)} unit="MQ" />
-                <NumberField label="Marmo" value={form.marmo_mq} onChange={v => set('marmo_mq', v)} unit="MQ" />
-                <NumberField label="Monocottura" value={form.monocottura_mq} onChange={v => set('monocottura_mq', v)} unit="MQ" />
-                <NumberField label="Resina" value={form.resina_mq} onChange={v => set('resina_mq', v)} unit="MQ" />
-                <NumberField label="Bagni completi" value={form.bagni_num} onChange={v => set('bagni_num', v)} unit="n." />
+                <NumberField label="Controsoffittature" value={form.controsoffittature_mq} onChange={(v) => set('controsoffittature_mq', v)} unit="MQ" />
+                <NumberField label="Porte" value={form.porte_num} onChange={(v) => set('porte_num', v)} unit="n." />
+                <NumberField label="Finestre" value={form.finestre_num} onChange={(v) => set('finestre_num', v)} unit="n." />
+                <NumberField label="Parquet" value={form.parquet_mq} onChange={(v) => set('parquet_mq', v)} unit="MQ" />
+                <NumberField label="Marmo" value={form.marmo_mq} onChange={(v) => set('marmo_mq', v)} unit="MQ" />
+                <NumberField label="Monocottura" value={form.monocottura_mq} onChange={(v) => set('monocottura_mq', v)} unit="MQ" />
+                <NumberField label="Resina" value={form.resina_mq} onChange={(v) => set('resina_mq', v)} unit="MQ" />
+                <NumberField label="Bagni completi" value={form.bagni_num} onChange={(v) => set('bagni_num', v)} unit="n." />
               </div>
 
               <div>
@@ -427,7 +439,7 @@ export default function CalcolatoreEdilizia() {
                   {[
                     { v: 'incluse', l: 'Incluse' },
                     { v: 'escluse', l: 'Escluse' },
-                  ].map(o => <RadioCard key={o.v} value={o.v} current={form.pittura} onChange={v => set('pittura', v)} label={o.l} />)}
+                  ].map(o => <RadioCard key={o.v} value={o.v} current={form.pittura} onChange={(v) => set('pittura', v)} label={o.l} />)}
                 </div>
               </div>
             </motion.div>
@@ -440,7 +452,7 @@ export default function CalcolatoreEdilizia() {
         <Label className="text-[#dee2e6] text-xs mb-2 block">Note aggiuntive <span className="text-[#6c757d]">(opzionale)</span></Label>
         <Textarea
           value={form.notes}
-          onChange={e => set('notes', e.target.value)}
+          onChange={(e) => set('notes', e.target.value)}
           placeholder="Descrivi il tuo progetto, eventuali vincoli, materiali preferiti..."
           className="rounded-xl bg-[#212529]/60 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#6c757d] focus:border-[#f8f9fa]/50 min-h-[90px] text-sm"
         />
