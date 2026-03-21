@@ -70,6 +70,7 @@ export default function Layout({ children, currentPageName, isPrivate }) {
           className="fixed top-0 right-0 z-[130] flex items-center justify-end px-6 h-[76px] border-b border-[#f8f9fa]/10"
           style={{
             left: 'var(--sidebar-w, 280px)',
+            transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             background: 'rgba(33,37,41,0.95)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',

@@ -41,16 +41,22 @@ const DialogContent = React.forwardRef((/** @type {any} */ { className, children
         className
       )}
       style={{
+        // Horizontal: center in the content area (viewport minus sidebar), not the
+        // full viewport. --sidebar-w is set by VerticalMenu (0px mobile, 80/280px
+        // desktop). When unset (public pages), defaults to 0px = standard viewport
+        // centering. The translateX(-50%) from the Tailwind class still applies,
+        // so we just need to point `left` at the content-area midpoint.
+        left: 'calc(var(--sidebar-w, 0px) + (100vw - var(--sidebar-w, 0px)) / 2)',
         // Vertical: shift center down by half the fixed navbar height so the dialog
         // sits symmetrically in the visible content area below the header.
         // --private-header-h: 76px in private area (set by VerticalMenu), 0px elsewhere.
         top: 'calc(50% + var(--private-header-h, 0px) / 2)',
-        // Width: hard cap via inline style — always beats any max-w-* Tailwind class.
-        // min(100vw − 3rem, 26rem):
-        //   mobile  → 100vw − 3rem keeps 1.5rem gutters per side within the viewport
-        //   desktop → the 26rem (416px) cap kicks in; compact and never overwhelming
+        // Width: respect content-area width — gutter from each content edge.
+        // min(contentArea − 3rem, 32rem):
+        //   mobile  → 100vw − 1rem (mobile sheet override in globals.css takes over)
+        //   desktop → 32rem (512px) cap; generous but never wider than available space
         // Consumer can override by passing style={{ maxWidth: '…' }}
-        maxWidth: 'min(calc(100vw - 3rem), 26rem)',
+        maxWidth: 'min(calc(100vw - var(--sidebar-w, 0px) - 3rem), 32rem)',
         // Consumer style always wins (spread last).
         ...style,
       }}

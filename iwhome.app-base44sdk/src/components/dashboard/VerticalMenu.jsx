@@ -275,6 +275,11 @@ export default function VerticalMenu() {
           width: isCollapsed ? 80 : 280,
           x: isMobileOpen || window.innerWidth >= 1024 ? 0 : -280
         }}
+        transition={{
+          // Match the CSS cubic-bezier used for content margin / top-bar transition
+          width: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
+          x: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
+        }}
         className={`fixed left-0 top-0 h-screen bg-gradient-to-b from-[#212529] to-[#343a40] border-r border-[#f8f9fa]/10 z-[145] shadow-2xl ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           } transition-transform lg:transition-none`}
         style={{ paddingLeft: 'env(safe-area-inset-left)' }}
