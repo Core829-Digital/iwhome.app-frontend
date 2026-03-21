@@ -1,5 +1,5 @@
 import './App.css'
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import VisualEditAgent from '@/lib/VisualEditAgent'
 import NavigationTracker from '@/lib/NavigationTracker'
@@ -38,18 +38,32 @@ const PUBLIC_PAGES = [
 
 const GlobalLayout = ({ children }) => {
   const location = useLocation();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
   // Attempt to derive currentPageName, defaulting to mainPageKey if at root
   const currentPath = location.pathname.split('/')[1];
   const currentPageName = currentPath === '' ? mainPageKey : (Object.keys(Pages).find(k => k.toLowerCase() === currentPath.toLowerCase()) || currentPath);
 
   const isPrivate = !PUBLIC_PAGES.includes(currentPageName);
+  const sidebarWidth = isPrivate ? (isSidebarCollapsed ? 80 : 280) : 0;
 
   return (
     <>
-      {isPrivate && <VerticalMenu />}
+      {isPrivate && (
+        <VerticalMenu
+          isCollapsed={isSidebarCollapsed}
+          onCollapse={setIsSidebarCollapsed}
+        />
+      )}
       {isPrivate && <AnimatedBackground />}
       {Layout ? (
-        <Layout currentPageName={currentPageName} isPrivate={isPrivate}>{children}</Layout>
+        <Layout
+          currentPageName={currentPageName}
+          isPrivate={isPrivate}
+          sidebarWidth={sidebarWidth}
+        >
+          {children}
+        </Layout>
       ) : (
         <>{children}</>
       )}

@@ -21,7 +21,7 @@ import NotificationBell from './components/dashboard/NotificationBell';
 import { useQuery } from "convex/react";
 import { api } from "../../../Backend/convex/_generated/api";
 
-export default function Layout({ children, currentPageName, isPrivate }) {
+export default function Layout({ children, currentPageName, isPrivate, sidebarWidth = 280 }) {
   const [scrolled, setScrolled] = useState(false);
   const [atTop, setAtTop] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -60,17 +60,30 @@ export default function Layout({ children, currentPageName, isPrivate }) {
   };
 
   // ── Private area: no public header/footer ──────────────────────────────────
-  // The VerticalMenu sidebar handles navigation; a slim fixed top bar provides
-  // the notification bell and fills the 76px gap that private pages expect.
+  // sidebarWidth (px) comes from App.jsx GlobalLayout — 280 expanded, 80 collapsed.
+  // We apply it directly via inline style so the transition is driven by React
+  // state, not by CSS variables (which can be unreliable across build configs).
   if (isPrivate) {
+    const sw = `${sidebarWidth}px`;
+    const transition = 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
     return (
       <div className="min-h-screen bg-[#212529]">
-        {/* Private top bar — fixed, sits to the right of the sidebar */}
+        {/*
+          Zero out the per-page lg:ml-[280px] class that all 22 private pages
+          carry. This selector (.private-area .lg:ml-[280px]) has specificity
+          0-2-0 vs the Tailwind utility's 0-1-0 — wins without !important.
+          Layout is now the single source of truth for the left-margin offset.
+        */}
+        <style>{`
+          .private-area .lg\\:ml-\\[280px\\] { margin-left: 0 !important; }
+        `}</style>
+
+        {/* Private top bar — fixed, slides in sync with the sidebar */}
         <div
           className="fixed top-0 right-0 z-[130] flex items-center justify-end px-6 h-[76px] border-b border-[#f8f9fa]/10"
           style={{
-            left: 'var(--sidebar-w, 280px)',
-            transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            left: sw,
+            transition,
             background: 'rgba(33,37,41,0.95)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
@@ -79,8 +92,14 @@ export default function Layout({ children, currentPageName, isPrivate }) {
           {user && <NotificationBell user={user} />}
         </div>
 
-        {/* Page content — pages already have pt-[76px] which clears the top bar */}
-        <main>
+        {/*
+          Main content wrapper — marginLeft mirrors the sidebar width exactly.
+          Pages keep their pt-[76px] to clear the fixed top bar.
+        */}
+        <main
+          className="private-area"
+          style={{ marginLeft: sw, transition }}
+        >
           <PageTransition>
             {children}
           </PageTransition>

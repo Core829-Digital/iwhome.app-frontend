@@ -141,11 +141,10 @@ const getMenuItems = (user) => {
 
 
 
-export default function VerticalMenu() {
+export default function VerticalMenu({ isCollapsed = false, onCollapse }) {
   const location = useLocation();
   const { user: clerkUser } = useUser();
   const { signOut } = useClerk();
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState([]);
 
@@ -312,7 +311,7 @@ export default function VerticalMenu() {
             )}
             {/* Notification Bell Moved to Header */}
             <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
+              onClick={() => onCollapse(!isCollapsed)}
               className="hidden lg:block p-1.5 hover:bg-[#f8f9fa]/10 rounded-lg transition-all"
             >
               <ChevronRight
@@ -340,7 +339,7 @@ export default function VerticalMenu() {
                   <div key={item.name} className="mb-1 text-[#dee2e6]">
                     <button
                       onClick={() => {
-                        if (isCollapsed) setIsCollapsed(false);
+                        if (isCollapsed) onCollapse(false);
                         setOpenGroups(prev =>
                           prev.includes(item.name)
                             ? prev.filter(g => g !== item.name)

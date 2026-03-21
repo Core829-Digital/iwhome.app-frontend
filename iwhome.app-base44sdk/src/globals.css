@@ -207,21 +207,6 @@ img {
   -webkit-overflow-scrolling: touch;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   PRIVATE AREA — Sidebar-responsive content margin
-   All 22 private pages use lg:ml-[280px] to push content right of the sidebar.
-   We override it to follow --sidebar-w (set by VerticalMenu) with a smooth
-   transition so the content area stretches/shrinks when the sidebar collapses.
-   Fallback is 280px — identical to the original hardcoded value, so public
-   pages that accidentally have this class are unaffected.
-   ═══════════════════════════════════════════════════════════════════════════ */
-@media (min-width: 1024px) {
-  .lg\:ml-\[280px\] {
-    margin-left: var(--sidebar-w, 280px) !important;
-    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-}
-
 /* Mobile: bottom-sheet style — dialogs slide up from the bottom edge.
    This is intentionally full-width on mobile (standard UX pattern).    */
 @media (max-width: 640px) {
