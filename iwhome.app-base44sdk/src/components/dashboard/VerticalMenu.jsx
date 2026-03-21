@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Menu,
   X,
+  Home,
   LayoutDashboard,
   FileText,
   MessageSquare,
@@ -274,7 +275,7 @@ export default function VerticalMenu() {
           width: isCollapsed ? 80 : 280,
           x: isMobileOpen || window.innerWidth >= 1024 ? 0 : -280
         }}
-        className={`fixed left-0 top-0 lg:top-[76px] h-screen lg:h-[calc(100vh-76px)] bg-gradient-to-b from-[#212529] to-[#343a40] border-r border-[#f8f9fa]/10 z-[145] shadow-2xl ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        className={`fixed left-0 top-0 h-screen bg-gradient-to-b from-[#212529] to-[#343a40] border-r border-[#f8f9fa]/10 z-[145] shadow-2xl ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           } transition-transform lg:transition-none`}
         style={{ paddingLeft: 'env(safe-area-inset-left)' }}
       >
@@ -417,6 +418,15 @@ export default function VerticalMenu() {
 
           {/* Footer */}
           <div className="p-3 border-t border-[#f8f9fa]/10" style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}>
+            {/* Back to public site */}
+            <Link
+              to="/"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#dee2e6] hover:bg-[#f8f9fa]/10 hover:text-[#f8f9fa] transition-all mb-1"
+              title="Torna al sito"
+            >
+              <Home size={20} className="flex-shrink-0" />
+              {!isCollapsed && <span className="font-medium text-sm">Torna al Sito</span>}
+            </Link>
 
             <button
               onClick={handleLogout}

@@ -21,7 +21,7 @@ import NotificationBell from './components/dashboard/NotificationBell';
 import { useQuery } from "convex/react";
 import { api } from "../../../Backend/convex/_generated/api";
 
-export default function Layout({ children, currentPageName }) {
+export default function Layout({ children, currentPageName, isPrivate }) {
   const [scrolled, setScrolled] = useState(false);
   const [atTop, setAtTop] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -58,6 +58,36 @@ export default function Layout({ children, currentPageName }) {
   const handleLogout = async () => {
     await signOut();
   };
+
+  // ── Private area: no public header/footer ──────────────────────────────────
+  // The VerticalMenu sidebar handles navigation; a slim fixed top bar provides
+  // the notification bell and fills the 76px gap that private pages expect.
+  if (isPrivate) {
+    return (
+      <div className="min-h-screen bg-[#212529]">
+        {/* Private top bar — fixed, sits to the right of the sidebar */}
+        <div
+          className="fixed top-0 right-0 z-[130] flex items-center justify-end px-6 h-[76px] border-b border-[#f8f9fa]/10"
+          style={{
+            left: 'var(--sidebar-w, 280px)',
+            background: 'rgba(33,37,41,0.95)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+          }}
+        >
+          {user && <NotificationBell user={user} />}
+        </div>
+
+        {/* Page content — pages already have pt-[76px] which clears the top bar */}
+        <main>
+          <PageTransition>
+            {children}
+          </PageTransition>
+        </main>
+        <GDPRBanner />
+      </div>
+    );
+  }
 
   const navItems = [
     { name: 'Home', page: 'Home' },

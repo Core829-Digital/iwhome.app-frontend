@@ -28,10 +28,11 @@ const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 
 // Pages accessible without login (no sidebar, no AnimatedBackground)
 // Onboarding pages must be public — suppliers/staff use them before registering
+// NOTE: Prezzi and CodiceReferral are admin-only PRIVATE pages (not here)
 const PUBLIC_PAGES = [
   'Home', 'ChiSiamo', 'Servizi', 'Calcolatore', 'Blog', 'BlogPost',
   'Contatti', 'Cookie', 'Privacy', 'Termini',
-  'Prezzi', 'Recensioni',
+  'Recensioni',
   'SupplierOnboarding', 'onboarding-staff',
 ];
 
@@ -48,7 +49,7 @@ const GlobalLayout = ({ children }) => {
       {isPrivate && <VerticalMenu />}
       {isPrivate && <AnimatedBackground />}
       {Layout ? (
-        <Layout currentPageName={currentPageName}>{children}</Layout>
+        <Layout currentPageName={currentPageName} isPrivate={isPrivate}>{children}</Layout>
       ) : (
         <>{children}</>
       )}
