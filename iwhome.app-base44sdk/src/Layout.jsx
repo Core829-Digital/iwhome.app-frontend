@@ -30,9 +30,13 @@ export default function Layout({ children, currentPageName }) {
   const { openSignIn, signOut } = useClerk();
 
   // Fetch Convex User for profile image and accurate role
-  const convexUser = useQuery(api.users.getByEmail, {
-    email: clerkUser?.primaryEmailAddress?.emailAddress || ""
-  });
+  // Skip when user is not loaded yet — avoids querying with empty string
+  const convexUser = useQuery(
+    api.users.getByEmail,
+    clerkUser?.primaryEmailAddress?.emailAddress
+      ? { email: clerkUser.primaryEmailAddress.emailAddress }
+      : "skip"
+  );
 
   const user = clerkUser ? {
     email: clerkUser.primaryEmailAddress?.emailAddress,

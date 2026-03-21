@@ -150,9 +150,13 @@ export default function VerticalMenu() {
 
 
   // Fetch user role from Convex database (source of truth for roles)
-  const convexUser = useQuery(api.users.getByEmail, {
-    email: clerkUser?.primaryEmailAddress?.emailAddress || ""
-  });
+  // Skip when email is not yet available — avoids querying with empty string
+  const convexUser = useQuery(
+    api.users.getByEmail,
+    clerkUser?.primaryEmailAddress?.emailAddress
+      ? { email: clerkUser.primaryEmailAddress.emailAddress }
+      : "skip"
+  );
 
   const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'superadmin';
 

@@ -26,7 +26,14 @@ const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 
-const PUBLIC_PAGES = ['Home', 'ChiSiamo', 'Servizi', 'Calcolatore', 'Blog', 'BlogPost', 'Contatti', 'Cookie', 'Privacy', 'Termini'];
+// Pages accessible without login (no sidebar, no AnimatedBackground)
+// Onboarding pages must be public — suppliers/staff use them before registering
+const PUBLIC_PAGES = [
+  'Home', 'ChiSiamo', 'Servizi', 'Calcolatore', 'Blog', 'BlogPost',
+  'Contatti', 'Cookie', 'Privacy', 'Termini',
+  'Prezzi', 'Recensioni',
+  'SupplierOnboarding', 'onboarding-staff',
+];
 
 const GlobalLayout = ({ children }) => {
   const location = useLocation();
