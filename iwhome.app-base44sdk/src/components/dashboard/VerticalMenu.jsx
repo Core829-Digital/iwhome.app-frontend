@@ -197,8 +197,13 @@ export default function VerticalMenu({ isCollapsed = false, onCollapse }) {
   }, [location]);
 
   // Sync CSS variables so Radix UI dialogs/overlays center within the actual content area
-  // --sidebar-w   : width occupied by the sidebar (0px on mobile, 80/280px on desktop)
+  // --sidebar-w        : width occupied by the sidebar (0px mobile, 80/280px desktop)
   // --private-header-h : height of the fixed top navbar (always 76px in private area)
+  // --scrollbar-w      : classic scrollbar width (≈15px on Windows, 0 on Mac overlay).
+  //   Used in dialog centering to offset 100vw (which includes the scrollbar gutter)
+  //   so the dialog appears perfectly centred in the *visible* content area.
+  //   We skip this measurement while a Radix modal is open (body.overflow===hidden)
+  //   to avoid overwriting the cached value now that the scrollbar has been removed.
   React.useEffect(() => {
     const update = () => {
       const isMobile = window.innerWidth < 1024;
@@ -207,6 +212,12 @@ export default function VerticalMenu({ isCollapsed = false, onCollapse }) {
         isMobile ? '0px' : (isCollapsed ? '80px' : '280px')
       );
       document.documentElement.style.setProperty('--private-header-h', '76px');
+      // Only measure scrollbar width when no modal has locked the body scroll.
+      // window.innerWidth includes the scrollbar; clientWidth excludes it.
+      if (document.body.style.overflow !== 'hidden') {
+        const sw = window.innerWidth - document.documentElement.clientWidth;
+        document.documentElement.style.setProperty('--scrollbar-w', `${sw}px`);
+      }
     };
     update();
     window.addEventListener('resize', update);
@@ -215,6 +226,7 @@ export default function VerticalMenu({ isCollapsed = false, onCollapse }) {
       // Reset when leaving private area
       document.documentElement.style.removeProperty('--sidebar-w');
       document.documentElement.style.removeProperty('--private-header-h');
+      document.documentElement.style.removeProperty('--scrollbar-w');
     };
   }, [isCollapsed]);
 
