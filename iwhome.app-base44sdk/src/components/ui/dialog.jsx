@@ -62,6 +62,13 @@ const DialogContent = React.forwardRef((/** @type {any} */ { className, children
         // Width: respect content-area width — 1rem gutter on each side minimum.
         // Consumer can override by passing style={{ maxWidth: '…' }}
         maxWidth: 'min(calc(100vw - var(--sidebar-w, 0px) - var(--scrollbar-w, 0px) - 2rem), 40rem)',
+        // scrollbar-gutter: stable — reserves the scrollbar track space on the
+        // inline-end (right) side at all times.  Without this, when the dialog
+        // content is tall enough to trigger overflow-y:auto, the OS scrollbar
+        // (~15px on Windows) physically overlaps the right p-6 padding, making
+        // the right margin appear to vanish.  With `stable` the gutter is always
+        // present so p-6 stays symmetric whether or not a scrollbar is rendered.
+        scrollbarGutter: 'stable',
         // Consumer style always wins (spread last).
         ...style,
       }}
