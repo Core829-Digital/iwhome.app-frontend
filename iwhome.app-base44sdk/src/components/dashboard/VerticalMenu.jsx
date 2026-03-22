@@ -147,7 +147,8 @@ export default function VerticalMenu({ isCollapsed = false, onCollapse }) {
   const { signOut } = useClerk();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState([]);
-
+  const [flyoutGroup, setFlyoutGroup] = useState(null);
+  const [flyoutTop, setFlyoutTop] = useState(0);
 
   // Fetch user role from Convex database (source of truth for roles)
   // Skip when email is not yet available — avoids querying with empty string
@@ -235,6 +236,28 @@ export default function VerticalMenu({ isCollapsed = false, onCollapse }) {
   }, [location.pathname, user?.role]);
 
 
+  // Close flyout when sidebar expands
+  React.useEffect(() => {
+    if (!isCollapsed) setFlyoutGroup(null);
+  }, [isCollapsed]);
+
+  // Close flyout on navigation
+  React.useEffect(() => {
+    setFlyoutGroup(null);
+  }, [location.pathname]);
+
+  // Close flyout when clicking outside
+  React.useEffect(() => {
+    if (!flyoutGroup) return;
+    const handler = (e) => {
+      if (!e.target.closest('[data-sidebar-flyout]') && !e.target.closest('[data-sidebar-group-btn]')) {
+        setFlyoutGroup(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [flyoutGroup]);
+
   const menuItems = getMenuItems(user);
 
   const handleLogout = async () => {
@@ -284,42 +307,65 @@ export default function VerticalMenu({ isCollapsed = false, onCollapse }) {
         style={{ paddingLeft: 'env(safe-area-inset-left)' }}
       >
         <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="p-4 lg:p-4 pt-20 lg:pt-4 border-b border-[#f8f9fa]/10 flex items-center justify-between">
-            {!isCollapsed && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center gap-3"
-              >
-                <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold overflow-hidden ring-2 ${rc.ring} shadow-md`}>
+          {/* Header — h-[76px] on desktop to align its border with the top-bar border */}
+          <div className={`border-b border-[#f8f9fa]/10 ${
+            isCollapsed
+              ? 'flex flex-col items-center justify-center pt-20 pb-3 gap-2 lg:pt-0 lg:pb-0 lg:h-[76px]'
+              : 'flex items-center justify-between p-4 pt-20 lg:pt-0 lg:pb-0 lg:h-[76px] lg:px-3'
+          }`}>
+            {isCollapsed ? (
+              <>
+                {/* Avatar — shown centered when sidebar is collapsed */}
+                <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold overflow-hidden ring-2 ${rc.ring} shadow-md flex-shrink-0`}>
                   {user?.profile_image ? (
                     <img src={user.profile_image} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
-                    user?.full_name?.[0] || user?.email?.[0] || 'U'
+                    <span className="text-sm">{user?.full_name?.[0] || user?.email?.[0] || 'U'}</span>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[#f8f9fa] truncate">
-                    {user?.full_name || user?.email}
-                  </p>
-                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${rc.bg} ${rc.color}`}>
-                    {rc.label}
-                  </span>
-                </div>
-              </motion.div>
+                {/* Chevron to expand — desktop only */}
+                <button
+                  onClick={() => onCollapse(!isCollapsed)}
+                  className="hidden lg:flex items-center justify-center p-1 hover:bg-[#f8f9fa]/10 rounded-lg transition-all"
+                >
+                  <ChevronRight size={16} className="text-[#adb5bd]" />
+                </button>
+              </>
+            ) : (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center gap-3 flex-1 min-w-0"
+                >
+                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold overflow-hidden ring-2 ${rc.ring} shadow-md flex-shrink-0`}>
+                    {user?.profile_image ? (
+                      <img src={user.profile_image} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      user?.full_name?.[0] || user?.email?.[0] || 'U'
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[#f8f9fa] truncate">
+                      {user?.full_name || user?.email}
+                    </p>
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${rc.bg} ${rc.color}`}>
+                      {rc.label}
+                    </span>
+                  </div>
+                </motion.div>
+                {/* Chevron to collapse — desktop only */}
+                <button
+                  onClick={() => onCollapse(!isCollapsed)}
+                  className="hidden lg:flex items-center justify-center p-1.5 hover:bg-[#f8f9fa]/10 rounded-lg transition-all flex-shrink-0"
+                >
+                  <ChevronRight
+                    size={20}
+                    className="text-[#f8f9fa] transition-transform rotate-180"
+                  />
+                </button>
+              </>
             )}
-            {/* Notification Bell Moved to Header */}
-            <button
-              onClick={() => onCollapse(!isCollapsed)}
-              className="hidden lg:block p-1.5 hover:bg-[#f8f9fa]/10 rounded-lg transition-all"
-            >
-              <ChevronRight
-                size={20}
-                className={`text-[#f8f9fa] transition-transform ${isCollapsed ? '' : 'rotate-180'
-                  }`}
-              />
-            </button>
           </div>
 
           {/* Menu Items */}
@@ -338,15 +384,27 @@ export default function VerticalMenu({ isCollapsed = false, onCollapse }) {
                 return (
                   <div key={item.name} className="mb-1 text-[#dee2e6]">
                     <button
-                      onClick={() => {
-                        if (isCollapsed) onCollapse(false);
+                      data-sidebar-group-btn="true"
+                      title={isCollapsed ? item.name : undefined}
+                      onClick={(e) => {
+                        if (isCollapsed) {
+                          // Show flyout instead of expanding the sidebar
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setFlyoutTop(rect.top);
+                          setFlyoutGroup(prev => prev === item.name ? null : item.name);
+                          return;
+                        }
                         setOpenGroups(prev =>
                           prev.includes(item.name)
                             ? prev.filter(g => g !== item.name)
                             : [...prev, item.name]
                         );
                       }}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${hasActiveSub ? 'bg-[#f8f9fa]/5' : 'hover:bg-[#f8f9fa]/10'}`}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
+                        isCollapsed && flyoutGroup === item.name
+                          ? 'bg-[#f8f9fa]/15'
+                          : hasActiveSub ? 'bg-[#f8f9fa]/5' : 'hover:bg-[#f8f9fa]/10'
+                      }`}
                     >
                       <div className="flex items-center gap-3">
                         <Icon size={20} className="flex-shrink-0" />
@@ -442,6 +500,58 @@ export default function VerticalMenu({ isCollapsed = false, onCollapse }) {
           </div>
         </div>
       </motion.aside>
+
+      {/* Collapsed sidebar flyout — appears to the right of the sidebar when a group icon is clicked */}
+      <AnimatePresence>
+        {isCollapsed && flyoutGroup && (() => {
+          const group = menuItems.find(g => g.name === flyoutGroup);
+          if (!group) return null;
+          return (
+            <motion.div
+              key={flyoutGroup}
+              data-sidebar-flyout="true"
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+              className="fixed z-[146] min-w-[200px] bg-[#2d3238] border border-[#f8f9fa]/15 rounded-xl shadow-2xl overflow-hidden"
+              style={{
+                left: '84px',
+                top: `${flyoutTop}px`,
+                maxHeight: `calc(100vh - ${flyoutTop}px - 16px)`,
+                overflowY: 'auto',
+              }}
+            >
+              {/* Group label */}
+              <div className="px-4 py-2 text-[10px] font-bold text-[#adb5bd] uppercase tracking-widest border-b border-[#f8f9fa]/10">
+                {flyoutGroup}
+              </div>
+              {/* Sub-items */}
+              {group.subItems.map(subItem => {
+                const SubIcon = subItem.icon;
+                const linkPath = createPageUrl(subItem.page).toLowerCase();
+                const currentPath = location.pathname.toLowerCase();
+                const isActive = currentPath === linkPath || (linkPath !== '/' && currentPath.startsWith(linkPath));
+                return (
+                  <Link
+                    key={subItem.page}
+                    to={createPageUrl(subItem.page)}
+                    onClick={() => { setFlyoutGroup(null); setIsMobileOpen(false); }}
+                    className={`flex items-center gap-3 px-4 py-2.5 transition-all text-sm ${
+                      isActive
+                        ? 'bg-blue-600/20 text-blue-400 font-medium'
+                        : 'text-[#dee2e6] hover:bg-[#f8f9fa]/10 hover:text-[#f8f9fa]'
+                    }`}
+                  >
+                    <SubIcon size={16} className="flex-shrink-0" />
+                    <span>{subItem.name}</span>
+                  </Link>
+                );
+              })}
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
     </>
   );
 }
