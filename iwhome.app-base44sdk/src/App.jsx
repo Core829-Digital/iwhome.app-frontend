@@ -40,7 +40,7 @@ const PUBLIC_PAGES = [
 const GlobalLayout = ({ children }) => {
   const location = useLocation();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const { isAuthenticated, isLoadingAuth, navigateToLogin } = useAuth();
+  const { isAuthenticated, isLoadingAuth, navigateToLogin, isPendingActivation } = useAuth();
 
   // Attempt to derive currentPageName, defaulting to mainPageKey if at root
   const currentPath = location.pathname.split('/')[1];
@@ -61,6 +61,26 @@ const GlobalLayout = ({ children }) => {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-[#212529]">
         <div className="w-8 h-8 border-4 border-blue-900 border-t-blue-400 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Private page with authenticated user but no role assigned → show waiting screen
+  if (isPrivate && isAuthenticated && isPendingActivation) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-[#212529]">
+        <div className="text-center p-8 bg-[#343a40]/50 backdrop-blur-xl rounded-2xl border border-[#f8f9fa]/10 max-w-md mx-4">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-500/20 flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-blue-900 border-t-blue-400 rounded-full animate-spin" />
+          </div>
+          <h1 className="text-2xl font-bold text-[#f8f9fa] mb-2">Account in attesa di attivazione</h1>
+          <p className="text-[#dee2e6] mb-4">
+            Il tuo account è stato registrato. IWHome ti assegnerà il ruolo corretto a breve.
+          </p>
+          <p className="text-[#adb5bd] text-sm">
+            Per assistenza contattaci: <span className="text-blue-400">info@iwhome.it</span>
+          </p>
+        </div>
       </div>
     );
   }

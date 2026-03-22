@@ -18,11 +18,11 @@ const PERMISSION_MAP = {
     "preventivi": ["admin", "client"],
     "cantieri": ["admin", "collaborator"],
     "admin": ["admin"],
-    "dashboard": ["admin", "client", "supplier", "collaborator", "user"],
+    "dashboard": ["admin", "client", "supplier", "collaborator"],
     "messages": ["admin", "client", "collaborator", "supplier"],
-    "documents": ["admin", "client", "supplier", "collaborator", "user"],
-    "settings": ["admin", "client", "supplier", "collaborator", "user"],
-    "appointments": ["admin", "client", "supplier", "collaborator", "user"],
+    "documents": ["admin", "client", "supplier", "collaborator"],
+    "settings": ["admin", "client", "supplier", "collaborator"],
+    "appointments": ["admin", "client", "supplier", "collaborator"],
 };
 
 // Sidebar items with labels and role visibility
@@ -48,13 +48,14 @@ export function useRBAC() {
     const email = clerkUser?.primaryEmailAddress?.emailAddress || "";
     const convexUser = useQuery(api.users.getByEmail, email ? { email } : "skip");
 
-    const role = convexUser?.role || "user";
+    const role = convexUser?.role || null;
     const baseRole = role.startsWith("collaborator") ? "collaborator" : role;
     const isAdmin = role === "admin" || role === "superadmin";
     const isSupplier = role === "supplier";
     const isCollaborator = baseRole === "collaborator";
     const isClient = role === "client";
     const isSupervisor = false;
+    const isPending = !role && convexUser !== undefined && convexUser !== null;
 
     // RBAC: Get linked supplier record when role is 'supplier'
     const supplierRecord = useQuery(
@@ -89,6 +90,7 @@ export function useRBAC() {
      * Get the list of sidebar items visible to the current user.
      */
     const getSidebarItems = () => {
+        if (!role) return []; // No role assigned — no sidebar items
         return SIDEBAR_CONFIG.filter(item => {
             if (isAdmin) return true;
             return item.roles.includes(baseRole);
@@ -104,6 +106,7 @@ export function useRBAC() {
         isCollaborator,
         isClient,
         isSupervisor,
+        isPending,
         canView,
         canEdit,
         getSidebarItems,

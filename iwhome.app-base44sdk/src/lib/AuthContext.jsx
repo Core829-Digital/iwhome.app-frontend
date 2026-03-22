@@ -65,13 +65,18 @@ export const AuthProvider = ({ children }) => {
     // No-op in new auth flow
   };
 
+  // User is pending activation if they are authenticated but have no role assigned
+  const isPendingActivation = isAuthenticated && convexUser !== undefined && convexUser !== null && !convexUser.role;
+
   return (
     <AuthContext.Provider value={{
       user,
+      convexUser,
       isAuthenticated,
       isLoadingAuth,
       isLoadingPublicSettings,
       authError,
+      isPendingActivation,
       logout,
       navigateToLogin,
       checkAppState

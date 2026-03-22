@@ -76,11 +76,8 @@ const getMenuItems = (user) => {
     collaborator: { label: 'Collaboratore', color: 'text-indigo-400', ring: 'ring-indigo-500', bg: 'bg-indigo-500/20' },
     collaborator_internal: { label: 'Collaboratore', color: 'text-indigo-400', ring: 'ring-indigo-500', bg: 'bg-indigo-500/20' },
     collaborator_external: { label: 'Collaboratore', color: 'text-indigo-400', ring: 'ring-indigo-500', bg: 'bg-indigo-500/20' },
-    supervisor: { label: 'Supervisore', color: 'text-yellow-400', ring: 'ring-yellow-500', bg: 'bg-yellow-500/20' },
-    worker: { label: 'Operaio', color: 'text-gray-400', ring: 'ring-gray-500', bg: 'bg-gray-500/20' },
-    user: { label: 'Utente Base', color: 'text-gray-400', ring: 'ring-gray-500', bg: 'bg-gray-500/20' },
   };
-  const rc = roleConfig[role] || roleConfig.user;
+  const rc = roleConfig[role] || { label: 'In Attesa', color: 'text-gray-400', ring: 'ring-gray-500', bg: 'bg-gray-500/20' };
 
   // Build menu based on role
   const items = [];
@@ -170,7 +167,7 @@ export default function VerticalMenu({ isCollapsed = false, onCollapse }) {
   const user = clerkUser ? {
     email: clerkUser.primaryEmailAddress?.emailAddress,
     full_name: clerkUser.fullName,
-    role: convexUser?.role || 'user', // Get role from Convex, default to 'user'
+    role: convexUser?.role || null, // Get role from Convex, null if not assigned
     profile_image: convexUser?.profile_image,
   } : null;
 
@@ -183,11 +180,8 @@ export default function VerticalMenu({ isCollapsed = false, onCollapse }) {
     collaborator: { label: 'Collaboratore', color: 'text-indigo-400', ring: 'ring-indigo-500', bg: 'bg-indigo-500/20' },
     collaborator_internal: { label: 'Collaboratore', color: 'text-indigo-400', ring: 'ring-indigo-500', bg: 'bg-indigo-500/20' },
     collaborator_external: { label: 'Collaboratore', color: 'text-indigo-400', ring: 'ring-indigo-500', bg: 'bg-indigo-500/20' },
-    supervisor: { label: 'Supervisore', color: 'text-yellow-400', ring: 'ring-yellow-500', bg: 'bg-yellow-500/20' },
-    worker: { label: 'Operaio', color: 'text-gray-400', ring: 'ring-gray-500', bg: 'bg-gray-500/20' },
-    user: { label: 'Utente Base', color: 'text-gray-400', ring: 'ring-gray-500', bg: 'bg-gray-500/20' },
   };
-  const rc = roleConfig[user?.role || 'user'] || roleConfig.user;
+  const rc = roleConfig[user?.role || ''] || { label: 'In Attesa', color: 'text-gray-400', ring: 'ring-gray-500', bg: 'bg-gray-500/20' };
 
   // Auto-close menu on mobile when clicking a link
   React.useEffect(() => {

@@ -142,7 +142,6 @@ export default function Admin() {
                 file_name: uploadData.file.name,
                 file_type: uploadData.file.type,
                 file_size: uploadData.file.size,
-                is_public: false,
                 created_by: selectedUser.email, // Upload AS selected user so they see it
                 created_date: new Date().toISOString()
             });
@@ -298,7 +297,6 @@ export default function Admin() {
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent className="bg-[#343a40] border-[#f8f9fa]/20 text-[#f8f9fa]">
-                                                            <SelectItem value="user">Utente Base</SelectItem>
                                                             <SelectItem value="client">Cliente</SelectItem>
                                                             <SelectItem value="supplier">Fornitore</SelectItem>
                                                             <SelectItem value="collaborator">Collaboratore</SelectItem>
