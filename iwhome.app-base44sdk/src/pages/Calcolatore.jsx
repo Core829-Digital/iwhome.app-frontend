@@ -29,7 +29,6 @@ import {
   Send,
   Check,
   Calendar,
-  LogIn,
   Clock,
   MapPin,
 } from 'lucide-react';
@@ -59,10 +58,9 @@ export default function Calcolatore() {
     phone: '',
     notes: '',
   });
-  const [formErrors, setFormErrors] = useState({});
+  const [formErrors, setFormErrors] = useState({ full_name: '', email: '', phone: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [quoteId, setQuoteId] = useState(null);
 
   // ── Appointment booking (after quote) ──
   const [aptDate, setAptDate] = useState(null);
@@ -100,44 +98,49 @@ export default function Calcolatore() {
   };
 
   const validateForm = () => {
-    const errors = {};
+    const errors = { full_name: '', email: '', phone: '' };
+    if (!formData.full_name.trim()) errors.full_name = 'Nome obbligatorio';
     if (!formData.email.trim()) errors.email = 'Email obbligatoria';
     else if (!/\S+@\S+\.\S+/.test(formData.email)) errors.email = 'Email non valida';
     if (!formData.phone.trim()) errors.phone = 'Telefono obbligatorio';
     return errors;
   };
 
+  const hasFormErrors = (e) => Object.values(e).some(v => v !== '');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const errors = validateForm();
-    if (Object.keys(errors).length > 0) {
+    if (hasFormErrors(errors)) {
       setFormErrors(errors);
       return;
     }
-    setFormErrors({});
+    setFormErrors({ full_name: '', email: '', phone: '' });
     setIsSubmitting(true);
 
+    // null → undefined: Convex v.optional() expects absent field, not null
+    const windowCfg = (quoteType === 'finestre' || includeWindows) && windowConfig ? windowConfig : undefined;
+    const projectCfg = quoteType === 'chiavi_in_mano' && projectConfig ? projectConfig : undefined;
+    const totalPrice = getTotalPrice() || undefined;
+
     const quoteData = {
-      full_name: formData.full_name || 'Non specificato',
-      email: formData.email,
-      phone: formData.phone,
-      notes: formData.notes || undefined,
+      full_name: formData.full_name.trim(),
+      email: formData.email.trim(),
+      phone: formData.phone.trim(),
+      notes: formData.notes.trim() || undefined,
       quote_type: quoteType === 'finestre' ? 'finestre' : (includeWindows ? 'completo' : 'chiavi_in_mano'),
-      window_config: quoteType === 'finestre' || includeWindows ? windowConfig : undefined,
-      project_config: quoteType === 'chiavi_in_mano' ? projectConfig : undefined,
-      estimated_price: getTotalPrice() || undefined,
-      status: 'draft',
-      created_date: new Date().toISOString(),
+      window_config: windowCfg,
+      project_config: projectCfg,
+      estimated_price: totalPrice,
     };
 
     try {
-      const id = await createPublicQuote(quoteData);
-      setQuoteId(id);
+      await createPublicQuote(quoteData);
       setSubmitted(true);
     } catch (error) {
       console.error("Error creating quote", error);
-      alert("Si è verificato un errore. Riprova.");
+      alert("Si è verificato un errore nell'invio. Riprova o contattaci direttamente.");
     } finally {
       setIsSubmitting(false);
     }
@@ -634,14 +637,20 @@ export default function Calcolatore() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                           <Label className="text-[#f8f9fa] mb-2 flex items-center gap-2">
-                            <User size={16} /> Nome e Cognome <span className="text-[#adb5bd] text-xs">(opzionale)</span>
+                            <User size={16} /> Nome e Cognome <span className="text-red-400 text-xs font-medium">*obbligatorio</span>
                           </Label>
                           <Input
                             value={formData.full_name}
-                            onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
+                            onChange={(e) => {
+                              setFormData(prev => ({ ...prev, full_name: e.target.value }));
+                              if (formErrors.full_name) setFormErrors(prev => ({ ...prev, full_name: '' }));
+                            }}
                             placeholder="Mario Rossi"
-                            className="rounded-xl bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#adb5bd] focus:border-[#f8f9fa] focus:ring-[#f8f9fa]"
+                            className={`rounded-xl bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#adb5bd] focus:ring-[#f8f9fa] ${formErrors.full_name ? 'border-red-500 focus:border-red-500' : 'focus:border-[#f8f9fa]'}`}
                           />
+                          {formErrors.full_name && (
+                            <p className="text-red-400 text-xs mt-1">{formErrors.full_name}</p>
+                          )}
                         </div>
                         <div>
                           <Label className="text-[#f8f9fa] mb-2 flex items-center gap-2">
@@ -652,7 +661,7 @@ export default function Calcolatore() {
                             value={formData.phone}
                             onChange={(e) => {
                               setFormData(prev => ({ ...prev, phone: e.target.value }));
-                              if (formErrors.phone) setFormErrors(prev => ({ ...prev, phone: null }));
+                              if (formErrors.phone) setFormErrors(prev => ({ ...prev, phone: '' }));
                             }}
                             placeholder="+39 333 000 0000"
                             className={`rounded-xl bg-[#343a40]/50 border-[#f8f9fa]/20 text-[#f8f9fa] placeholder:text-[#adb5bd] focus:ring-[#f8f9fa] ${formErrors.phone ? 'border-red-500 focus:border-red-500' : 'focus:border-[#f8f9fa]'}`}
@@ -672,7 +681,7 @@ export default function Calcolatore() {
                           value={formData.email}
                           onChange={(e) => {
                             setFormData(prev => ({ ...prev, email: e.target.value }));
-                            if (formErrors.email) setFormErrors(prev => ({ ...prev, email: null }));
+                            if (formErrors.email) setFormErrors(prev => ({ ...prev, email: '' }));
                           }}
                           placeholder="mario@email.it"
                           disabled={!!user}
