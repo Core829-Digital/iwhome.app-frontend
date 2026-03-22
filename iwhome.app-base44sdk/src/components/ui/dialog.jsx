@@ -51,12 +51,19 @@ const DialogContent = React.forwardRef((/** @type {any} */ { className, children
         // sits symmetrically in the visible content area below the header.
         // --private-header-h: 76px in private area (set by VerticalMenu), 0px elsewhere.
         top: 'calc(50% + var(--private-header-h, 0px) / 2)',
-        // Width: respect content-area width — gutter from each content edge.
-        // min(contentArea − 3rem, 32rem):
-        //   mobile  → 100vw − 1rem (mobile sheet override in globals.css takes over)
-        //   desktop → 32rem (512px) cap; generous but never wider than available space
+        // Width: respect content-area width — 1rem gutter on each side minimum.
+        // min(contentArea − 2rem, 40rem):
+        //   mobile  → handled by the globals.css bottom-sheet override
+        //   desktop → 40rem (640px) cap; never wider than available content area
         // Consumer can override by passing style={{ maxWidth: '…' }}
-        maxWidth: 'min(calc(100vw - var(--sidebar-w, 0px) - 3rem), 32rem)',
+        maxWidth: 'min(calc(100vw - var(--sidebar-w, 0px) - 2rem), 40rem)',
+        // scrollbar-gutter: stable — reserves scrollbar space on the inline-end (right)
+        // side consistently. Without this, overflow-y:auto scrollbar (≈15px on Windows)
+        // eats into the right p-6 padding when content is tall, making right margin
+        // visually narrower than the left. With stable, the reserved space is always
+        // present so p-6 padding is symmetric on both sides whether or not a scrollbar
+        // is actually rendered.
+        scrollbarGutter: 'stable',
         // Consumer style always wins (spread last).
         ...style,
       }}
