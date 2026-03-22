@@ -271,7 +271,7 @@ export default function Preventivi() {
                 is_public: 'false',
                 created_by: userEmail,
                 created_date: new Date().toISOString(),
-                shared_with: uploadQuote.email,
+                shared_with: [uploadQuote.email],
                 quote_id: uploadQuote._id,
                 status: 'definitive'
             });
