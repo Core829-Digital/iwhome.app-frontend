@@ -164,7 +164,7 @@ export default function MyAppointments() {
               <Calendar size={64} className="text-[#6c757d] mx-auto mb-4" />
               <p className="text-[#dee2e6] text-lg">Nessun appuntamento</p>
               <p className="text-[#adb5bd] text-sm mt-2 mb-6">Prenota la tua prima visita in showroom</p>
-              <Link to={createPageUrl('Appuntamenti')}>
+              <Link to={createPageUrl('Calcolatore')}>
                 <Button className="bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] text-[#212529]">
                   Prenota Ora
                 </Button>

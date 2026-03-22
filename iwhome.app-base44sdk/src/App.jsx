@@ -34,11 +34,13 @@ const PUBLIC_PAGES = [
   'Contatti', 'Cookie', 'Privacy', 'Termini',
   'Recensioni',
   'SupplierOnboarding', 'onboarding-staff',
+  'Appuntamenti', // legacy redirect → renders Calcolatore (public, no auth needed)
 ];
 
 const GlobalLayout = ({ children }) => {
   const location = useLocation();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const { isAuthenticated, isLoadingAuth, navigateToLogin } = useAuth();
 
   // Attempt to derive currentPageName, defaulting to mainPageKey if at root
   const currentPath = location.pathname.split('/')[1];
@@ -46,6 +48,22 @@ const GlobalLayout = ({ children }) => {
 
   const isPrivate = !PUBLIC_PAGES.includes(currentPageName);
   const sidebarWidth = isPrivate ? (isSidebarCollapsed ? 80 : 280) : 0;
+
+  // Private area protection: non-authenticated users are redirected to Clerk sign-in
+  useEffect(() => {
+    if (isPrivate && !isLoadingAuth && !isAuthenticated) {
+      navigateToLogin();
+    }
+  }, [isPrivate, isAuthenticated, isLoadingAuth]);
+
+  // Show a minimal loading screen while redirecting to login
+  if (isPrivate && !isLoadingAuth && !isAuthenticated) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-[#212529]">
+        <div className="w-8 h-8 border-4 border-blue-900 border-t-blue-400 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <>
