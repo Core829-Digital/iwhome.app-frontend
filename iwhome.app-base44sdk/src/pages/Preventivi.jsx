@@ -859,29 +859,41 @@ export default function Preventivi() {
 
                                     <div className="space-y-2">
                                         <label className="text-sm text-[#dee2e6]">Seleziona la Richiesta del Fornitore da convertire in Ordine:</label>
-                                        <Select value={selectedRequestToConvert} onValueChange={setSelectedRequestToConvert}>
-                                            <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
-                                                <SelectValue placeholder="Seleziona la richiesta..." />
-                                            </SelectTrigger>
-                                            <SelectContent className="bg-[#343a40] border-[#495057]">
-                                                {/* Allow selecting requests that are basically accepted/evaluated */}
-                                                {supplierRequests
-                                                    .filter(r => r.status !== "draft" && r.status !== "rejected")
-                                                    .map(req => {
-                                                        const supplier = suppliers.find(s => s._id === req.supplier_id);
-                                                        return (
-                                                            <SelectItem key={req._id} value={req._id} className="text-[#f8f9fa] focus:bg-[#495057]">
-                                                                {req.title} {supplier ? `(${supplier.name})` : ''} - {req.quoted_price ? `€${req.quoted_price}` : 'Da definire'}
+                                        {(() => {
+                                            const relevantRequests = supplierRequests.filter(r =>
+                                                r.status !== "draft" &&
+                                                r.status !== "rejected" &&
+                                                r.quote_id === quoteToConvert?._id
+                                            );
+                                            return (
+                                                <Select value={selectedRequestToConvert} onValueChange={setSelectedRequestToConvert}>
+                                                    <SelectTrigger className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]">
+                                                        <SelectValue placeholder="Seleziona la richiesta..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="bg-[#343a40] border-[#495057] z-[200]">
+                                                        {relevantRequests.length === 0 ? (
+                                                            <SelectItem value="__nessuna__" disabled className="text-[#6c757d] italic text-sm">
+                                                                Nessuna richiesta trovata — invia prima il preventivo al fornitore
                                                             </SelectItem>
-                                                        )
-                                                    })}
-                                            </SelectContent>
-                                        </Select>
+                                                        ) : (
+                                                            relevantRequests.map(req => {
+                                                                const supplier = suppliers.find(s => s._id === req.supplier_id);
+                                                                return (
+                                                                    <SelectItem key={req._id} value={req._id} className="text-[#f8f9fa] focus:bg-[#495057]">
+                                                                        {req.title} {supplier ? `(${supplier.name})` : ''} — {req.quoted_price ? `€${req.quoted_price}` : 'Prezzo da definire'}
+                                                                    </SelectItem>
+                                                                );
+                                                            })
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
+                                            );
+                                        })()}
                                     </div>
 
                                     <Button
                                         onClick={handleConvertToOrder}
-                                        disabled={!selectedRequestToConvert || isConverting}
+                                        disabled={!selectedRequestToConvert || selectedRequestToConvert === "__nessuna__" || isConverting}
                                         className="w-full bg-orange-600 hover:bg-orange-700"
                                     >
                                         {isConverting ? (
