@@ -260,10 +260,10 @@ export default function Dashboard() {
 
     if (dateFilter === 'today') {
       const today = new Date().toISOString().split('T')[0];
-      if (!q.created_date.startsWith(today)) match = false;
+      if (!q.created_date || !q.created_date.startsWith(today)) match = false;
     } else if (dateFilter === 'week') {
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      if (q.created_date < weekAgo) match = false;
+      if (!q.created_date || q.created_date < weekAgo) match = false;
     }
 
     if (searchTerm) {
