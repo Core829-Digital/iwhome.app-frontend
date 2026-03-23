@@ -1,4 +1,5 @@
 import Admin from './pages/Admin';
+import AreaPrivata from './pages/AreaPrivata';
 // Appuntamenti removed — all appointment booking flows through Calcolatore
 import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
@@ -41,6 +42,7 @@ import __Layout from './Layout.jsx';
 
 export const PAGES = {
     "Admin": Admin,
+    "AreaPrivata": AreaPrivata,
     "Appuntamenti": Calcolatore, // Redirected — appointment booking starts from Calcolatore
     "Blog": Blog,
     "BlogPost": BlogPost,

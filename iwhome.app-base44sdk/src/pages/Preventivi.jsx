@@ -7,7 +7,7 @@ import { useUser } from "@clerk/clerk-react";
 import {
     FileText, Download, Search, CheckCircle, XCircle, Clock, HardHat, Link2, Unlink, Users,
     Eye, Upload, Loader2, Trash2, Lock, MessageSquare, Send, Truck, TrendingUp, UserPlus,
-    TrendingUp as TrendingUpIcon
+    TrendingUp as TrendingUpIcon, AlertTriangle, Calendar, ThumbsUp, ThumbsDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,6 +75,13 @@ export default function Preventivi() {
     const [marginPrice, setMarginPrice] = useState("");
     const [finalDocId, setFinalDocId] = useState("");
     const [isFinalizing, setIsFinalizing] = useState(false);
+    const [expiresDays, setExpiresDays] = useState("7");
+    const [accontoPercentage, setAccontoPercentage] = useState("30");
+
+    // State for client acceptance confirmation
+    const [acceptConfirmOpen, setAcceptConfirmOpen] = useState(false);
+    const [quoteToAccept, setQuoteToAccept] = useState(null);
+    const [isAccepting, setIsAccepting] = useState(false);
 
     // Mutations
     const linkToCantiereMutation = useMutation(api.quotes.linkToCantiere);
@@ -178,11 +185,13 @@ export default function Preventivi() {
             case 'rejected':
                 return <Badge variant="secondary" className="bg-red-500/20 text-red-400 border-none"><XCircle size={12} className="mr-1" /> Rifiutato</Badge>;
             case 'sent':
-                return <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-none"><FileText size={12} className="mr-1" /> Valutazione</Badge>;
+                return <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-none"><FileText size={12} className="mr-1" /> Preventivo Inviato</Badge>;
             case 'request':
                 return <Badge variant="secondary" className="bg-cyan-500/20 text-cyan-400 border-none"><Upload size={12} className="mr-1" /> Richiesta Cliente</Badge>;
             case 'in_lavorazione':
                 return <Badge variant="secondary" className="bg-purple-500/20 text-purple-400 border-none"><Clock size={12} className="mr-1" /> In Lavorazione</Badge>;
+            case 'scaduto':
+                return <Badge variant="secondary" className="bg-gray-500/20 text-gray-400 border-none"><XCircle size={12} className="mr-1" /> Scaduto</Badge>;
             default:
                 return <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-400 border-none"><Clock size={12} className="mr-1" /> In Attesa</Badge>;
         }
@@ -300,19 +309,69 @@ export default function Preventivi() {
                 request_id: selectedRequestToFinalize._id,
                 margin_price: parseFloat(marginPrice),
                 // @ts-ignore
-                final_doc_id: finalDocId
+                final_doc_id: finalDocId,
+                expires_days: expiresDays ? parseInt(expiresDays) : undefined,
+                acconto_percentage: accontoPercentage ? parseFloat(accontoPercentage) : undefined,
             });
             alert("Preventivo finalizzato e inviato al cliente!");
             setFinalizeModalOpen(false);
             setSelectedRequestToFinalize(null);
             setMarginPrice("");
             setFinalDocId("");
+            setExpiresDays("7");
+            setAccontoPercentage("30");
         } catch (err) {
             console.error('Error finalizing quote:', err);
             alert("Errore durante la finalizzazione del preventivo.");
         } finally {
             setIsFinalizing(false);
         }
+    };
+
+    const handleClientAccept = async () => {
+        if (!quoteToAccept) return;
+        setIsAccepting(true);
+        try {
+            await updateStatusMutation({ id: quoteToAccept._id, status: 'accepted' });
+            setAcceptConfirmOpen(false);
+            setQuoteToAccept(null);
+        } catch (err) {
+            console.error('Error accepting quote:', err);
+            alert("Errore durante l'accettazione del preventivo.");
+        } finally {
+            setIsAccepting(false);
+        }
+    };
+
+    const handleClientReject = async (quote) => {
+        if (!window.confirm('Sei sicuro di voler rifiutare questo preventivo?')) return;
+        try {
+            await updateStatusMutation({ id: quote._id, status: 'rejected' });
+        } catch (err) {
+            console.error('Error rejecting quote:', err);
+            alert("Errore durante il rifiuto del preventivo.");
+        }
+    };
+
+    const getExpiryBadge = (quote) => {
+        if (!quote.client_quote_expires_at || quote.status !== 'sent') return null;
+        const now = new Date();
+        const expiry = new Date(quote.client_quote_expires_at);
+        const diffMs = expiry - now;
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        if (diffMs <= 0) return null; // scaduto shown via getStatusBadge
+        if (diffHours <= 24) {
+            return (
+                <Badge variant="secondary" className="bg-red-500/20 text-red-400 border-none animate-pulse">
+                    <AlertTriangle size={12} className="mr-1" /> Scade tra {diffHours}h
+                </Badge>
+            );
+        }
+        return (
+            <Badge variant="secondary" className="bg-amber-500/20 text-amber-400 border-none">
+                <Calendar size={12} className="mr-1" /> Scade il {expiry.toLocaleDateString('it-IT')}
+            </Badge>
+        );
     };
 
     const filteredQuotes = quotes.filter(quote => {
@@ -527,6 +586,7 @@ export default function Preventivi() {
                                                                     )}
                                                                 </h3>
                                                                 {getStatusBadge(quote.status)}
+                                                                {getExpiryBadge(quote)}
                                                                 {linkedCantiere && (
                                                                     <Badge variant="secondary" className="bg-purple-500/20 text-purple-400 border-none">
                                                                         <HardHat size={12} className="mr-1" />
@@ -687,6 +747,26 @@ export default function Preventivi() {
                                                                 <Eye size={16} className="mr-1" /> Dettagli
                                                             </Button>
 
+                                                            {/* Client: Accept/Reject when quote is sent */}
+                                                            {isClient && quote.status === 'sent' && (
+                                                                <div className="flex gap-2">
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        onClick={() => { setQuoteToAccept(quote); setAcceptConfirmOpen(true); }}
+                                                                        className="text-green-400 border-green-500/30 hover:bg-green-500/20"
+                                                                    >
+                                                                        <ThumbsUp size={16} className="mr-1" /> Accetta
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        onClick={() => handleClientReject(quote)}
+                                                                        className="text-red-400 border-red-500/30 hover:bg-red-500/20"
+                                                                    >
+                                                                        <ThumbsDown size={16} className="mr-1" /> Rifiuta
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+
                                                             {quote.status === 'request' && (
                                                                 <div className="flex gap-2">
                                                                     <Button
@@ -717,6 +797,78 @@ export default function Preventivi() {
                                 })
                             )}
                         </div>
+
+                        {/* Client: Acceptance Confirmation Modal */}
+                        <Dialog open={acceptConfirmOpen} onOpenChange={setAcceptConfirmOpen}>
+                            <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle className="text-[#f8f9fa] flex items-center gap-2">
+                                        <ThumbsUp size={20} className="text-green-400" />
+                                        Accetta Preventivo
+                                    </DialogTitle>
+                                </DialogHeader>
+                                {quoteToAccept && (
+                                    <div className="space-y-4 py-2">
+                                        <div className="bg-[#495057]/50 rounded-lg p-3">
+                                            <p className="text-sm text-[#adb5bd]">Stai per accettare il preventivo:</p>
+                                            <p className="text-[#f8f9fa] font-medium mt-1">
+                                                {quoteToAccept.title || (
+                                                    quoteToAccept.quote_type === 'finestre' ? 'Infissi e Serramenti' :
+                                                        quoteToAccept.quote_type === 'chiavi_in_mano' ? 'Ristrutturazione Chiavi in Mano' : 'Progetto Completo'
+                                                )}
+                                            </p>
+                                        </div>
+
+                                        {quoteToAccept.estimated_price && (
+                                            <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-lg p-4">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-[#adb5bd] text-sm">Prezzo Totale</span>
+                                                    <span className="text-xl font-bold text-[#f8f9fa]">€ {quoteToAccept.estimated_price.toLocaleString('it-IT')}</span>
+                                                </div>
+                                                {quoteToAccept.acconto_percentage && (
+                                                    <div className="flex justify-between items-center mt-2 pt-2 border-t border-blue-500/20">
+                                                        <span className="text-amber-400 text-sm font-medium">Acconto richiesto ({quoteToAccept.acconto_percentage}%)</span>
+                                                        <span className="text-amber-400 font-bold">€ {(quoteToAccept.estimated_price * quoteToAccept.acconto_percentage / 100).toLocaleString('it-IT')}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {quoteToAccept.client_quote_expires_at && (
+                                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 flex items-center gap-2">
+                                                <Calendar size={16} className="text-amber-400 shrink-0" />
+                                                <p className="text-sm text-amber-300">
+                                                    Offerta valida fino al <strong>{new Date(quoteToAccept.client_quote_expires_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })}</strong>
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        <p className="text-xs text-[#6c757d]">
+                                            Accettando il preventivo, autorizzi IWHome a procedere con l'ordine al fornitore. Riceverai istruzioni per il pagamento dell'acconto.
+                                        </p>
+
+                                        <div className="flex gap-3 pt-2">
+                                            <Button
+                                                variant="ghost"
+                                                onClick={() => { setAcceptConfirmOpen(false); setQuoteToAccept(null); }}
+                                                className="flex-1 text-[#adb5bd] hover:text-[#f8f9fa]"
+                                                disabled={isAccepting}
+                                            >
+                                                Annulla
+                                            </Button>
+                                            <Button
+                                                onClick={handleClientAccept}
+                                                disabled={isAccepting}
+                                                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                                            >
+                                                {isAccepting ? <Loader2 size={16} className="mr-2 animate-spin" /> : <ThumbsUp size={16} className="mr-2" />}
+                                                Conferma Accettazione
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+                            </DialogContent>
+                        </Dialog>
 
                         {/* Forward to Supplier Modal */}
                         <Dialog open={forwardModalOpen} onOpenChange={setForwardModalOpen}>
@@ -965,6 +1117,32 @@ export default function Preventivi() {
                                 </Select>
                             </div>
 
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-2">
+                                    <label className="text-xs text-[#adb5bd] uppercase font-bold">Scadenza Offerta (giorni)</label>
+                                    <Input
+                                        type="number"
+                                        min="1"
+                                        placeholder="es. 7"
+                                        value={expiresDays}
+                                        onChange={(e) => setExpiresDays(e.target.value)}
+                                        className="bg-[#212529] border-[#495057] text-[#f8f9fa]"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs text-[#adb5bd] uppercase font-bold">Acconto (%)</label>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        placeholder="es. 30"
+                                        value={accontoPercentage}
+                                        onChange={(e) => setAccontoPercentage(e.target.value)}
+                                        className="bg-[#212529] border-[#495057] text-[#f8f9fa]"
+                                    />
+                                </div>
+                            </div>
+
                             <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-[#495057]">
                                 <Button variant="ghost" onClick={() => setFinalizeModalOpen(false)} className="text-[#adb5bd] hover:text-[#f8f9fa]" disabled={isFinalizing}>Annulla</Button>
                                 <Button
@@ -998,6 +1176,8 @@ function QuoteDetailContent({ quote, onViewPdf }) {
                 return <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-none"><FileText size={12} className="mr-1" /> Inviato</Badge>;
             case 'in_lavorazione':
                 return <Badge variant="secondary" className="bg-purple-500/20 text-purple-400 border-none"><Clock size={12} className="mr-1" /> In Lavorazione</Badge>;
+            case 'scaduto':
+                return <Badge variant="secondary" className="bg-gray-500/20 text-gray-400 border-none"><XCircle size={12} className="mr-1" /> Scaduto</Badge>;
             default:
                 return <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-400 border-none"><Clock size={12} className="mr-1" /> In Attesa</Badge>;
         }

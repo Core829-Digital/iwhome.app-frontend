@@ -48,6 +48,9 @@ const statusColors = {
     pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
     in_progress: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
     completed: 'bg-green-500/20 text-green-400 border-green-500/30',
+    preventivato: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+    counterproposal_sent: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+    in_lavorazione: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
 };
 
 const statusLabels = {
@@ -58,6 +61,8 @@ const statusLabels = {
     received: 'Ricevuta', quoted: 'Preventivata', accepted: 'Accettata',
     rejected: 'Rifiutata', draft: 'Bozza', pending: 'In Attesa',
     in_progress: 'In Corso', completed: 'Completato',
+    preventivato: 'Preventivato', counterproposal_sent: 'Controproposta',
+    in_lavorazione: 'In Lavorazione',
 };
 
 const invitationStatusLabels = {
@@ -350,6 +355,16 @@ export default function Fornitori() {
     const [paymentProposal, setPaymentProposal] = useState([{ amount: 0, due_date: '', description: 'Acconto' }]);
     const [proposalNotes, setProposalNotes] = useState('');
 
+    // Controproposta (Admin → Supplier counter-price)
+    const [counterproposalModal, setCounterproposalModal] = useState(null); // request object
+    const [counterproposalPrice, setCounterproposalPrice] = useState('');
+    const [counterproposalNotes, setCounterproposalNotes] = useState('');
+    const [isSubmittingCounter, setIsSubmittingCounter] = useState(false);
+    // Supplier: respond to counterproposal
+    const [counterResponseModal, setCounterResponseModal] = useState(null); // request object
+    const [counterRejectionNotes, setCounterRejectionNotes] = useState('');
+    const [isRespondingCounter, setIsRespondingCounter] = useState(false);
+
     // Payment Proof Viewer State
     const [isPdfOpen, setIsPdfOpen] = useState(false);
     const [pdfUrl, setPdfUrl] = useState('');
@@ -402,6 +417,64 @@ export default function Fornitori() {
     const proposePaymentPlan = useMutation(api.suppliers.proposePaymentPlan);
     const updateProductionPhase = useMutation(api.suppliers.updateProductionPhase);
     const createDocument = useMutation(api.documents.create);
+    const sendCounterproposal = useMutation(api.suppliers.sendCounterproposal);
+    const respondToCounterproposal = useMutation(api.suppliers.respondToCounterproposal);
+    const rejectSupplierQuote = useMutation(api.suppliers.rejectSupplierQuote);
+
+    const handleSendCounterproposal = async () => {
+        if (!counterproposalModal || !counterproposalPrice) return;
+        setIsSubmittingCounter(true);
+        try {
+            await sendCounterproposal({
+                request_id: counterproposalModal._id,
+                proposed_price: parseFloat(counterproposalPrice),
+                notes: counterproposalNotes || undefined,
+            });
+            setCounterproposalModal(null);
+            setCounterproposalPrice('');
+            setCounterproposalNotes('');
+            setShowRequestDetailsModal(null);
+        } catch (err) {
+            console.error(err);
+            alert('Errore durante l\'invio della controproposta.');
+        } finally {
+            setIsSubmittingCounter(false);
+        }
+    };
+
+    const handleRejectSupplierQuote = async (request) => {
+        const notes = window.prompt('Motivo del rifiuto (opzionale):') ?? undefined;
+        try {
+            await rejectSupplierQuote({
+                request_id: request._id,
+                notes: notes || undefined,
+            });
+            setShowRequestDetailsModal(null);
+        } catch (err) {
+            console.error(err);
+            alert('Errore durante il rifiuto del preventivo fornitore.');
+        }
+    };
+
+    const handleRespondCounterproposal = async (accepted) => {
+        if (!counterResponseModal) return;
+        setIsRespondingCounter(true);
+        try {
+            await respondToCounterproposal({
+                request_id: counterResponseModal._id,
+                accepted,
+                rejection_notes: accepted ? undefined : (counterRejectionNotes || undefined),
+            });
+            setCounterResponseModal(null);
+            setCounterRejectionNotes('');
+            setShowRequestDetailsModal(null);
+        } catch (err) {
+            console.error(err);
+            alert('Errore durante la risposta alla controproposta.');
+        } finally {
+            setIsRespondingCounter(false);
+        }
+    };
 
     const handleFatturaUpload = async (event, deliveryId) => {
         const file = event.target.files?.[0];
@@ -1864,18 +1937,81 @@ export default function Fornitori() {
 
                             {/* Phase 8: Supplier Response (Visible to Admin) */}
                             {isAdmin && showRequestDetailsModal.status === 'preventivato' && (
-                                <div className="bg-orange-500/10 border border-orange-500/20 p-3 rounded-lg flex items-center justify-between">
-                                    <div>
-                                        <p className="text-[10px] text-orange-400 uppercase tracking-wider mb-1">Risposta Fornitore</p>
-                                        <p className="text-xl font-medium text-white">€{showRequestDetailsModal.quoted_price}</p>
-                                        {showRequestDetailsModal.supplier_notes && <p className="text-xs text-[#adb5bd] mt-1 italic">"{showRequestDetailsModal.supplier_notes}"</p>}
-                                    </div>
-                                    {showRequestDetailsModal.supplier_quote_doc_id && (
-                                        <div className="text-right">
-                                            <p className="text-[10px] text-orange-400 uppercase tracking-wider mb-1">Documento Preventivo</p>
-                                            <FileLink storageId={showRequestDetailsModal.supplier_quote_doc_id} isImage={false} />
+                                <div className="space-y-3">
+                                    <div className="bg-orange-500/10 border border-orange-500/20 p-3 rounded-lg flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[10px] text-orange-400 uppercase tracking-wider mb-1">Risposta Fornitore</p>
+                                            <p className="text-xl font-medium text-white">€{showRequestDetailsModal.quoted_price?.toLocaleString('it-IT')}</p>
+                                            {showRequestDetailsModal.supplier_notes && <p className="text-xs text-[#adb5bd] mt-1 italic">"{showRequestDetailsModal.supplier_notes}"</p>}
                                         </div>
+                                        {showRequestDetailsModal.supplier_quote_doc_id && (
+                                            <div className="text-right">
+                                                <p className="text-[10px] text-orange-400 uppercase tracking-wider mb-1">Documento Preventivo</p>
+                                                <FileLink storageId={showRequestDetailsModal.supplier_quote_doc_id} isImage={false} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    {/* Admin actions on supplier quote */}
+                                    <div className="flex gap-2 justify-end">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="text-red-400 border-red-500/30 hover:bg-red-500/20"
+                                            onClick={() => handleRejectSupplierQuote(showRequestDetailsModal)}
+                                        >
+                                            <XCircle size={14} className="mr-1" /> Rifiuta e Chiedi Revisione
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
+                                            onClick={() => {
+                                                setCounterproposalPrice(showRequestDetailsModal.quoted_price?.toString() || '');
+                                                setCounterproposalModal(showRequestDetailsModal);
+                                            }}
+                                        >
+                                            <ArrowRight size={14} className="mr-1" /> Controproposta
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Controproposta status (sent, awaiting supplier response) */}
+                            {showRequestDetailsModal.status === 'counterproposal_sent' && showRequestDetailsModal.counterproposal_status === 'pending' && (
+                                <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg">
+                                    <p className="text-[10px] text-amber-400 uppercase tracking-wider mb-1">Controproposta Inviata al Fornitore</p>
+                                    <p className="text-lg font-medium text-white">€{showRequestDetailsModal.counterproposal_price?.toLocaleString('it-IT')}</p>
+                                    {showRequestDetailsModal.counterproposal_notes && <p className="text-xs text-[#adb5bd] mt-1 italic">"{showRequestDetailsModal.counterproposal_notes}"</p>}
+                                    <p className="text-xs text-amber-300 mt-2">In attesa di risposta dal fornitore...</p>
+                                </div>
+                            )}
+
+                            {/* Supplier: respond to counterproposal */}
+                            {isSupplier && showRequestDetailsModal.status === 'counterproposal_sent' && showRequestDetailsModal.counterproposal_status === 'pending' && (
+                                <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-lg space-y-3">
+                                    <p className="text-sm font-medium text-amber-300">IWHome propone un prezzo diverso:</p>
+                                    <p className="text-2xl font-bold text-white">€{showRequestDetailsModal.counterproposal_price?.toLocaleString('it-IT')}</p>
+                                    {showRequestDetailsModal.counterproposal_notes && (
+                                        <p className="text-xs text-[#adb5bd] italic">"{showRequestDetailsModal.counterproposal_notes}"</p>
                                     )}
+                                    <p className="text-xs text-[#adb5bd]">Il tuo preventivo originale era: €{showRequestDetailsModal.quoted_price?.toLocaleString('it-IT')}</p>
+                                    <div className="flex gap-2 pt-1">
+                                        <Button
+                                            size="sm"
+                                            className="flex-1 bg-green-600 hover:bg-green-700"
+                                            onClick={() => setCounterResponseModal({ ...showRequestDetailsModal, _acceptMode: true })}
+                                        >
+                                            <CheckCircle size={14} className="mr-1" /> Accetto
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="flex-1 text-red-400 border-red-500/30 hover:bg-red-500/20"
+                                            onClick={() => setCounterResponseModal({ ...showRequestDetailsModal, _acceptMode: false })}
+                                        >
+                                            <XCircle size={14} className="mr-1" /> Rifiuto
+                                        </Button>
+                                    </div>
                                 </div>
                             )}
 
@@ -2209,6 +2345,108 @@ export default function Fornitori() {
                 url={pdfUrl}
                 title={pdfTitle}
             />
+
+            {/* ═══ MODAL: CONTROPROPOSTA ADMIN → FORNITORE ═══ */}
+            <Dialog open={!!counterproposalModal} onOpenChange={(open) => !open && setCounterproposalModal(null)}>
+                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <ArrowRight size={18} className="text-amber-400" /> Controproposta al Fornitore
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        {counterproposalModal && (
+                            <div className="bg-[#495057]/50 rounded-lg p-3">
+                                <p className="text-xs text-[#adb5bd]">Preventivo fornitore:</p>
+                                <p className="text-white font-medium">{counterproposalModal.title}</p>
+                                <p className="text-orange-400 font-bold">€{counterproposalModal.quoted_price?.toLocaleString('it-IT')}</p>
+                            </div>
+                        )}
+                        <div className="space-y-2">
+                            <label className="text-sm text-[#adb5bd]">Prezzo Proposto (€) *</label>
+                            <Input
+                                type="number"
+                                placeholder="Inserisci il nuovo prezzo..."
+                                value={counterproposalPrice}
+                                onChange={e => setCounterproposalPrice(e.target.value)}
+                                className="bg-[#495057] border-[#6c757d] text-[#f8f9fa]"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm text-[#adb5bd]">Note (opzionale)</label>
+                            <Textarea
+                                placeholder="Motivazione della controproposta..."
+                                value={counterproposalNotes}
+                                onChange={e => setCounterproposalNotes(e.target.value)}
+                                className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] min-h-[80px]"
+                            />
+                        </div>
+                        <div className="flex gap-3 justify-end">
+                            <Button variant="ghost" onClick={() => setCounterproposalModal(null)} className="text-[#adb5bd]" disabled={isSubmittingCounter}>Annulla</Button>
+                            <Button
+                                onClick={handleSendCounterproposal}
+                                disabled={!counterproposalPrice || isSubmittingCounter}
+                                className="bg-amber-600 hover:bg-amber-700"
+                            >
+                                {isSubmittingCounter ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Send size={14} className="mr-1" />}
+                                Invia Controproposta
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* ═══ MODAL: FORNITORE RISPONDE ALLA CONTROPROPOSTA ═══ */}
+            <Dialog open={!!counterResponseModal} onOpenChange={(open) => !open && setCounterResponseModal(null)}>
+                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            {counterResponseModal?._acceptMode
+                                ? <><CheckCircle size={18} className="text-green-400" /> Accetta Controproposta</>
+                                : <><XCircle size={18} className="text-red-400" /> Rifiuta Controproposta</>
+                            }
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        {counterResponseModal && (
+                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                                <p className="text-xs text-amber-400 uppercase mb-1">Controproposta IWHome</p>
+                                <p className="text-xl font-bold text-white">€{counterResponseModal.counterproposal_price?.toLocaleString('it-IT')}</p>
+                                {counterResponseModal.counterproposal_notes && (
+                                    <p className="text-xs text-[#adb5bd] mt-1 italic">"{counterResponseModal.counterproposal_notes}"</p>
+                                )}
+                            </div>
+                        )}
+                        {!counterResponseModal?._acceptMode && (
+                            <div className="space-y-2">
+                                <label className="text-sm text-[#adb5bd]">Motivo del rifiuto (opzionale)</label>
+                                <Textarea
+                                    placeholder="Spiega perché non puoi accettare questo prezzo..."
+                                    value={counterRejectionNotes}
+                                    onChange={e => setCounterRejectionNotes(e.target.value)}
+                                    className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] min-h-[80px]"
+                                />
+                            </div>
+                        )}
+                        {counterResponseModal?._acceptMode && (
+                            <p className="text-sm text-[#adb5bd]">
+                                Accettando la controproposta, il tuo preventivo sarà aggiornato al prezzo proposto da IWHome e la richiesta passerà in stato "Preventivato".
+                            </p>
+                        )}
+                        <div className="flex gap-3 justify-end">
+                            <Button variant="ghost" onClick={() => setCounterResponseModal(null)} className="text-[#adb5bd]" disabled={isRespondingCounter}>Annulla</Button>
+                            <Button
+                                onClick={() => handleRespondCounterproposal(counterResponseModal?._acceptMode)}
+                                disabled={isRespondingCounter}
+                                className={counterResponseModal?._acceptMode ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
+                            >
+                                {isRespondingCounter ? <Loader2 size={14} className="mr-1 animate-spin" /> : null}
+                                {counterResponseModal?._acceptMode ? 'Conferma Accettazione' : 'Conferma Rifiuto'}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div >
     );
 }
