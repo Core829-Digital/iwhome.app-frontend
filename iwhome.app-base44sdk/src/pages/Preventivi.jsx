@@ -181,6 +181,8 @@ export default function Preventivi() {
                 return <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-none"><FileText size={12} className="mr-1" /> Valutazione</Badge>;
             case 'request':
                 return <Badge variant="secondary" className="bg-cyan-500/20 text-cyan-400 border-none"><Upload size={12} className="mr-1" /> Richiesta Cliente</Badge>;
+            case 'in_lavorazione':
+                return <Badge variant="secondary" className="bg-purple-500/20 text-purple-400 border-none"><Clock size={12} className="mr-1" /> In Lavorazione</Badge>;
             default:
                 return <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-400 border-none"><Clock size={12} className="mr-1" /> In Attesa</Badge>;
         }
@@ -404,6 +406,13 @@ export default function Preventivi() {
                                         className={statusFilter === 'request' ? "bg-cyan-500 text-white border-none" : "bg-transparent text-[#adb5bd] border-[#6c757d]"}
                                     >
                                         Richieste
+                                    </Button>
+                                    <Button
+                                        variant={statusFilter === 'in_lavorazione' ? "default" : "outline"}
+                                        onClick={() => setStatusFilter('in_lavorazione')}
+                                        className={statusFilter === 'in_lavorazione' ? "bg-purple-500 text-white border-none" : "bg-transparent text-[#adb5bd] border-[#6c757d]"}
+                                    >
+                                        In Lavorazione
                                     </Button>
                                 </div>
                             </CardContent>
@@ -975,6 +984,8 @@ function QuoteDetailContent({ quote, onViewPdf }) {
                 return <Badge variant="secondary" className="bg-red-500/20 text-red-400 border-none"><XCircle size={12} className="mr-1" /> Rifiutato</Badge>;
             case 'sent':
                 return <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-none"><FileText size={12} className="mr-1" /> Inviato</Badge>;
+            case 'in_lavorazione':
+                return <Badge variant="secondary" className="bg-purple-500/20 text-purple-400 border-none"><Clock size={12} className="mr-1" /> In Lavorazione</Badge>;
             default:
                 return <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-400 border-none"><Clock size={12} className="mr-1" /> In Attesa</Badge>;
         }
