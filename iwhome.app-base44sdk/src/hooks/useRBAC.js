@@ -49,7 +49,7 @@ export function useRBAC() {
     const convexUser = useQuery(api.users.getByEmail, email ? { email } : "skip");
 
     const role = convexUser?.role || null;
-    const baseRole = role.startsWith("collaborator") ? "collaborator" : role;
+    const baseRole = role?.startsWith("collaborator") ? "collaborator" : role;
     const isAdmin = role === "admin" || role === "superadmin";
     const isSupplier = role === "supplier";
     const isCollaborator = baseRole === "collaborator";
