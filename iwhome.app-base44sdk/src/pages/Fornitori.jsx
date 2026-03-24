@@ -325,6 +325,15 @@ export default function Fornitori() {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('anagrafica');
 
+    // Auto-link: if user is not yet a supplier but their email matches an active supplier record,
+    // syncSupplierRole upgrades their role automatically without needing admin intervention.
+    const syncSupplierRole = useMutation(api.suppliers.syncSupplierRole);
+    useEffect(() => {
+        if (!rbacLoading && role && role !== 'supplier' && role !== 'admin' && role !== 'superadmin') {
+            syncSupplierRole().catch(() => {});
+        }
+    }, [rbacLoading, role]);
+
     // Ensure 'anagrafica' is not selected for suppliers — redirect to 'richieste' so they see requests immediately
     React.useEffect(() => {
         if (isSupplier && activeTab === 'anagrafica') {

@@ -89,7 +89,17 @@ export default function Dashboard() {
   // Convex Queries
   const allQuotes = useQuery(api.quotes.get) || [];
   const convexUser = useQuery(api.users.getByEmail, { email: user?.primaryEmailAddress?.emailAddress || "" });
-  
+
+  // Auto-link supplier: if this user's email matches an active supplier record but role is still "client",
+  // syncSupplierRole will upgrade them automatically so they can access the supplier area.
+  const syncSupplierRole = useMutation(api.suppliers.syncSupplierRole);
+  useEffect(() => {
+    const role = convexUser?.role;
+    if (role && role !== 'supplier' && role !== 'admin' && role !== 'superadmin') {
+      syncSupplierRole().catch(() => {});
+    }
+  }, [convexUser?.role]);
+
   // Mutations
   const logWorkHours = useMutation(api.collaborators.logHours);
 
