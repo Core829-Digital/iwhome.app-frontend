@@ -771,26 +771,26 @@ export default function Preventivi() {
                                                                 </div>
                                                             )}
 
-                                                            {isAdmin && quote.status === 'request' && (
-                                                                <div className="flex gap-2">
-                                                                    <Button
-                                                                        variant="outline"
-                                                                        onClick={() => {
-                                                                            setQuoteToForward(quote);
-                                                                            setForwardModalOpen(true);
-                                                                        }}
-                                                                        className="text-orange-400 border-orange-500/30 hover:bg-orange-500/20"
-                                                                    >
-                                                                        <Send size={16} className="mr-1" /> Invia a Fornitore
-                                                                    </Button>
-                                                                    <Button
-                                                                        variant="outline"
-                                                                        onClick={() => window.location.href = `/Messages`}
-                                                                        className="text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20"
-                                                                    >
-                                                                        <MessageSquare size={16} className="mr-1" /> Chat Cliente
-                                                                    </Button>
-                                                                </div>
+                                                            {isAdmin && quote.status !== 'rejected' && (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    onClick={() => {
+                                                                        setQuoteToForward(quote);
+                                                                        setForwardModalOpen(true);
+                                                                    }}
+                                                                    className="text-orange-400 border-orange-500/30 hover:bg-orange-500/20"
+                                                                >
+                                                                    <Send size={16} className="mr-1" /> Invia a Fornitore
+                                                                </Button>
+                                                            )}
+                                                            {isAdmin && (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    onClick={() => window.location.href = `/Messages`}
+                                                                    className="text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20"
+                                                                >
+                                                                    <MessageSquare size={16} className="mr-1" /> Chat Cliente
+                                                                </Button>
                                                             )}
                                                         </div>
                                                     </div>

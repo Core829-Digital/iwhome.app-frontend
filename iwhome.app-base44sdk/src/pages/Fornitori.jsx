@@ -395,6 +395,9 @@ export default function Fornitori() {
     const [isUploading, setIsUploading] = useState(false);
     const [newDelivery, setNewDelivery] = useState({ order_id: undefined, supplier_id: undefined, driver_name: '', driver_phone: '', driver_vehicle: '', tracking_number: '', estimated_arrival: '', notes: '' });
 
+    // Diagnostics — visible only to suppliers; shows linking/data status for debugging
+    const diagnostics = useQuery(api.suppliers.getMyDiagnostics, isSupplier ? {} : "skip");
+
     // Data queries (filtered for supplier self-view)
     const suppliers = useQuery(api.suppliers.list) || [];
     const requests = useQuery(api.suppliers.listRequests, isSupplier && supplierId ? { supplier_id: supplierId } : {}) || [];
@@ -1016,7 +1019,19 @@ export default function Fornitori() {
 
                         {/* ═══ TAB: RICHIESTE ═══ */}
                         <TabsContent value="richieste">
-                            <div className="space-y-3">{filtered(requests).length === 0 ? (
+                            <div className="space-y-3">
+                            {/* Diagnostics panel — shown to supplier when requests list is empty */}
+                            {isSupplier && diagnostics && filtered(requests).length === 0 && (
+                                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-sm space-y-1">
+                                    <p className="text-yellow-300 font-semibold">Diagnostica account fornitore</p>
+                                    <p className="text-yellow-200/80">Email account: <span className="font-mono">{diagnostics.email}</span></p>
+                                    <p className="text-yellow-200/80">Ruolo: <span className="font-mono">{diagnostics.role}</span></p>
+                                    <p className="text-yellow-200/80">Record fornitore: {diagnostics.supplier ? <span className="text-green-300">✓ trovato — {diagnostics.supplier.name} ({diagnostics.supplier.email})</span> : <span className="text-red-300">✗ non trovato — l'email dell'account non corrisponde a nessun fornitore nel sistema</span>}</p>
+                                    <p className="text-yellow-200/80">Richieste nel DB per questo fornitore: <span className={diagnostics.requestCount > 0 ? "text-green-300" : "text-red-300"}>{diagnostics.requestCount}</span></p>
+                                    {diagnostics.requestCount === 0 && diagnostics.supplier && <p className="text-orange-300 text-xs mt-1">L'admin deve cliccare "Invia a Fornitore" in Preventivi per creare una richiesta.</p>}
+                                </div>
+                            )}
+                            {filtered(requests).length === 0 ? (
                                 <div className="text-center py-12 bg-[#343a40]/50 rounded-2xl border border-[#495057]"><Send size={48} className="text-[#6c757d] mx-auto mb-4" /><h3 className="text-xl text-[#dee2e6]">Nessuna richiesta</h3><p className="text-[#adb5bd] mt-2">Nessuna richiesta trovata.</p></div>
                             ) : filtered(requests).map(req => {
                                 const supplier = suppliers.find(s => s._id === req.supplier_id);
