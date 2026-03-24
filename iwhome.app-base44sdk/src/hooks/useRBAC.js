@@ -59,10 +59,14 @@ export function useRBAC() {
     const isSupervisor = false;
     const isPending = !role && convexUser !== undefined && convexUser !== null;
 
-    // RBAC: Get linked supplier record when role is 'supplier'
+    // RBAC: Get linked supplier record when role is 'supplier'.
+    // Uses getByCurrentUser (zero-arg) which does a 3-tier lookup:
+    //   user_id index → exact email → case-insensitive scan.
+    // This is more reliable than getByUserId because it never has an RBAC
+    // email-casing mismatch and doesn't need a userId parameter.
     const supplierRecord = useQuery(
-        api.suppliers.getByUserId,
-        isSupplier && convexUser?._id ? { userId: convexUser._id } : "skip"
+        api.suppliers.getByCurrentUser,
+        isSupplier ? {} : "skip"
     );
 
     /**

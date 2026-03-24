@@ -172,18 +172,19 @@ export default function Dashboard() {
   const dashboardDeliveries = useQuery(api.suppliers.listDeliveries, {}) || [];
   const paymentStats = useQuery(api.payments.getStats) || null;
 
-  // Supplier self-view queries (only load when role is supplier)
+  // Supplier self-view queries — when supplierId is null the backend falls back to
+  // email-based lookup so we pass {} instead of "skip" to ensure data always loads.
   const mySupplierRequests = useQuery(
     api.suppliers.listRequests,
-    isSupplier && supplierId ? { supplier_id: supplierId } : "skip"
+    isSupplier ? (supplierId ? { supplier_id: supplierId } : {}) : "skip"
   ) || [];
   const mySupplierOrders = useQuery(
     api.suppliers.listOrders,
-    isSupplier && supplierId ? { supplier_id: supplierId } : "skip"
+    isSupplier ? (supplierId ? { supplier_id: supplierId } : {}) : "skip"
   ) || [];
   const mySupplierDeliveries = useQuery(
     api.suppliers.listDeliveries,
-    isSupplier && supplierId ? { supplier_id: supplierId } : "skip"
+    isSupplier ? (supplierId ? { supplier_id: supplierId } : {}) : "skip"
   ) || [];
   const mySupplierPayments = useQuery(
     api.payments.list,
@@ -1121,7 +1122,7 @@ export default function Dashboard() {
                         <div key={req._id} className="bg-orange-500/10 rounded-lg p-3 border border-orange-500/25 flex items-center justify-between gap-3">
                           <div className="flex-1 min-w-0">
                             <p className="text-xs text-[#f8f9fa] font-medium truncate">
-                              {req.request_title || req.category || 'Richiesta'}
+                              {req.title || req.category || 'Richiesta'}
                             </p>
                             {req._creationTime && (
                               <p className="text-[10px] text-[#adb5bd] mt-0.5 flex items-center gap-1">
