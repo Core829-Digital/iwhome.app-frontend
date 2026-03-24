@@ -904,28 +904,44 @@ export default function Dashboard() {
           )}
 
           {/* ═══ SUPPLIER PRIVATE AREA ═══ */}
-          {isSupplier && supplierRecord && (
+          {isSupplier && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="mb-6 lg:mb-8"
             >
               {/* Supplier Welcome Card */}
-              <Card className="bg-gradient-to-br from-orange-600/20 to-orange-700/20 border border-orange-500/30 mb-6">
+              <Card className="bg-gradient-to-br from-orange-600/25 via-orange-700/20 to-orange-900/25 border border-orange-500/40 mb-6 shadow-lg shadow-orange-900/20">
                 <CardContent className="p-5">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-3">
                     <div>
-                      <h2 className="text-xl font-medium text-[#f8f9fa] flex items-center gap-2">
-                        <Truck className="text-orange-400" size={22} /> {supplierRecord.name}
-                      </h2>
-                      <p className="text-sm text-[#adb5bd] mt-1">Area Fornitore — IWHome</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-9 h-9 rounded-full bg-orange-500/20 flex items-center justify-center border border-orange-500/30">
+                          <Truck className="text-orange-400" size={18} />
+                        </div>
+                        <div>
+                          <h2 className="text-lg font-semibold text-[#f8f9fa] leading-tight">
+                            {supplierRecord?.name || convexUser?.fullName || "Area Fornitore"}
+                          </h2>
+                          <p className="text-xs text-orange-300/70">Fornitore Certificato IWHome</p>
+                        </div>
+                      </div>
+                      {supplierRecord?.type && (
+                        <span className="text-xs bg-orange-500/10 text-orange-300 px-2 py-0.5 rounded border border-orange-500/20">
+                          {supplierRecord.type}
+                        </span>
+                      )}
                     </div>
-                    <div className="text-right">
-                      {supplierRecord.supplier_code && (
-                        <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded-md font-mono">
+                    <div className="flex flex-col items-end gap-2">
+                      {supplierRecord?.supplier_code && (
+                        <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded-md font-mono border border-orange-500/30">
                           {supplierRecord.supplier_code}
                         </span>
                       )}
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                        <span className="text-xs text-green-400">Connesso</span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -953,44 +969,47 @@ export default function Dashboard() {
               {/* Supplier KPI Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-4">
                 <Link to={createPageUrl('Fornitori')}>
-                  <Card className="bg-gradient-to-br from-orange-600/80 to-orange-700/80 border-0 hover:scale-[1.02] transition-transform cursor-pointer h-full">
+                  <Card className="bg-gradient-to-br from-orange-500/80 to-orange-600/80 border-0 hover:scale-[1.02] transition-transform cursor-pointer h-full shadow-lg shadow-orange-900/30">
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between">
                         <FileText className="h-5 w-5 text-white/80" />
-                        <span className="text-xl font-light text-white">{mySupplierOrders.filter(o => o.status === 'confirmed' || o.status === 'in_production').length}</span>
+                        <span className="text-2xl font-light text-white">{mySupplierRequests.filter(r => r.status === 'sent').length}</span>
                       </div>
-                      <p className="text-xs text-white/70 mt-1">Ordini Attivi</p>
+                      <p className="text-xs text-white/70 mt-1">Nuove Richieste</p>
+                      {mySupplierRequests.filter(r => r.status === 'sent').length > 0 && (
+                        <div className="w-2 h-2 rounded-full bg-white/80 animate-pulse mt-1" />
+                      )}
                     </CardContent>
                   </Card>
                 </Link>
                 <Link to={createPageUrl('Fornitori')}>
-                  <Card className="bg-gradient-to-br from-blue-600/80 to-blue-700/80 border-0 hover:scale-[1.02] transition-transform cursor-pointer h-full">
+                  <Card className="bg-gradient-to-br from-blue-600/80 to-blue-700/80 border-0 hover:scale-[1.02] transition-transform cursor-pointer h-full shadow-lg shadow-blue-900/20">
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between">
                         <Truck className="h-5 w-5 text-white/80" />
-                        <span className="text-xl font-light text-white">{mySupplierDeliveries.filter(d => d.status !== 'consegnato').length}</span>
+                        <span className="text-2xl font-light text-white">{mySupplierOrders.filter(o => o.status === 'confirmed' || o.status === 'in_production').length}</span>
                       </div>
-                      <p className="text-xs text-white/70 mt-1">Consegne in Corso</p>
+                      <p className="text-xs text-white/70 mt-1">Ordini in Corso</p>
                     </CardContent>
                   </Card>
                 </Link>
                 <Link to={createPageUrl('Pagamenti')}>
-                  <Card className="bg-gradient-to-br from-green-600/80 to-green-700/80 border-0 hover:scale-[1.02] transition-transform cursor-pointer h-full">
+                  <Card className="bg-gradient-to-br from-green-600/80 to-green-700/80 border-0 hover:scale-[1.02] transition-transform cursor-pointer h-full shadow-lg shadow-green-900/20">
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between">
                         <DollarSign className="h-5 w-5 text-white/80" />
-                        <span className="text-xl font-light text-white">{mySupplierPayments.filter(p => p.status === 'pagato').length}</span>
+                        <span className="text-2xl font-light text-white">{mySupplierPayments.filter(p => p.status === 'pagato').length}</span>
                       </div>
-                      <p className="text-xs text-white/70 mt-1">Pagati</p>
+                      <p className="text-xs text-white/70 mt-1">Pagamenti Ricevuti</p>
                     </CardContent>
                   </Card>
                 </Link>
                 <Link to={createPageUrl('Pagamenti')}>
-                  <Card className="bg-gradient-to-br from-yellow-600/80 to-yellow-700/80 border-0 hover:scale-[1.02] transition-transform cursor-pointer h-full">
+                  <Card className="bg-gradient-to-br from-amber-600/80 to-amber-700/80 border-0 hover:scale-[1.02] transition-transform cursor-pointer h-full shadow-lg shadow-amber-900/20">
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between">
                         <Clock className="h-5 w-5 text-white/80" />
-                        <span className="text-xl font-light text-white">{mySupplierPayments.filter(p => p.status === 'in_attesa' || p.status === 'in_ritardo').length}</span>
+                        <span className="text-2xl font-light text-white">{mySupplierPayments.filter(p => p.status === 'in_attesa' || p.status === 'in_ritardo').length}</span>
                       </div>
                       <p className="text-xs text-white/70 mt-1">Pagamenti in Attesa</p>
                     </CardContent>
@@ -1081,6 +1100,47 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Nuove Richieste — pending requests list */}
+              {mySupplierRequests.filter(r => r.status === 'sent').length > 0 && (
+                <Card className="bg-[#343a40]/50 backdrop-blur-xl border-orange-500/30 mt-4">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-medium text-orange-300 flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                        Nuove Richieste in Attesa
+                      </CardTitle>
+                      <Link to={createPageUrl('Fornitori')} className="text-xs text-orange-400 hover:underline flex items-center gap-1">
+                        Gestisci <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-2">
+                    <div className="space-y-2 max-h-[240px] overflow-y-auto">
+                      {mySupplierRequests.filter(r => r.status === 'sent').slice(0, 8).map(req => (
+                        <div key={req._id} className="bg-orange-500/10 rounded-lg p-3 border border-orange-500/25 flex items-center justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-[#f8f9fa] font-medium truncate">
+                              {req.request_title || req.category || 'Richiesta'}
+                            </p>
+                            {req._creationTime && (
+                              <p className="text-[10px] text-[#adb5bd] mt-0.5 flex items-center gap-1">
+                                <Clock size={9} />
+                                {new Date(req._creationTime).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: '2-digit' })}
+                              </p>
+                            )}
+                          </div>
+                          <Link to={createPageUrl('Fornitori')}>
+                            <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white border-0 h-7 px-3 text-xs shrink-0">
+                              Vedi
+                            </Button>
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </motion.div>
           )}
 

@@ -289,7 +289,7 @@ export default function Admin() {
                                                 <Label className="text-[#dee2e6] text-sm">Ruolo Utente</Label>
                                                 <div className="flex gap-3">
                                                     <Select
-                                                        value={selectedUser.role || 'user'}
+                                                        value={selectedUser.role || 'client'}
                                                         onValueChange={(v) => handleRoleChange(selectedUser._id, v)}
                                                         disabled={actionLoading || selectedUser.role === 'superadmin'}
                                                     >
