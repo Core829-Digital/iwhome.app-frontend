@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
+import { createPageUrl } from '../utils';
 
 // ─── Phase Stepper ──────────────────────────────────────────
 // Ordered phases from the client's perspective. Each phase has a list of
@@ -335,6 +336,20 @@ export default function AreaPrivata() {
 
                                                 {quote.notes && (
                                                     <p className="text-xs text-[#6c757d] mt-2 line-clamp-2">{quote.notes}</p>
+                                                )}
+
+                                                {/* CTA: when quote is 'sent', prompt client to accept/reject */}
+                                                {quote.status === 'sent' && (
+                                                    <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-center justify-between">
+                                                        <p className="text-xs text-blue-300">Il tuo preventivo è pronto! Accetta o rifiuta.</p>
+                                                        <Button
+                                                            size="sm"
+                                                            className="bg-blue-600 hover:bg-blue-700 text-white h-7 text-xs ml-3 shrink-0"
+                                                            onClick={() => window.location.href = createPageUrl('Preventivi')}
+                                                        >
+                                                            <CheckCircle size={11} className="mr-1" /> Vedi e Rispondi
+                                                        </Button>
+                                                    </div>
                                                 )}
 
                                                 {/* Attachment */}

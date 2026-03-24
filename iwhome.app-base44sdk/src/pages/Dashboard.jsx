@@ -165,6 +165,9 @@ export default function Dashboard() {
   const adminStats = useQuery(api.adminStats.getAdminStats) || null;
   const recentActivity = useQuery(api.adminStats.getRecentActivity, { limit: 8 }) || [];
   const cantieriProgress = useQuery(api.adminStats.getCantieriProgress) || [];
+  // Admin quote source: getAll returns ALL client quotes (admin-only endpoint).
+  // quotes.get only returns quotes matching the logged-in user's email — useless for admin.
+  const adminAllQuotes = useQuery(api.quotes.getAll, isAdmin ? {} : "skip") || [];
 
   // Task 2-3: Supplier operational data for Dashboard
   const dashboardSuppliers = useQuery(api.suppliers.list) || [];
@@ -253,8 +256,9 @@ export default function Dashboard() {
     }, 10000);
   };
 
-  // Filter Logic
-  const quotes = allQuotes.filter(q => {
+  // Filter Logic — admin uses getAll (all client quotes), others use their own
+  const quotesSource = isAdmin ? adminAllQuotes : allQuotes;
+  const quotes = quotesSource.filter(q => {
     let match = true;
     if (statusFilter !== 'all' && q.status !== statusFilter) match = false;
     if (typeFilter !== 'all' && q.quote_type !== typeFilter) match = false;

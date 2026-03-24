@@ -96,6 +96,8 @@ export default function Preventivi() {
     const deleteQuoteMutation = useMutation(api.quotes.deleteQuote);
     const createOrderFromQuoteMutation = useMutation(api.suppliers.createOrderFromQuote);
     const createRequestMutation = useMutation(api.suppliers.createRequest);
+    // Client-side acceptance: uses respondToQuote (no admin required, verifies ownership)
+    const respondToQuoteMutation = useMutation(api.quotes.respondToQuote);
 
     const [selectedClient, setSelectedClient] = useState(undefined);
 
@@ -332,7 +334,8 @@ export default function Preventivi() {
         if (!quoteToAccept) return;
         setIsAccepting(true);
         try {
-            await updateStatusMutation({ id: quoteToAccept._id, status: 'accepted' });
+            // respondToQuote: client-only endpoint that verifies ownership and creates payment
+            await respondToQuoteMutation({ quote_id: quoteToAccept._id, response: 'accepted' });
             setAcceptConfirmOpen(false);
             setQuoteToAccept(null);
         } catch (err) {
@@ -346,7 +349,8 @@ export default function Preventivi() {
     const handleClientReject = async (quote) => {
         if (!window.confirm('Sei sicuro di voler rifiutare questo preventivo?')) return;
         try {
-            await updateStatusMutation({ id: quote._id, status: 'rejected' });
+            // respondToQuote: client-only endpoint that verifies ownership
+            await respondToQuoteMutation({ quote_id: quote._id, response: 'rejected' });
         } catch (err) {
             console.error('Error rejecting quote:', err);
             alert("Errore durante il rifiuto del preventivo.");
@@ -685,7 +689,7 @@ export default function Preventivi() {
                                                                         )
                                                                     ) : null}
 
-                                                                    {quote.status === 'accepted' && (
+                                                                    {isAdmin && quote.status === 'accepted' && (
                                                                         <Button
                                                                             variant="outline"
                                                                             onClick={() => {
@@ -767,7 +771,7 @@ export default function Preventivi() {
                                                                 </div>
                                                             )}
 
-                                                            {quote.status === 'request' && (
+                                                            {isAdmin && quote.status === 'request' && (
                                                                 <div className="flex gap-2">
                                                                     <Button
                                                                         variant="outline"
