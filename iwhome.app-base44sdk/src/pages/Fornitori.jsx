@@ -325,10 +325,10 @@ export default function Fornitori() {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('anagrafica');
 
-    // Ensure 'anagrafica' is not selected for suppliers
+    // Ensure 'anagrafica' is not selected for suppliers — redirect to 'richieste' so they see requests immediately
     React.useEffect(() => {
         if (isSupplier && activeTab === 'anagrafica') {
-            setActiveTab('ordini');
+            setActiveTab('richieste');
         }
     }, [isSupplier, activeTab]);
     const allPayments = useQuery(api.payments.list, {}) || [];
