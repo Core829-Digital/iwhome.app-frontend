@@ -7,25 +7,106 @@ import { useUser } from '@clerk/clerk-react';
 import {
     FileText, CreditCard, HardHat, FolderOpen, Clock, CheckCircle, XCircle,
     Upload, Loader2, AlertTriangle, Calendar, Eye, Download, RefreshCw, Activity,
-    User
+    User, Package, Truck, Zap, Star, Circle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
 
-const quoteStatusBadge = (status) => {
-    switch (status) {
-        case 'accepted': return <Badge className="bg-green-500/20 text-green-400 border-none text-xs"><CheckCircle size={11} className="mr-1" />Accettato</Badge>;
-        case 'rejected': return <Badge className="bg-red-500/20 text-red-400 border-none text-xs"><XCircle size={11} className="mr-1" />Rifiutato</Badge>;
-        case 'sent':     return <Badge className="bg-blue-500/20 text-blue-400 border-none text-xs"><FileText size={11} className="mr-1" />Preventivo Inviato</Badge>;
-        case 'request':  return <Badge className="bg-cyan-500/20 text-cyan-400 border-none text-xs"><Clock size={11} className="mr-1" />In Valutazione</Badge>;
-        case 'in_lavorazione': return <Badge className="bg-purple-500/20 text-purple-400 border-none text-xs"><Activity size={11} className="mr-1" />In Lavorazione</Badge>;
-        case 'scaduto':  return <Badge className="bg-gray-500/20 text-gray-400 border-none text-xs"><XCircle size={11} className="mr-1" />Scaduto</Badge>;
-        default:         return <Badge className="bg-yellow-500/20 text-yellow-400 border-none text-xs"><Clock size={11} className="mr-1" />In Attesa</Badge>;
-    }
+// ─── Phase Stepper ──────────────────────────────────────────
+// Ordered phases from the client's perspective. Each phase has a list of
+// quote.status values that map to it.
+const PHASE_STEPS = [
+    { label: 'Richiesta',    statuses: ['draft', 'request', 'pending', '', null, undefined] },
+    { label: 'Valutazione',  statuses: ['in_lavorazione'] },
+    { label: 'Preventivo',   statuses: ['sent'] },
+    { label: 'Accettato',    statuses: ['accepted'] },
+    { label: 'Produzione',   statuses: ['ordine_confermato', 'in_produzione'] },
+    { label: 'Consegna',     statuses: ['in_consegna'] },
+    { label: 'Completato',   statuses: ['completato'] },
+];
+
+// Terminal states that break out of the linear flow
+const TERMINAL_STATES = {
+    rejected: { label: 'Rifiutato', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', icon: XCircle },
+    scaduto:  { label: 'Scaduto',   color: 'text-gray-400', bg: 'bg-gray-500/10 border-gray-500/20', icon: XCircle },
 };
 
+function getPhaseIndex(status) {
+    for (let i = 0; i < PHASE_STEPS.length; i++) {
+        if (PHASE_STEPS[i].statuses.includes(status)) return i;
+    }
+    return 0;
+}
+
+function QuotePhaseStepper({ status }) {
+    const terminal = TERMINAL_STATES[status];
+    if (terminal) {
+        const Icon = terminal.icon;
+        return (
+            <div className={`flex items-center gap-2 mt-2 px-3 py-1.5 rounded-lg border ${terminal.bg} w-fit`}>
+                <Icon size={12} className={terminal.color} />
+                <span className={`text-xs font-medium ${terminal.color}`}>{terminal.label}</span>
+            </div>
+        );
+    }
+
+    const currentIndex = getPhaseIndex(status);
+    const isComplete = currentIndex === PHASE_STEPS.length - 1;
+
+    return (
+        <div className="mt-2.5">
+            {/* Current phase label */}
+            <div className="flex items-center gap-2 mb-2">
+                {isComplete ? (
+                    <CheckCircle size={12} className="text-green-400" />
+                ) : (
+                    <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse shrink-0" />
+                )}
+                <span className={`text-xs font-medium ${isComplete ? 'text-green-400' : 'text-blue-400'}`}>
+                    {PHASE_STEPS[currentIndex].label}
+                </span>
+                <span className="text-[10px] text-[#6c757d]">
+                    · Fase {currentIndex + 1} di {PHASE_STEPS.length}
+                </span>
+            </div>
+
+            {/* Progress dot bar */}
+            <div className="flex items-center">
+                {PHASE_STEPS.map((step, i) => (
+                    <React.Fragment key={i}>
+                        <div
+                            title={step.label}
+                            className={`rounded-full shrink-0 transition-all ${
+                                i < currentIndex
+                                    ? 'w-2.5 h-2.5 bg-green-500'
+                                    : i === currentIndex
+                                    ? 'w-3.5 h-3.5 bg-blue-400 ring-2 ring-blue-400/30'
+                                    : 'w-2 h-2 bg-[#495057]'
+                            }`}
+                        />
+                        {i < PHASE_STEPS.length - 1 && (
+                            <div
+                                className={`h-0.5 flex-1 mx-0.5 ${
+                                    i < currentIndex ? 'bg-green-500/60' : 'bg-[#495057]'
+                                }`}
+                            />
+                        )}
+                    </React.Fragment>
+                ))}
+            </div>
+
+            {/* Step labels row — only show first, current, and last */}
+            <div className="flex justify-between mt-1">
+                <span className="text-[9px] text-[#6c757d]">{PHASE_STEPS[0].label}</span>
+                <span className="text-[9px] text-[#6c757d]">{PHASE_STEPS[PHASE_STEPS.length - 1].label}</span>
+            </div>
+        </div>
+    );
+}
+
+// ─── Simple status badge (used in Pagamenti / secondary contexts) ──
 const paymentStatusBadge = (status) => {
     switch (status) {
         case 'confirmed': return <Badge className="bg-green-500/20 text-green-400 border-none text-xs"><CheckCircle size={11} className="mr-1" />Confermato</Badge>;
@@ -82,6 +163,9 @@ export default function AreaPrivata() {
     const clientPayments = myPayments.filter(p => p.type === 'client');
     const pendingPayments = clientPayments.filter(p => p.status === 'pending');
 
+    // Count quotes in active phases (not terminal)
+    const activeQuotes = myQuotes.filter(q => !['rejected', 'scaduto', 'completato'].includes(q.status));
+
     const generateUploadUrl = useMutation(api.files.generateUploadUrl);
     const uploadPaymentProof = useMutation(api.payments.uploadProof);
 
@@ -129,9 +213,9 @@ export default function AreaPrivata() {
     }
 
     const tabs = [
-        { id: 'preventivi', label: 'Preventivi',  icon: FileText, count: myQuotes.length },
+        { id: 'preventivi', label: 'Preventivi',  icon: FileText,   count: myQuotes.length },
         { id: 'pagamenti',  label: 'Pagamenti',   icon: CreditCard, count: pendingPayments.length, alert: pendingPayments.length > 0 },
-        { id: 'cantieri',   label: 'Cantieri',    icon: HardHat, count: myCantieri.length },
+        { id: 'cantieri',   label: 'Cantieri',    icon: HardHat,    count: myCantieri.length },
         { id: 'documenti',  label: 'Documenti',   icon: FolderOpen, count: myDocuments.length },
     ];
 
@@ -155,7 +239,7 @@ export default function AreaPrivata() {
                             </div>
                             <div>
                                 <h1 className="text-2xl font-light text-[#f8f9fa]">
-                                    Benvenuto, {convexUser?.full_name || user?.firstName || 'Cliente'}
+                                    Benvenuto, {convexUser?.fullName || user?.firstName || 'Cliente'}
                                 </h1>
                                 <p className="text-[#adb5bd] text-sm flex items-center gap-1">
                                     <RefreshCw size={11} className="text-green-400" /> Area Privata · Aggiornata in tempo reale
@@ -165,7 +249,7 @@ export default function AreaPrivata() {
 
                         {/* Summary stats */}
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
-                            <StatCard label="Preventivi" value={myQuotes.length} color="blue" />
+                            <StatCard label="Preventivi Attivi" value={activeQuotes.length} color="blue" />
                             <StatCard label="Pagamenti in attesa" value={pendingPayments.length} color={pendingPayments.length > 0 ? 'amber' : 'green'} />
                             <StatCard label="Cantieri Attivi" value={myCantieri.filter(c => c.status === 'attivo').length} color="purple" />
                             <StatCard label="Documenti" value={myDocuments.length} color="cyan" />
@@ -200,65 +284,72 @@ export default function AreaPrivata() {
 
                     {/* ── PREVENTIVI ── */}
                     {activeTab === 'preventivi' && (
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             {myQuotes.length === 0
-                                ? <EmptyState icon={FileText} title="Nessun preventivo" text="Le tue richieste di preventivo appariranno qui." />
+                                ? <EmptyState icon={FileText} title="Nessun preventivo" text="Le tue richieste di preventivo appariranno qui con aggiornamenti in tempo reale." />
                                 : myQuotes.map(quote => (
                                     <motion.div key={quote._id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-                                        <Card className="bg-[#343a40] border border-[#495057]">
+                                        <Card className="bg-[#343a40] border border-[#495057] hover:border-blue-500/30 transition-colors">
                                             <CardContent className="p-4">
-                                                <div className="flex items-start justify-between gap-3 flex-wrap">
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                                                            <p className="font-medium text-[#f8f9fa]">
-                                                                {quote.title || (
-                                                                    quote.quote_type === 'finestre' ? 'Infissi e Serramenti' :
-                                                                    quote.quote_type === 'chiavi_in_mano' ? 'Ristrutturazione Chiavi in Mano' : 'Progetto Completo'
-                                                                )}
-                                                            </p>
-                                                            {quoteStatusBadge(quote.status)}
-                                                        </div>
-                                                        <div className="flex items-center gap-3 text-sm text-[#adb5bd] flex-wrap">
-                                                            <span className="flex items-center gap-1">
-                                                                <Calendar size={12} />
-                                                                {new Date(quote.created_date).toLocaleDateString('it-IT')}
-                                                            </span>
-                                                            {quote.estimated_price && (
-                                                                <span className="text-[#f8f9fa] font-medium">
-                                                                    € {quote.estimated_price.toLocaleString('it-IT')}
-                                                                </span>
-                                                            )}
-                                                            {quote.client_quote_expires_at && quote.status === 'sent' && (() => {
-                                                                const diff = new Date(quote.client_quote_expires_at) - new Date();
-                                                                const hours = Math.floor(diff / 3600000);
-                                                                if (diff > 0 && hours <= 24) return (
-                                                                    <span key="expiry-urgent" className="text-red-400 flex items-center gap-1 animate-pulse">
-                                                                        <AlertTriangle size={12} /> Scade tra {hours}h
-                                                                    </span>
-                                                                );
-                                                                if (diff > 0) return (
-                                                                    <span key="expiry" className="text-amber-400 flex items-center gap-1">
-                                                                        <Calendar size={12} /> Scade il {new Date(quote.client_quote_expires_at).toLocaleDateString('it-IT')}
-                                                                    </span>
-                                                                );
-                                                                return null;
-                                                            })()}
-                                                        </div>
-                                                        {quote.notes && (
-                                                            <p className="text-xs text-[#6c757d] mt-2 line-clamp-2">{quote.notes}</p>
+                                                {/* Title row */}
+                                                <div className="flex items-start justify-between gap-3 flex-wrap mb-1">
+                                                    <p className="font-medium text-[#f8f9fa] flex-1 min-w-0">
+                                                        {quote.title || (
+                                                            quote.quote_type === 'finestre' ? 'Infissi e Serramenti' :
+                                                            quote.quote_type === 'chiavi_in_mano' ? 'Ristrutturazione Chiavi in Mano' : 'Progetto Completo'
                                                         )}
-                                                    </div>
-                                                    {quote.files && quote.files.length > 0 && (
+                                                    </p>
+                                                    {quote.estimated_price && (
+                                                        <span className="text-[#f8f9fa] font-semibold text-sm shrink-0">
+                                                            € {quote.estimated_price.toLocaleString('it-IT')}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* Phase stepper — real-time progress tracker */}
+                                                <QuotePhaseStepper status={quote.status} />
+
+                                                {/* Meta row */}
+                                                <div className="flex items-center gap-3 text-xs text-[#adb5bd] flex-wrap mt-2.5">
+                                                    <span className="flex items-center gap-1">
+                                                        <Calendar size={11} />
+                                                        {new Date(quote.created_date || quote._creationTime).toLocaleDateString('it-IT')}
+                                                    </span>
+                                                    {/* Expiry warning for 'sent' quotes */}
+                                                    {quote.client_quote_expires_at && quote.status === 'sent' && (() => {
+                                                        const diff = new Date(quote.client_quote_expires_at) - new Date();
+                                                        const hours = Math.floor(diff / 3600000);
+                                                        if (diff <= 0) return null;
+                                                        if (hours <= 24) return (
+                                                            <span key="expiry-urgent" className="text-red-400 flex items-center gap-1 animate-pulse">
+                                                                <AlertTriangle size={11} /> Scade tra {hours}h
+                                                            </span>
+                                                        );
+                                                        return (
+                                                            <span key="expiry" className="text-amber-400 flex items-center gap-1">
+                                                                <Calendar size={11} /> Scade il {new Date(quote.client_quote_expires_at).toLocaleDateString('it-IT')}
+                                                            </span>
+                                                        );
+                                                    })()}
+                                                </div>
+
+                                                {quote.notes && (
+                                                    <p className="text-xs text-[#6c757d] mt-2 line-clamp-2">{quote.notes}</p>
+                                                )}
+
+                                                {/* Attachment */}
+                                                {quote.files && quote.files.length > 0 && (
+                                                    <div className="mt-3">
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            className="text-blue-400 border-blue-500/30 hover:bg-blue-500/20"
+                                                            className="text-blue-400 border-blue-500/30 hover:bg-blue-500/20 h-7 text-xs"
                                                             onClick={() => setViewPdfUrl(quote.files[0])}
                                                         >
-                                                            <Eye size={13} className="mr-1" /> Allegato
+                                                            <Eye size={11} className="mr-1" /> Vedi Allegato
                                                         </Button>
-                                                    )}
-                                                </div>
+                                                    </div>
+                                                )}
                                             </CardContent>
                                         </Card>
                                     </motion.div>
@@ -484,11 +575,11 @@ export default function AreaPrivata() {
 
 function StatCard({ label, value, color }) {
     const colorMap = {
-        blue:  { bg: 'bg-blue-500/10',  border: 'border-blue-500/20',  text: 'text-blue-400' },
-        amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400' },
-        green: { bg: 'bg-green-500/10', border: 'border-green-500/20', text: 'text-green-400' },
-        purple:{ bg: 'bg-purple-500/10',border: 'border-purple-500/20',text: 'text-purple-400'},
-        cyan:  { bg: 'bg-cyan-500/10',  border: 'border-cyan-500/20',  text: 'text-cyan-400' },
+        blue:   { bg: 'bg-blue-500/10',   border: 'border-blue-500/20',   text: 'text-blue-400' },
+        amber:  { bg: 'bg-amber-500/10',  border: 'border-amber-500/20',  text: 'text-amber-400' },
+        green:  { bg: 'bg-green-500/10',  border: 'border-green-500/20',  text: 'text-green-400' },
+        purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/20', text: 'text-purple-400' },
+        cyan:   { bg: 'bg-cyan-500/10',   border: 'border-cyan-500/20',   text: 'text-cyan-400' },
     };
     const c = colorMap[color] || colorMap.blue;
     return (
