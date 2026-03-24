@@ -410,6 +410,7 @@ export default function Fornitori() {
     const generateUploadUrl = useMutation(api.files.generateUploadUrl); // File upload
     // Task 1: WhatsApp onboarding
     const generateWhatsAppInvite = useMutation(api.suppliers.generateWhatsAppInvite);
+    const adminLinkSupplierUser = useMutation(api.suppliers.adminLinkSupplierUser);
     // Task 12: Workflow
     const advanceWorkflow = useMutation(api.suppliers.advanceWorkflow);
     const markAccontoPaid = useMutation(api.suppliers.markAccontoPaid);
@@ -710,6 +711,15 @@ export default function Fornitori() {
         } catch (err) { console.error(err); alert(err.message || 'Errore generazione link'); }
     };
 
+    const handleLinkSupplierAccount = async (supplierId) => {
+        const email = prompt('Email dell\'account Convex del fornitore (deve essere già registrato):');
+        if (!email?.trim()) return;
+        try {
+            await adminLinkSupplierUser({ supplier_id: supplierId, user_email: email.trim().toLowerCase() });
+            alert('Account collegato! Il fornitore ha ora ruolo "Fornitore" e può accedere alla sua area.');
+        } catch (err) { alert(err.message || 'Errore collegamento account'); }
+    };
+
     const handleDelete = async (id) => {
         if (!window.confirm('Eliminare questo fornitore? Tutti i dati correlati verranno persi.')) return;
         try { await removeSupplier({ id }); } catch (err) { console.error(err); }
@@ -966,6 +976,12 @@ export default function Fornitori() {
                                                             {isAdmin && (
                                                                 <Button variant="ghost" size="sm" onClick={() => handleWhatsAppInvite(supplier._id)} className="text-green-400 hover:bg-green-500/20 h-8 w-8 p-0" title="Invito WhatsApp">
                                                                     <Link2 size={16} />
+                                                                </Button>
+                                                            )}
+                                                            {/* Admin force-link: visible when supplier hasn't linked their account yet */}
+                                                            {isAdmin && !supplier.user_id && (
+                                                                <Button variant="ghost" size="sm" onClick={() => handleLinkSupplierAccount(supplier._id)} className="text-purple-400 hover:bg-purple-500/20 h-8 w-8 p-0" title="Collega Account Fornitore">
+                                                                    <UserPlus size={16} />
                                                                 </Button>
                                                             )}
 
