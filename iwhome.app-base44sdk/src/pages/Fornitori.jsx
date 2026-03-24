@@ -1022,13 +1022,24 @@ export default function Fornitori() {
                             <div className="space-y-3">
                             {/* Diagnostics panel — shown to supplier when requests list is empty */}
                             {isSupplier && diagnostics && filtered(requests).length === 0 && (
-                                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-sm space-y-1">
+                                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-sm space-y-2">
                                     <p className="text-yellow-300 font-semibold">Diagnostica account fornitore</p>
                                     <p className="text-yellow-200/80">Email account: <span className="font-mono">{diagnostics.email}</span></p>
-                                    <p className="text-yellow-200/80">Ruolo: <span className="font-mono">{diagnostics.role}</span></p>
-                                    <p className="text-yellow-200/80">Record fornitore: {diagnostics.supplier ? <span className="text-green-300">✓ trovato — {diagnostics.supplier.name} ({diagnostics.supplier.email})</span> : <span className="text-red-300">✗ non trovato — l'email dell'account non corrisponde a nessun fornitore nel sistema</span>}</p>
-                                    <p className="text-yellow-200/80">Richieste nel DB per questo fornitore: <span className={diagnostics.requestCount > 0 ? "text-green-300" : "text-red-300"}>{diagnostics.requestCount}</span></p>
-                                    {diagnostics.requestCount === 0 && diagnostics.supplier && <p className="text-orange-300 text-xs mt-1">L'admin deve cliccare "Invia a Fornitore" in Preventivi per creare una richiesta.</p>}
+                                    <p className="text-yellow-200/80">Ruolo (backend): <span className={`font-mono ${diagnostics.role === 'supplier' ? 'text-green-300' : 'text-red-300'}`}>{diagnostics.role}</span>{diagnostics.role !== 'supplier' && ' ← problema rilevato'}</p>
+                                    <p className="text-yellow-200/80">Record fornitore: {diagnostics.supplier ? <span className="text-green-300">✓ trovato — {diagnostics.supplier.name} ({diagnostics.supplier.email})</span> : <span className="text-red-300">✗ non trovato</span>}</p>
+                                    <p className="text-yellow-200/80">Richieste nel DB: <span className={diagnostics.requestCount > 0 ? "text-green-300 font-bold" : "text-red-300"}>{diagnostics.requestCount}</span></p>
+                                    {diagnostics.role !== 'supplier' && diagnostics.supplier && (
+                                        <div className="pt-1">
+                                            <p className="text-orange-300 text-xs mb-2">Il ruolo del record di autenticazione non è "supplier". Clicca per correggere:</p>
+                                            <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white text-xs h-7"
+                                                onClick={() => syncSupplierRole().then(() => window.location.reload()).catch(e => alert(e.message))}>
+                                                Correggi Ruolo e Ricarica
+                                            </Button>
+                                        </div>
+                                    )}
+                                    {diagnostics.requestCount === 0 && diagnostics.supplier && diagnostics.role === 'supplier' && (
+                                        <p className="text-orange-300 text-xs">L'admin deve cliccare "Invia a Fornitore" in Preventivi per creare una richiesta.</p>
+                                    )}
                                 </div>
                             )}
                             {filtered(requests).length === 0 ? (
