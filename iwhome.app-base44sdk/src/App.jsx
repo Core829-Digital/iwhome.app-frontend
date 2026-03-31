@@ -1,5 +1,5 @@
 import './App.css'
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import VisualEditAgent from '@/lib/VisualEditAgent'
 import NavigationTracker from '@/lib/NavigationTracker'
@@ -183,6 +183,11 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <GlobalLayout>
+      <Suspense fallback={
+        <div className="fixed inset-0 flex items-center justify-center bg-[#212529]">
+          <div className="w-8 h-8 border-4 border-blue-900 border-t-blue-400 rounded-full animate-spin" />
+        </div>
+      }>
       <Routes>
         <Route path="/" element={<MainPage />} />
         {Object.entries(Pages).map(([path, Page]) => (
@@ -194,6 +199,7 @@ const AuthenticatedApp = () => {
         ))}
         <Route path="*" element={<PageNotFound />} />
       </Routes>
+      </Suspense>
     </GlobalLayout>
   );
 };

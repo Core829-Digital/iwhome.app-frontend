@@ -45,4 +45,38 @@ export default defineConfig({
       "convex": path.resolve(__dirname, "./node_modules/convex"),
     },
   },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // React core
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          // Clerk auth
+          'vendor-clerk': ['@clerk/clerk-react'],
+          // Convex realtime DB
+          'vendor-convex': ['convex', 'convex/react', 'convex/react-clerk'],
+          // UI components (Radix)
+          'vendor-radix': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-tooltip',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-label',
+            '@radix-ui/react-progress',
+            '@radix-ui/react-separator',
+            '@radix-ui/react-switch',
+            '@radix-ui/react-scroll-area',
+          ],
+          // Animation
+          'vendor-motion': ['framer-motion'],
+          // Charts
+          'vendor-charts': ['recharts'],
+          // Analytics & monitoring
+          'vendor-analytics': ['@sentry/react', 'posthog-js', '@posthog/react'],
+        },
+      },
+    },
+  },
 });

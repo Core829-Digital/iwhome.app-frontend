@@ -77,7 +77,7 @@ function FileLink({ storageId, isImage }) {
     const finalUrl = isUrl ? storageId : url;
 
     if (!finalUrl && !isUrl) {
-        if (url === null) return <span className="text-xs text-red-500">Errore caricamento</span>;
+        if (url === null) return <span className="text-xs text-red-500">Errore nel caricamento</span>;
         return <span className="text-xs text-gray-500 animate-pulse">Caricamento...</span>;
     }
 

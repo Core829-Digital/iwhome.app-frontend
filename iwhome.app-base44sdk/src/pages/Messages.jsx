@@ -113,7 +113,7 @@ export default function Messages() {
         window.location.reload();
       }
     } catch (e) {
-      alert("Codice non valido o errore server");
+      alert("Codice non valido o errore del server");
     }
   };
 
@@ -300,7 +300,7 @@ export default function Messages() {
 
     } catch (error) {
       console.error("Upload failed", error);
-      alert("Errore caricamento file");
+      alert("Errore nel caricamento del file");
     }
   };
 

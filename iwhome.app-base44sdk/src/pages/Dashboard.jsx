@@ -269,7 +269,8 @@ export default function Dashboard() {
   const conversations = isAdmin ? (adminConversations || []) : (myConversations || []);
 
   useEffect(() => {
-    trackDevice();
+    const cleanup = trackDevice();
+    return cleanup;
   }, []);
 
 
@@ -279,7 +280,7 @@ export default function Dashboard() {
     localStorage.setItem('device_id', deviceId);
     localStorage.setItem('last_active', Date.now().toString());
 
-    setInterval(() => {
+    const id = setInterval(() => {
       localStorage.setItem('last_active', Date.now().toString());
       const allDevices = Object.keys(localStorage)
         .filter(key => key.startsWith('device_') && key !== 'device_id')
@@ -287,6 +288,7 @@ export default function Dashboard() {
         .filter(time => Date.now() - time < 60000);
       setActiveDevices(allDevices.length + 1);
     }, 10000);
+    return () => clearInterval(id);
   };
 
   // Filter Logic — admin uses getAll (all client quotes), others use their own

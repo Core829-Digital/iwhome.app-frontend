@@ -1,58 +1,59 @@
-import Admin from './pages/Admin';
-import AreaPrivata from './pages/AreaPrivata';
-// Appuntamenti removed — all appointment booking flows through Calcolatore
-import Blog from './pages/Blog';
-import BlogPost from './pages/BlogPost';
-import Calcolatore from './pages/Calcolatore';
-import Certificati from './pages/Certificati';
-import ChiSiamo from './pages/ChiSiamo';
-// import ClientChat from './pages/ClientChat'; // Removed
-import Collaboratori from './pages/Collaboratori';
-// import CompanyDashboard from './pages/CompanyDashboard'; // Removed — ruolo company eliminato
-import CantieriDashboard from './pages/CantieriDashboard';
-import Contatti from './pages/Contatti';
-import Cookie from './pages/Cookie';
-import Clienti from './pages/Clienti';
-import DailyLogs from './pages/DailyLogs';
-import Tasks from './pages/Tasks';
-import Dashboard from './pages/Dashboard';
-import Documents from './pages/Documents';
-import FlussoDiLavoro from './pages/FlussoDiLavoro';
-import Fornitori from './pages/Fornitori';
-import Home from './pages/Home';
-import Messages from './pages/Messages';
-import MyAppointments from './pages/MyAppointments';
-import Pagamenti from './pages/Pagamenti';
-import PdfEditor from './pages/PdfEditor';
-import Preventivi from './pages/Preventivi';
-import Prezzi from './pages/Prezzi';
-import CodiceReferral from './pages/CodiceReferral';
-import Privacy from './pages/Privacy';
-import Recensioni from './pages/Recensioni';
-import Servizi from './pages/Servizi';
-import Settings from './pages/Settings';
-import SharedDocuments from './pages/SharedDocuments';
-// StaffQR removed for simplification
-import SupplierOnboarding from './pages/SupplierOnboarding';
-import OnboardingStaff from './pages/OnboardingStaff';
-import Termini from './pages/Termini';
-import UploadDocument from './pages/UploadDocument';
-// QRAccess removed for simplification
+import { lazy } from 'react';
 import __Layout from './Layout.jsx';
 
+// ── Lazy-loaded pages ─────────────────────────────────────────────────────────
+// Each page is loaded on demand — the initial JS bundle stays small.
+// Public pages (Home, Blog, etc.) and private pages are all lazy:
+// the user only ever visits a subset of them per session.
+
+const Admin             = lazy(() => import('./pages/Admin'));
+const AreaPrivata       = lazy(() => import('./pages/AreaPrivata'));
+const Blog              = lazy(() => import('./pages/Blog'));
+const BlogPost          = lazy(() => import('./pages/BlogPost'));
+const Calcolatore       = lazy(() => import('./pages/Calcolatore'));
+const Certificati       = lazy(() => import('./pages/Certificati'));
+const ChiSiamo          = lazy(() => import('./pages/ChiSiamo'));
+const Collaboratori     = lazy(() => import('./pages/Collaboratori'));
+const CantieriDashboard = lazy(() => import('./pages/CantieriDashboard'));
+const Contatti          = lazy(() => import('./pages/Contatti'));
+const Cookie            = lazy(() => import('./pages/Cookie'));
+const Clienti           = lazy(() => import('./pages/Clienti'));
+const DailyLogs         = lazy(() => import('./pages/DailyLogs'));
+const Tasks             = lazy(() => import('./pages/Tasks'));
+const Dashboard         = lazy(() => import('./pages/Dashboard'));
+const Documents         = lazy(() => import('./pages/Documents'));
+const FlussoDiLavoro    = lazy(() => import('./pages/FlussoDiLavoro'));
+const Fornitori         = lazy(() => import('./pages/Fornitori'));
+const Home              = lazy(() => import('./pages/Home'));
+const Messages          = lazy(() => import('./pages/Messages'));
+const MyAppointments    = lazy(() => import('./pages/MyAppointments'));
+const Pagamenti         = lazy(() => import('./pages/Pagamenti'));
+const PdfEditor         = lazy(() => import('./pages/PdfEditor'));
+const Preventivi        = lazy(() => import('./pages/Preventivi'));
+const Prezzi            = lazy(() => import('./pages/Prezzi'));
+const CodiceReferral    = lazy(() => import('./pages/CodiceReferral'));
+const Privacy           = lazy(() => import('./pages/Privacy'));
+const Recensioni        = lazy(() => import('./pages/Recensioni'));
+const Servizi           = lazy(() => import('./pages/Servizi'));
+const Settings          = lazy(() => import('./pages/Settings'));
+const SharedDocuments   = lazy(() => import('./pages/SharedDocuments'));
+const SupplierOnboarding = lazy(() => import('./pages/SupplierOnboarding'));
+const OnboardingStaff   = lazy(() => import('./pages/OnboardingStaff'));
+const Termini           = lazy(() => import('./pages/Termini'));
+const UploadDocument    = lazy(() => import('./pages/UploadDocument'));
 
 export const PAGES = {
     "Admin": Admin,
     "AreaPrivata": AreaPrivata,
-    "Appuntamenti": Calcolatore, // Redirected — appointment booking starts from Calcolatore
+    "Appuntamenti": Calcolatore,       // legacy redirect → Calcolatore
     "Blog": Blog,
     "BlogPost": BlogPost,
     "Calcolatore": Calcolatore,
     "Certificati": Certificati,
     "ChiSiamo": ChiSiamo,
-    "ClientChat": Messages, // Redirected to Messages (Unified)
+    "ClientChat": Messages,            // legacy redirect → Messages
     "Collaboratori": Collaboratori,
-    "CompanyDashboard": Dashboard, // Redirect a Dashboard — ruolo company eliminato
+    "CompanyDashboard": Dashboard,     // legacy redirect → Dashboard
     "CantieriDashboard": CantieriDashboard,
     "Contatti": Contatti,
     "Cookie": Cookie,
