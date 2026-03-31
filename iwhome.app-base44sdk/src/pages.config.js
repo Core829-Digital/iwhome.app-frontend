@@ -17,6 +17,7 @@ import DailyLogs from './pages/DailyLogs';
 import Tasks from './pages/Tasks';
 import Dashboard from './pages/Dashboard';
 import Documents from './pages/Documents';
+import FlussoDiLavoro from './pages/FlussoDiLavoro';
 import Fornitori from './pages/Fornitori';
 import Home from './pages/Home';
 import Messages from './pages/Messages';
@@ -60,6 +61,7 @@ export const PAGES = {
     "Tasks": Tasks,
     "Dashboard": Dashboard,
     "Documents": Documents,
+    "FlussoDiLavoro": FlussoDiLavoro,
     "Fornitori": Fornitori,
     "Home": Home,
     "Messages": Messages,

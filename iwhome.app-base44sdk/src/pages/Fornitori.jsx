@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import React, { useState, useRef, useEffect } from 'react';
+import { validateFiles } from '../lib/security';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
@@ -124,10 +125,10 @@ function MiniChat({ channelType, channelId, channelName, currentUserEmail, conta
 
     useEffect(() => {
         if (messages.length > 0) {
-            markAsRead({ channel_type: channelType, channel_id: channelId }).catch(() => { });
+            markAsRead({ channel_type: channelType, channel_id: channelId }).catch(err => { console.error('markAsRead failed:', err); });
         }
         if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }, [messages.length]);
+    }, [messages.length, channelType, channelId]);
 
     const handleMessageChange = (e) => {
         const val = e.target.value;
@@ -475,8 +476,8 @@ export default function Fornitori() {
         try {
             await respondToCounterproposal({
                 request_id: counterResponseModal._id,
-                accepted,
-                rejection_notes: accepted ? undefined : (counterRejectionNotes || undefined),
+                decision: accepted ? 'accepted' : 'rejected',
+                notes: accepted ? undefined : (counterRejectionNotes || undefined),
             });
             setCounterResponseModal(null);
             setCounterRejectionNotes('');
@@ -1866,11 +1867,11 @@ export default function Fornitori() {
                         <div className="grid grid-cols-2 gap-2 mt-2">
                             <div>
                                 <label className="text-xs text-[#adb5bd] block mb-1">Foto / Immagini</label>
-                                <Input type="file" multiple accept="image/*" onChange={e => setNewRequestPhotos(Array.from(e.target.files))} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] text-xs file:bg-[#343a40] file:text-orange-400 file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 hover:file:bg-[#212529]" />
+                                <Input type="file" multiple accept="image/*" onChange={e => { const files = Array.from(e.target.files); const err = validateFiles(files, 'image'); if (err) { alert(err); e.target.value = ''; return; } setNewRequestPhotos(files); }} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] text-xs file:bg-[#343a40] file:text-orange-400 file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 hover:file:bg-[#212529]" />
                             </div>
                             <div>
                                 <label className="text-xs text-[#adb5bd] block mb-1">Documenti (PDF, DWG)</label>
-                                <Input type="file" multiple accept=".pdf,.doc,.docx,.dwg" onChange={e => setNewRequestDocs(Array.from(e.target.files))} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] text-xs file:bg-[#343a40] file:text-blue-400 file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 hover:file:bg-[#212529]" />
+                                <Input type="file" multiple accept=".pdf,.doc,.docx,.dwg" onChange={e => { const files = Array.from(e.target.files); const err = validateFiles(files, 'document'); if (err) { alert(err); e.target.value = ''; return; } setNewRequestDocs(files); }} className="bg-[#495057] border-[#6c757d] text-[#f8f9fa] text-xs file:bg-[#343a40] file:text-blue-400 file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 hover:file:bg-[#212529]" />
                             </div>
                         </div>
 
@@ -1884,7 +1885,7 @@ export default function Fornitori() {
             {/* ═══ MODAL: Nuova Consegna ═══ */}
             {/* ═══ MODAL: Modifica Date Calendario (Task 13) ═══ */}
             <Dialog open={showEditDeliveryModal} onOpenChange={setShowEditDeliveryModal}>
-                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-sm">
+                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-sm max-h-[85vh] overflow-y-auto">
                     <DialogHeader><DialogTitle className="text-[#f8f9fa]">Aggiorna Date Consegna</DialogTitle></DialogHeader>
                     <div className="space-y-4 py-3">
                         <div>
@@ -2179,7 +2180,7 @@ export default function Fornitori() {
 
             {/* ═══ MODAL: Chat con Fornitore ═══ */}
             <Dialog open={!!showChatModal} onOpenChange={() => setShowChatModal(null)}>
-                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-lg">
+                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-lg max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="text-[#f8f9fa] flex items-center gap-2">
                             <MessageCircle size={18} className="text-orange-400" /> Chat con {showChatModal?.name}
@@ -2199,7 +2200,7 @@ export default function Fornitori() {
 
             {/* ═══ MODAL: Chat Ordine Progetto ═══ */}
             <Dialog open={!!showOrderChatModal} onOpenChange={() => setShowOrderChatModal(null)}>
-                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-lg">
+                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-lg max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="text-[#f8f9fa] flex items-center gap-2">
                             <MessageCircle size={18} className="text-blue-400" /> Chat Ordine #{showOrderChatModal?.order_number || showOrderChatModal?._id?.slice(-6)}
@@ -2219,7 +2220,7 @@ export default function Fornitori() {
 
             {/* ═══ MODAL: RISPOSTA/PREVENTIVO FORNITORE ═══ */}
             <Dialog open={!!showQuoteModal} onOpenChange={(open) => !open && setShowQuoteModal(null)}>
-                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md">
+                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="text-[#f8f9fa]">Invia Preventivo</DialogTitle>
                     </DialogHeader>
@@ -2267,7 +2268,7 @@ export default function Fornitori() {
 
             {/* ═══ MODAL: Proposta Piano Pagamenti ═══ */}
             <Dialog open={!!showPaymentPlanModal} onOpenChange={() => setShowPaymentPlanModal(null)}>
-                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md">
+                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="text-[#f8f9fa] flex items-center gap-2">
                             <CreditCard size={18} className="text-orange-400" /> Proponi Piano Pagamenti
@@ -2399,7 +2400,7 @@ export default function Fornitori() {
 
             {/* ═══ MODAL: CONTROPROPOSTA ADMIN → FORNITORE ═══ */}
             <Dialog open={!!counterproposalModal} onOpenChange={(open) => !open && setCounterproposalModal(null)}>
-                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md">
+                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <ArrowRight size={18} className="text-amber-400" /> Controproposta al Fornitore
@@ -2449,7 +2450,7 @@ export default function Fornitori() {
 
             {/* ═══ MODAL: FORNITORE RISPONDE ALLA CONTROPROPOSTA ═══ */}
             <Dialog open={!!counterResponseModal} onOpenChange={(open) => !open && setCounterResponseModal(null)}>
-                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md">
+                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-md max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             {counterResponseModal?._acceptMode

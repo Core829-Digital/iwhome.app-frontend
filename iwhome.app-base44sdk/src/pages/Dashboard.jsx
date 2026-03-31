@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { validateFiles } from '../lib/security';
 import { motion } from 'framer-motion';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
@@ -49,7 +50,9 @@ import {
   MapPin,
   CreditCard,
   Send,
-  X
+  X,
+  ThumbsUp,
+  ThumbsDown
 } from 'lucide-react';
 
 import OnboardingModal from '../components/dashboard/OnboardingModal';
@@ -222,6 +225,26 @@ export default function Dashboard() {
   const uploadPaymentProofMutation = useMutation(api.payments.uploadPaymentProof);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const updateAppointmentStatus = useMutation(api.appointments.updateStatus);
+  const respondToQuoteMutation = useMutation(api.quotes.respondToQuote);
+
+  // Client quote accept/reject state
+  const [quoteToRespond, setQuoteToRespond] = useState(null);
+  const [respondAction, setRespondAction] = useState(null); // 'accepted' | 'rejected'
+  const [isRespondingQuote, setIsRespondingQuote] = useState(false);
+
+  const handleRespondToQuote = async () => {
+    if (!quoteToRespond || !respondAction) return;
+    setIsRespondingQuote(true);
+    try {
+      await respondToQuoteMutation({ quote_id: quoteToRespond._id, response: respondAction });
+      setQuoteToRespond(null);
+      setRespondAction(null);
+    } catch (err) {
+      alert('Errore: ' + (err.message || err));
+    } finally {
+      setIsRespondingQuote(false);
+    }
+  };
 
   const clientPayments = useQuery(
     api.payments.list,
@@ -413,7 +436,7 @@ export default function Dashboard() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] relative overflow-hidden 2xl:text-base">
 
 
       {showOnboarding && (
@@ -435,7 +458,7 @@ export default function Dashboard() {
 
       {/* Quote Request Modal */}
       <Dialog open={isRequestModalOpen} onOpenChange={setIsRequestModalOpen}>
-        <DialogContent className="bg-[#343a40] border-[#f8f9fa]/10 text-[#f8f9fa] max-w-lg scrollbar-hide overflow-y-auto max-h-[90vh]">
+        <DialogContent className="bg-[#343a40] border-[#f8f9fa]/10 text-[#f8f9fa] w-full max-w-lg mx-2 sm:mx-4 scrollbar-hide overflow-y-auto max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Nuova Richiesta Preventivo</DialogTitle>
             <DialogDescription className="text-[#adb5bd]">
@@ -500,7 +523,12 @@ export default function Dashboard() {
                 type="file"
                 multiple
                 className="hidden"
-                onChange={(e) => setRequestFiles([...requestFiles, ...Array.from(e.target.files)])}
+                onChange={(e) => {
+                  const newFiles = Array.from(e.target.files);
+                  const err = validateFiles(newFiles, 'any');
+                  if (err) { alert(err); e.target.value = ''; return; }
+                  setRequestFiles([...requestFiles, ...newFiles]);
+                }}
               />
 
               {requestFiles.length > 0 && (
@@ -519,11 +547,11 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 mt-4">
-            <Button variant="ghost" onClick={() => setIsRequestModalOpen(false)}>Annulla</Button>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-4">
+            <Button variant="ghost" className="w-full sm:w-auto" onClick={() => setIsRequestModalOpen(false)}>Annulla</Button>
             <Button
               onClick={handleCreateRequest}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
               disabled={requestLoading}
             >
               {requestLoading ? <Loader2 className="animate-spin mr-2" size={16} /> : <Send className="mr-2" size={16} />}
@@ -535,7 +563,7 @@ export default function Dashboard() {
 
 
 
-      <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe">
+      <div className="lg:ml-[280px] pt-[76px] relative z-10 min-h-screen pb-safe px-0">
         {isWorker ? (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-[#343a40]/60 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-[#f8f9fa]/10 relative overflow-hidden">
@@ -769,7 +797,7 @@ export default function Dashboard() {
                       <Filter size={16} className="mr-2 text-cyan-400" /> Personalizza
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="bg-[#343a40] border-[#f8f9fa]/10 text-[#f8f9fa]">
+                  <DialogContent className="bg-[#343a40] border-[#f8f9fa]/10 text-[#f8f9fa] w-full max-w-lg max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Gestione Widget Dashboard</DialogTitle>
                       <DialogDescription className="text-[#adb5bd]">Seleziona quali widget visualizzare sulla tua dashboard.</DialogDescription>
@@ -1136,7 +1164,7 @@ export default function Dashboard() {
                         <div key={req._id} className="bg-orange-500/10 rounded-lg p-3 border border-orange-500/25 flex items-center justify-between gap-3">
                           <div className="flex-1 min-w-0">
                             <p className="text-xs text-[#f8f9fa] font-medium truncate">
-                              {req.title || req.category || 'Richiesta'}
+                              {req.title || 'Richiesta'}
                             </p>
                             {req._creationTime && (
                               <p className="text-[10px] text-[#adb5bd] mt-0.5 flex items-center gap-1">
@@ -1270,7 +1298,7 @@ export default function Dashboard() {
                         <DialogTrigger asChild>
                           {Content}
                         </DialogTrigger>
-                        <DialogContent className="max-w-2xl bg-[#1e2227] border-[#f8f9fa]/10 text-[#f8f9fa] shadow-2xl">
+                        <DialogContent className="w-full max-w-2xl bg-[#1e2227] border-[#f8f9fa]/10 text-[#f8f9fa] shadow-2xl max-h-[90vh] overflow-y-auto">
                           <DialogHeader>
                             <DialogTitle className="text-xl font-light flex items-center gap-2 border-b border-[#f8f9fa]/10 pb-4">
                               <DollarSign className="h-6 w-6 text-green-400" /> Analisi Revenue Totale
@@ -1864,8 +1892,12 @@ export default function Dashboard() {
                                     <FileText className="w-5 h-5 text-blue-400" />
                                   </div>
                                   <div>
-                                    <h3 className="font-bold text-[#f8f9fa] text-lg">{quote.full_name || 'Richiesta'}</h3>
-                                    <p className="text-xs text-[#adb5bd] uppercase tracking-wider">{quote.quote_type}</p>
+                                    <h3 className="font-bold text-[#f8f9fa] text-lg">
+                                      {quote.request_title || quote.title || quote.full_name || 'Richiesta Preventivo'}
+                                    </h3>
+                                    <p className="text-xs text-[#adb5bd] uppercase tracking-wider">
+                                      {quote.material_category ? `${quote.material_category} · ` : ''}{quote.quote_type}
+                                    </p>
                                   </div>
                                 </div>
                                 <div className="space-y-2 mt-4">
@@ -1879,19 +1911,50 @@ export default function Dashboard() {
                                       <span className="font-bold">Prezzo Stimato: €{quote.estimated_price.toLocaleString()}</span>
                                     </div>
                                   )}
+                                  {quote.notes && (
+                                    <p className="text-xs text-[#adb5bd] mt-1 line-clamp-2">{quote.notes}</p>
+                                  )}
                                 </div>
                               </div>
 
                               <div className="flex flex-col justify-between items-end gap-3">
-                                <div className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border ${quote.status === 'accepted' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                                  quote.status === 'rejected' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
-                                    'bg-blue-500/20 text-blue-400 border-blue-500/30'
-                                  }`}>
-                                  {quote.status === 'draft' ? 'In Lavorazione' :
-                                    quote.status === 'sent' ? 'Inviato' :
-                                      quote.status === 'accepted' ? 'Accettato' :
-                                        quote.status === 'rejected' ? 'Rifiutato' : quote.status}
-                                </div>
+                                {(() => {
+                                  const s = quote.status;
+                                  const cfg = s === 'accepted' ? { bg: 'bg-green-500/20', text: 'text-green-400', border: 'border-green-500/30', label: 'Accettato ✓' }
+                                    : s === 'rejected' ? { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/30', label: 'Rifiutato' }
+                                    : s === 'sent' ? { bg: 'bg-yellow-500/20', text: 'text-yellow-400', border: 'border-yellow-500/30', label: 'Da Confermare ⚡' }
+                                    : s === 'in_lavorazione' || s === 'draft' ? { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30', label: 'In Lavorazione' }
+                                    : s === 'completato' ? { bg: 'bg-purple-500/20', text: 'text-purple-400', border: 'border-purple-500/30', label: 'Completato' }
+                                    : s === 'scaduto' ? { bg: 'bg-gray-500/20', text: 'text-gray-400', border: 'border-gray-500/30', label: 'Scaduto' }
+                                    : { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30', label: s };
+                                  return (
+                                    <div className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+                                      {cfg.label}
+                                    </div>
+                                  );
+                                })()}
+
+                                {/* Accept / Reject buttons when quote is sent to client */}
+                                {quote.status === 'sent' && (
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-green-500/40 text-green-400 hover:bg-green-500/10 text-xs h-8"
+                                      onClick={() => { setQuoteToRespond(quote); setRespondAction('accepted'); }}
+                                    >
+                                      <ThumbsUp size={13} className="mr-1" /> Accetta
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-red-500/40 text-red-400 hover:bg-red-500/10 text-xs h-8"
+                                      onClick={() => { setQuoteToRespond(quote); setRespondAction('rejected'); }}
+                                    >
+                                      <ThumbsDown size={13} className="mr-1" /> Rifiuta
+                                    </Button>
+                                  </div>
+                                )}
 
                                 <Button
                                   asChild
@@ -1930,6 +1993,46 @@ export default function Dashboard() {
                       ))
                   )}
                 </div>
+
+                {/* Accept / Reject confirmation dialog */}
+                <Dialog open={!!quoteToRespond} onOpenChange={(open) => { if (!open) { setQuoteToRespond(null); setRespondAction(null); } }}>
+                  <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-sm max-h-[85vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className={`flex items-center gap-2 ${respondAction === 'accepted' ? 'text-green-400' : 'text-red-400'}`}>
+                        {respondAction === 'accepted' ? <ThumbsUp size={18} /> : <ThumbsDown size={18} />}
+                        {respondAction === 'accepted' ? 'Accetta Preventivo' : 'Rifiuta Preventivo'}
+                      </DialogTitle>
+                    </DialogHeader>
+                    {quoteToRespond && (
+                      <div className="space-y-4 py-2">
+                        <p className="text-[#dee2e6] text-sm">
+                          {respondAction === 'accepted'
+                            ? 'Confermando, accetti il preventivo e autorizzi l\'avvio del progetto. Sarà richiesto il pagamento dell\'acconto.'
+                            : 'Confermando, rifiuti il preventivo. Puoi richiedere una revisione tramite la chat.'}
+                        </p>
+                        <div className="bg-[#495057]/40 rounded-lg p-3 text-sm">
+                          <p className="text-[#adb5bd] text-xs mb-1">Preventivo</p>
+                          <p className="text-[#f8f9fa] font-medium">{quoteToRespond.request_title || quoteToRespond.title || quoteToRespond.full_name || 'Preventivo'}</p>
+                          {quoteToRespond.estimated_price && (
+                            <p className="text-green-400 font-bold mt-1">€{quoteToRespond.estimated_price.toLocaleString()}</p>
+                          )}
+                        </div>
+                        <div className="flex gap-3">
+                          <Button variant="outline" className="flex-1 border-[#495057] text-[#adb5bd]" onClick={() => { setQuoteToRespond(null); setRespondAction(null); }}>
+                            Annulla
+                          </Button>
+                          <Button
+                            className={`flex-1 ${respondAction === 'accepted' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
+                            onClick={handleRespondToQuote}
+                            disabled={isRespondingQuote}
+                          >
+                            {isRespondingQuote ? <Loader2 size={15} className="animate-spin" /> : (respondAction === 'accepted' ? 'Accetta' : 'Rifiuta')}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </DialogContent>
+                </Dialog>
               </TabsContent>
             )}
 

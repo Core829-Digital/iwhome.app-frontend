@@ -14,12 +14,13 @@ const SECURITY_HEADERS = {
   // while blocking the most dangerous attack vectors (object-src none, base-uri self).
   'Content-Security-Policy': [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.iwhome.it https://challenges.cloudflare.com",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.iwhome.app https://challenges.cloudflare.com https://browser.sentry-cdn.com https://js.sentry-cdn.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src * data: blob:",
-    "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.clerk.accounts.dev https://api.clerk.com https://*.clerk.com https://api.resend.com",
+    "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.clerk.accounts.dev https://api.clerk.com https://*.clerk.com https://clerk.iwhome.app https://api.resend.com https://*.ingest.sentry.io https://*.ingest.de.sentry.io",
     "font-src 'self' data: https://fonts.gstatic.com",
     "frame-src 'self' https://*.clerk.accounts.dev https://accounts.clerk.dev https://challenges.cloudflare.com",
+    "worker-src blob:",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

@@ -64,7 +64,12 @@ export default function Layout({ children, currentPageName, isPrivate, sidebarWi
   // We apply it directly via inline style so the transition is driven by React
   // state, not by CSS variables (which can be unreliable across build configs).
   if (isPrivate) {
-    const sw = `${sidebarWidth}px`;
+    // Use CSS variable --sidebar-w set by VerticalMenu.jsx:
+    //   mobile  (<1024px): 0px   (sidebar is a drawer overlay, not in flow)
+    //   desktop collapsed: 80px
+    //   desktop expanded:  280px
+    // This ensures mobile content is NOT offset by the sidebar width.
+    const sw = 'var(--sidebar-w, 0px)';
     const transition = 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
     return (
       <div className="min-h-screen bg-[#212529]">
@@ -93,7 +98,7 @@ export default function Layout({ children, currentPageName, isPrivate, sidebarWi
         </div>
 
         {/*
-          Main content wrapper — marginLeft mirrors the sidebar width exactly.
+          Main content wrapper — marginLeft mirrors the sidebar width via CSS var.
           Pages keep their pt-[76px] to clear the fixed top bar.
         */}
         <main

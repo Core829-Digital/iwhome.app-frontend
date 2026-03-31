@@ -13,6 +13,22 @@ import { itIT } from "@clerk/localizations";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import * as Sentry from "@sentry/react";
+import { usePostHog } from '@posthog/react';
+import { useUser } from "@clerk/clerk-react";
+
+// ── Sentry test button (dev only) ─────────────────────────────────────────────
+function SentryTestButton() {
+  if (import.meta.env.MODE !== 'development') return null;
+  return (
+    <button
+      onClick={() => { throw new Error('This is your first error!'); }}
+      style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 9999, background: '#dc3545', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 12 }}
+    >
+      🔴 Test Sentry
+    </button>
+  );
+}
 
 const queryClient = new QueryClient();
 
@@ -111,6 +127,20 @@ const GlobalLayout = ({ children }) => {
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, logout } = useAuth();
+  const { user } = useUser();
+  const posthog = usePostHog();
+
+  // Identify user in Sentry and PostHog when logged in
+  useEffect(() => {
+    if (user) {
+      const email = user.primaryEmailAddress?.emailAddress;
+      Sentry.setUser({ id: user.id, email });
+      posthog?.identify(user.id, { email, name: user.fullName });
+    } else {
+      Sentry.setUser(null);
+      posthog?.reset();
+    }
+  }, [user?.id]);
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -186,6 +216,7 @@ function App() {
             </Router>
             <Toaster />
             <VisualEditAgent />
+            <SentryTestButton />
           </AuthProvider>
         </ConvexProviderWithClerk>
       </ClerkProvider>

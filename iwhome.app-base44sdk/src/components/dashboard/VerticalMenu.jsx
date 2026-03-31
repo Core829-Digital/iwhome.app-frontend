@@ -26,7 +26,8 @@ import {
   CreditCard,
   Briefcase,
   Euro,
-  Tag
+  Tag,
+  GitBranch
 } from 'lucide-react';
 import { useUser, useClerk } from '@clerk/clerk-react';
 import { useQuery } from "convex/react";
@@ -55,6 +56,7 @@ const createPageUrl = (page) => {
     DailyLogs: '/DailyLogs',
     Prezzi: '/Prezzi',
     CodiceReferral: '/CodiceReferral',
+    FlussoDiLavoro: '/FlussoDiLavoro',
   };
   return routes[page] || '/Dashboard';
 };
@@ -88,6 +90,7 @@ const getMenuItems = (user) => {
   // 2. Area Operativa
   const opGroup = [];
   if (isAdmin || isSupplier) opGroup.push({ name: 'Fornitori', page: 'Fornitori', icon: Truck });
+  if (isAdmin || isSupplier) opGroup.push({ name: 'Flusso di Lavoro', page: 'FlussoDiLavoro', icon: GitBranch });
   if (isAdmin || isSupervisor || isCollaborator) opGroup.push({ name: 'Cantieri', page: 'CantieriDashboard', icon: HardHat });
   if (isAdmin) opGroup.push({ name: 'Preventivi', page: 'Preventivi', icon: Receipt });
   if (isAdmin || isSupplier || isCollaborator || isClient) opGroup.push({ name: 'Pagamenti', page: 'Pagamenti', icon: CreditCard });

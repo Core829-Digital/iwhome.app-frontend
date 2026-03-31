@@ -868,7 +868,7 @@ export default function Pagamenti() {
 
             {/* SETTINGS MODAL */}
             <Dialog open={showSettingsModal} onOpenChange={setShowSettingsModal}>
-                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-lg">
+                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-lg max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="text-[#f8f9fa] flex items-center gap-2">
                             <Settings size={18} className="text-emerald-400" /> Impostazioni Pagamenti
@@ -961,7 +961,7 @@ export default function Pagamenti() {
                 if (!open) { setProofFile(null); setPartialResult(null); setConfirmedAmountInput(''); setSelectedPaymentForProof(null); }
                 setProofModalOpen(open);
             }}>
-                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-sm">
+                <DialogContent className="bg-[#343a40] border-[#495057] text-[#f8f9fa] max-w-sm max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="text-[#f8f9fa] flex items-center gap-2">
                             <Upload className="text-blue-400" size={20} /> Conferma Pagamento

@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { convertToWebP } from '../utils/imageConverter';
 import { useQuery, useMutation } from "convex/react";
@@ -45,6 +45,7 @@ import {
 export default function Messages() {
   const { user } = useUser();
   const [selectedConversation, setSelectedConversation] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [messageText, setMessageText] = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -70,6 +71,9 @@ export default function Messages() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   };
+
+  // Auto-open conversation when navigated from Preventivi with ?clientEmail=xxx
+  const clientEmailParam = searchParams.get('clientEmail');
 
   /* Data Fetching */
   const conversations = useQuery(api.chat.listChannels, {
@@ -154,6 +158,23 @@ export default function Messages() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // When navigated with ?clientEmail=xxx, find and auto-select that conversation
+  useEffect(() => {
+    if (!clientEmailParam || !conversations.length || selectedConversation) return;
+    const target = conversations.find(c =>
+      c.members?.includes(clientEmailParam) ||
+      c.client_email === clientEmailParam
+    );
+    if (target) {
+      onSelectConversation(target);
+      setSearchParams({}, { replace: true }); // clean URL
+    } else if (user?.primaryEmailAddress?.emailAddress) {
+      // Conversation doesn't exist yet — create it
+      startNewConversation(clientEmailParam);
+      setSearchParams({}, { replace: true });
+    }
+  }, [clientEmailParam, conversations]);
 
   const startNewConversation = async (otherUserEmail) => {
     if (!user?.primaryEmailAddress?.emailAddress) return;
@@ -331,6 +352,8 @@ export default function Messages() {
           <div className="h-[calc(100vh-76px)] flex items-center justify-center">
             <Loader2 className="animate-spin text-blue-500" size={40} />
           </div>
+        ) : convexUser === null ? (
+          <div className="h-[calc(100vh-76px)] flex items-center justify-center text-[#6c757d]">Utente non trovato nel database.</div>
         ) : (!isAdmin && !isClient && !isSupplier && !isWorker) ? (
           <div className="h-[calc(100vh-76px)] flex items-center justify-center text-center px-4">
             <div>

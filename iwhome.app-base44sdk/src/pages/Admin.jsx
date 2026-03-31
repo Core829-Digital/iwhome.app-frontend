@@ -16,7 +16,9 @@ import {
     CheckCircle,
     AlertTriangle,
     UserCog,
-    Users
+    Users,
+    RefreshCw,
+    Database
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,7 +37,7 @@ export default function Admin() {
 
     // Queries
     const allUsers = useQuery(api.users.list) || [];
-    const convexUser = useQuery(api.users.getByEmail, { email: user?.primaryEmailAddress?.emailAddress || "" });
+    const convexUser = useQuery(api.users.getByEmail, user?.primaryEmailAddress?.emailAddress ? { email: user.primaryEmailAddress.emailAddress } : "skip");
 
     // Derive selectedUser reactively from allUsers so UI always reflects latest DB state
     const selectedUser = allUsers.find(u => u._id === selectedUserId) || null;
@@ -50,6 +52,24 @@ export default function Admin() {
     const updateRoleMutation = useMutation(api.users.updateRole);
     const blockUserMutation = useMutation(api.users.blockUser);
     const deleteUserMutation = useMutation(api.users.deleteUser);
+    const runMigration = useMutation(api.migrate.runMigration);
+
+    const [migrationResult, setMigrationResult] = useState(null);
+    const [migrationRunning, setMigrationRunning] = useState(false);
+
+    const handleRunMigration = async () => {
+        if (!window.confirm('Esegui migrazione dati? L\'operazione è sicura e non elimina nulla. Continuare?')) return;
+        setMigrationRunning(true);
+        setMigrationResult(null);
+        try {
+            const result = await runMigration({});
+            setMigrationResult(result);
+        } catch (err) {
+            alert('Errore migrazione: ' + (err.message || err));
+        } finally {
+            setMigrationRunning(false);
+        }
+    };
 
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
     const [uploadData, setUploadData] = useState({
@@ -198,14 +218,40 @@ export default function Admin() {
                             <h1 className="text-3xl font-light text-[#f8f9fa] mb-2">Pannello Admin</h1>
                             <p className="text-[#dee2e6]">Gestione utenti, ruoli e documenti</p>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex flex-wrap gap-3 items-center">
                             <div className="px-3 py-1.5 rounded-lg bg-[#495057]/40 border border-[#f8f9fa]/10 text-xs text-[#dee2e6] flex items-center gap-2">
                                 <Users size={14} /> {allUsers.length} utenti
                             </div>
                             <div className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400 flex items-center gap-2">
                                 <Ban size={14} /> {allUsers.filter(u => u.blocked).length} bloccati
                             </div>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleRunMigration}
+                                disabled={migrationRunning}
+                                className="border-blue-500/40 text-blue-400 hover:bg-blue-500/10 text-xs h-8"
+                            >
+                                {migrationRunning
+                                    ? <><RefreshCw size={13} className="mr-1.5 animate-spin" />Migrazione...</>
+                                    : <><Database size={13} className="mr-1.5" />Migra Dati</>
+                                }
+                            </Button>
                         </div>
+                        {migrationResult && (
+                            <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-xl text-xs text-green-400">
+                                <p className="font-semibold mb-1">✓ Migrazione completata — {migrationResult.total} record aggiornati</p>
+                                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-green-300/80">
+                                    <span>Utenti: {migrationResult.users}</span>
+                                    <span>Preventivi: {migrationResult.quotes}</span>
+                                    <span>Pagamenti: {migrationResult.payments}</span>
+                                    <span>Richieste: {migrationResult.supplier_requests}</span>
+                                    <span>Ordini: {migrationResult.supplier_orders}</span>
+                                    <span>Clienti: {migrationResult.clients}</span>
+                                    <span>Collaboratori: {migrationResult.collaborators}</span>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
