@@ -36,7 +36,6 @@ import {
   Search,
   Trash2,
   FileText,
-  BarChart3,
   Eye,
   CheckCircle,
   Loader2

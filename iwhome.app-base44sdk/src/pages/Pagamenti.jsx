@@ -10,8 +10,8 @@ import { useUser } from "@clerk/clerk-react";
 import {
     CreditCard, DollarSign, Search, Plus, Loader2,
     CheckCircle, Clock, AlertTriangle, TrendingUp,
-    Users, Truck, Briefcase, Calendar, Eye, ExternalLink, Building2,
-    Settings, Upload, ChevronLeft, ChevronRight, CheckCircle2, MessageSquare, Briefcase as BriefcaseIcon
+    Users, Truck, Briefcase, Calendar, Eye, Building2,
+    Settings, Upload, ChevronLeft, ChevronRight, CheckCircle2, MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
