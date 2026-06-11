@@ -135,14 +135,27 @@ export default function WindowCalculator({ onQuoteChange }) {
   const [windows, setWindows] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
   const [currentPrice, setCurrentPrice] = useState(0);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState(null);
   const [alternatives, setAlternatives] = useState([]);
   const [loadingAI, setLoadingAI] = useState(false);
   const [showAI, setShowAI] = useState(false);
 
+  const handleConfigChange = (updates) => {
+    setHasInteracted(true);
+    setConfig(prev => ({ ...prev, ...updates }));
+  };
+
   useEffect(() => {
-    calculatePrice();
-  }, [config]);
+    if (hasInteracted) {
+      calculatePrice();
+    } else {
+      setCurrentPrice(0);
+      const windowsTotal = windows.reduce((sum, w) => sum + w.price, 0);
+      setTotalPrice(windowsTotal);
+      onQuoteChange?.({ windows, estimatedPrice: windowsTotal });
+    }
+  }, [config, hasInteracted]);
 
   useEffect(() => {
     if (showAI) {
@@ -193,6 +206,8 @@ export default function WindowCalculator({ onQuoteChange }) {
       glassType: 'doppio',
       color: 'bianco_pasta'
     });
+
+    setHasInteracted(false);
 
     // Update total
     const newTotal = updatedWindows.reduce((sum, w) => sum + w.price, 0);
