@@ -194,12 +194,24 @@ export default function Preventivi() {
                 return <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-none"><FileText size={12} className="mr-1" /> Preventivo Inviato</Badge>;
             case 'request':
                 return <Badge variant="secondary" className="bg-cyan-500/20 text-cyan-400 border-none"><Upload size={12} className="mr-1" /> Richiesta Cliente</Badge>;
+            case 'draft':
+                return <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-400 border-none"><Clock size={12} className="mr-1" /> Bozza</Badge>;
             case 'in_lavorazione':
                 return <Badge variant="secondary" className="bg-purple-500/20 text-purple-400 border-none"><Clock size={12} className="mr-1" /> In Lavorazione</Badge>;
             case 'scaduto':
                 return <Badge variant="secondary" className="bg-gray-500/20 text-gray-400 border-none"><XCircle size={12} className="mr-1" /> Scaduto</Badge>;
             default:
-                return <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-400 border-none"><Clock size={12} className="mr-1" /> In Attesa</Badge>;
+                return <Badge variant="secondary" className="bg-amber-500/20 text-amber-400 border-none"><Clock size={12} className="mr-1" /> In Attesa</Badge>;
+        }
+    };
+
+    const getQuoteTypeLabel = (type) => {
+        switch (type) {
+            case 'finestre': return 'Infissi e Serramenti';
+            case 'chiavi_in_mano': return 'Ristrutturazione Chiavi in Mano';
+            case 'completo': return 'Progetto Completo (Infissi + Ristrutturazione)';
+            case 'edilizia': return 'Ristrutturazione Edilizia';
+            default: return type || '—';
         }
     };
 
@@ -279,7 +291,7 @@ export default function Preventivi() {
             // Create document linked to quote and shared with client
             await createDocumentMutation({
                 title: `Preventivo Definitivo - ${uploadQuote.full_name || uploadQuote.email}`,
-                description: `Preventivo definitivo per ${uploadQuote.quote_type === 'finestre' ? 'Infissi e Serramenti' : uploadQuote.quote_type === 'chiavi_in_mano' ? 'Ristrutturazione Chiavi in Mano' : 'Progetto Completo'}`,
+                description: `Preventivo definitivo per ${getQuoteTypeLabel(uploadQuote.quote_type)}`,
                 category: 'preventivo',
                 file_url: storageId,
                 file_name: uploadFile.name,
@@ -496,10 +508,7 @@ export default function Preventivi() {
                                         <div className="bg-[#495057]/50 rounded-lg p-3">
                                             <p className="text-sm text-[#adb5bd]">Preventivo selezionato:</p>
                                             <p className="text-[#f8f9fa] font-medium">
-                                                {selectedQuote.title || (
-                                                    selectedQuote.quote_type === 'finestre' ? 'Infissi e Serramenti' :
-                                                        selectedQuote.quote_type === 'chiavi_in_mano' ? 'Ristrutturazione Chiavi in Mano' : 'Progetto Completo'
-                                                )}
+                                                {selectedQuote.title || getQuoteTypeLabel(selectedQuote.quote_type)}
                                             </p>
                                             <p className="text-xs text-[#6c757d]">{selectedQuote.email}</p>
                                         </div>
@@ -588,10 +597,7 @@ export default function Preventivi() {
                                                         <div className="flex-1">
                                                             <div className="flex items-center gap-3 mb-2 flex-wrap">
                                                                 <h3 className="text-lg font-medium text-[#f8f9fa]">
-                                                                    {quote.title || (
-                                                                        quote.quote_type === 'finestre' ? 'Infissi e Serramenti' :
-                                                                            quote.quote_type === 'chiavi_in_mano' ? 'Ristrutturazione Chiavi in Mano' : 'Progetto Completo'
-                                                                    )}
+                                                                    {quote.title || getQuoteTypeLabel(quote.quote_type)}
                                                                 </h3>
                                                                 {getStatusBadge(quote.status)}
                                                                 {getExpiryBadge(quote)}
@@ -623,7 +629,7 @@ export default function Preventivi() {
                                                                 </span>
                                                                 {quote.estimated_price && (
                                                                     <span className="text-[#f8f9fa] font-medium">
-                                                                        € {quote.estimated_price.toLocaleString()}
+€ {quote.estimated_price.toLocaleString('it-IT')}
                                                                     </span>
                                                                 )}
                                                             </div>
@@ -826,10 +832,7 @@ export default function Preventivi() {
                                         <div className="bg-[#495057]/50 rounded-lg p-3">
                                             <p className="text-sm text-[#adb5bd]">Stai per accettare il preventivo:</p>
                                             <p className="text-[#f8f9fa] font-medium mt-1">
-                                                {quoteToAccept.title || (
-                                                    quoteToAccept.quote_type === 'finestre' ? 'Infissi e Serramenti' :
-                                                        quoteToAccept.quote_type === 'chiavi_in_mano' ? 'Ristrutturazione Chiavi in Mano' : 'Progetto Completo'
-                                                )}
+                                                {quoteToAccept.title || getQuoteTypeLabel(quoteToAccept.quote_type)}
                                             </p>
                                         </div>
 
@@ -971,8 +974,7 @@ export default function Preventivi() {
                                             <p className="text-sm text-[#adb5bd]">Per il preventivo di:</p>
                                             <p className="text-[#f8f9fa] font-medium">{uploadQuote.full_name || uploadQuote.email}</p>
                                             <p className="text-xs text-[#6c757d]">
-                                                {uploadQuote.quote_type === 'finestre' ? 'Infissi e Serramenti' :
-                                                    uploadQuote.quote_type === 'chiavi_in_mano' ? 'Ristrutturazione Chiavi in Mano' : 'Progetto Completo'}
+                                                {getQuoteTypeLabel(uploadQuote.quote_type)}
                                             </p>
                                         </div>
                                     )}
@@ -1195,12 +1197,16 @@ function QuoteDetailContent({ quote, onViewPdf }) {
                 return <Badge variant="secondary" className="bg-red-500/20 text-red-400 border-none"><XCircle size={12} className="mr-1" /> Rifiutato</Badge>;
             case 'sent':
                 return <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-none"><FileText size={12} className="mr-1" /> Inviato</Badge>;
+            case 'request':
+                return <Badge variant="secondary" className="bg-cyan-500/20 text-cyan-400 border-none"><Upload size={12} className="mr-1" /> Richiesta Cliente</Badge>;
+            case 'draft':
+                return <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-400 border-none"><Clock size={12} className="mr-1" /> Bozza</Badge>;
             case 'in_lavorazione':
                 return <Badge variant="secondary" className="bg-purple-500/20 text-purple-400 border-none"><Clock size={12} className="mr-1" /> In Lavorazione</Badge>;
             case 'scaduto':
                 return <Badge variant="secondary" className="bg-gray-500/20 text-gray-400 border-none"><XCircle size={12} className="mr-1" /> Scaduto</Badge>;
             default:
-                return <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-400 border-none"><Clock size={12} className="mr-1" /> In Attesa</Badge>;
+                return <Badge variant="secondary" className="bg-amber-500/20 text-amber-400 border-none"><Clock size={12} className="mr-1" /> In Attesa</Badge>;
         }
     };
 
@@ -1222,8 +1228,7 @@ function QuoteDetailContent({ quote, onViewPdf }) {
             {/* Status + Type */}
             <div className="flex items-center gap-3 flex-wrap">
                 <h3 className="text-lg font-medium">
-                    {quote.quote_type === 'finestre' ? 'Infissi e Serramenti' :
-                        quote.quote_type === 'chiavi_in_mano' ? 'Ristrutturazione Chiavi in Mano' : 'Progetto Completo'}
+                    {getQuoteTypeLabel(quote.quote_type)}
                 </h3>
                 {getStatusBadge(quote.status)}
             </div>
@@ -1273,7 +1278,7 @@ function QuoteDetailContent({ quote, onViewPdf }) {
             {quote.estimated_price && (
                 <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-lg p-4">
                     <p className="text-xs text-[#adb5bd] mb-1">Prezzo Stimato</p>
-                    <p className="text-2xl font-bold text-[#f8f9fa]">€ {quote.estimated_price.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-[#f8f9fa]">€ {quote.estimated_price.toLocaleString('it-IT')}</p>
                 </div>
             )}
 
