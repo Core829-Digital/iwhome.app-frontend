@@ -392,7 +392,7 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
         doc.setTextColor(255, 255, 255);
         doc.text('TOTALE PROGETTO', 25, yPos + 2);
         doc.setFontSize(12);
-        doc.text(`€${(pc.estimatedPrice || 0).toLocaleString('it-IT')}`, 185, yPos + 2, { align: 'right' });
+        doc.text(`€${(totalPrice || 0).toLocaleString('it-IT')}`, 185, yPos + 2, { align: 'right' });
         yPos += 14;
       }
 

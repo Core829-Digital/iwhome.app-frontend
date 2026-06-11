@@ -51,7 +51,16 @@ export default function Calcolatore() {
   const [includeWindows, setIncludeWindows] = useState(true);
   const [windowConfig, setWindowConfig] = useState(null);
   const [projectConfig, setProjectConfig] = useState(null);
+  const [ediliziaPrice, setEdiliziaPrice] = useState(0);
   const [showForm, setShowForm] = useState(false);
+
+  // Reset state when switching quote type
+  useEffect(() => {
+    setWindowConfig(null);
+    setProjectConfig(null);
+    setIncludeWindows(true);
+    setChiavSubTab('infissi');
+  }, [quoteType]);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -90,10 +99,10 @@ export default function Calcolatore() {
 
   const getTotalPrice = () => {
     if (quoteType === 'finestre') {
-      return windowConfig?.estimatedPrice || 0;
+      return windowConfig?.estimatedPrice ?? 0;
     } else {
-      const windowsPrice = includeWindows ? (windowConfig?.estimatedPrice || 0) : 0;
-      return projectConfig?.estimatedPrice || windowsPrice;
+      const windowsPrice = includeWindows ? (windowConfig?.estimatedPrice ?? 0) : 0;
+      return projectConfig?.estimatedPrice ?? windowsPrice;
     }
   };
 
@@ -122,7 +131,7 @@ export default function Calcolatore() {
     // null → undefined: Convex v.optional() expects absent field, not null
     const windowCfg = (quoteType === 'finestre' || includeWindows) && windowConfig ? windowConfig : undefined;
     const projectCfg = quoteType === 'chiavi_in_mano' && projectConfig ? projectConfig : undefined;
-    const totalPrice = getTotalPrice() || undefined;
+    const totalPrice = getTotalPrice() > 0 ? getTotalPrice() : undefined;
 
     const quoteData = {
       full_name: formData.full_name.trim(),
@@ -453,7 +462,7 @@ export default function Calcolatore() {
             {/* Solo Infissi */}
             {quoteType === 'finestre' && (
               <motion.div
-                key="windows"
+                key="finestre"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -465,7 +474,7 @@ export default function Calcolatore() {
             {/* Chiavi in Mano */}
             {quoteType === 'chiavi_in_mano' && (
               <motion.div
-                key="project"
+                key="chiavi_in_mano"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -554,7 +563,7 @@ export default function Calcolatore() {
 
                       <ProjectCalculator
                         onQuoteChange={setProjectConfig}
-                        windowsPrice={includeWindows ? (windowConfig?.estimatedPrice || 0) : 0}
+                        windowsPrice={includeWindows ? (windowConfig?.estimatedPrice ?? 0) : 0}
                       />
                     </motion.div>
                   )}

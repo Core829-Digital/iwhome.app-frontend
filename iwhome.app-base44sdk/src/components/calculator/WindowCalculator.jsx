@@ -151,25 +151,18 @@ export default function WindowCalculator({ onQuoteChange }) {
   }, [config, showAI]);
 
   const calculatePrice = () => {
-    const area = (config.width * config.height) / 10000; // m²
+    const area = (config.width * config.height) / 10000;
     const pricePerSqm = PRICE_TABLE[config.windowType][config.ante][config.color][config.glassType];
-    const price = pricePerSqm * area * config.quantity;
+    const price = Math.round(pricePerSqm * area * config.quantity);
 
-    setCurrentPrice(Math.round(price));
+    setCurrentPrice(price);
 
-    // Calculate total including all added windows
     const windowsTotal = windows.reduce((sum, w) => sum + w.price, 0);
-    const total = windowsTotal + Math.round(price);
+    setTotalPrice(windowsTotal);
 
-    setTotalPrice(total);
     onQuoteChange?.({
-      windows: [...windows, {
-        ...config,
-        price: Math.round(price),
-        pricePerSqm,
-        previewImage: WINDOW_IMAGES[config.windowType][config.ante]
-      }],
-      estimatedPrice: total
+      windows,
+      estimatedPrice: windowsTotal
     });
   };
 
@@ -216,7 +209,7 @@ export default function WindowCalculator({ onQuoteChange }) {
     const updatedWindows = windows.filter(w => w.id !== id);
     setWindows(updatedWindows);
 
-    const newTotal = updatedWindows.reduce((sum, w) => sum + w.price, 0) + currentPrice;
+    const newTotal = updatedWindows.reduce((sum, w) => sum + w.price, 0);
     setTotalPrice(newTotal);
 
     onQuoteChange?.({

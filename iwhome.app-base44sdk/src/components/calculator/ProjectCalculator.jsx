@@ -113,11 +113,11 @@ const SERVICES = [
 export default function ProjectCalculator({ onQuoteChange, windowsPrice = 0 }) {
   const [config, setConfig] = useState({
     propertyType: 'appartamento',
-    squareMeters: 80,
-    rooms: 3,
-    bathrooms: 1,
+    squareMeters: 0,
+    rooms: 1,
+    bathrooms: 0,
     qualityLevel: 'standard',
-    services: ['tinteggiatura']
+    services: []
   });
 
   const [totalPrice, setTotalPrice] = useState(0);
@@ -128,7 +128,17 @@ export default function ProjectCalculator({ onQuoteChange, windowsPrice = 0 }) {
   const [showAI, setShowAI] = useState(false);
 
   useEffect(() => {
-    calculatePrice();
+    if (config.squareMeters > 0) {
+      calculatePrice();
+    } else {
+      setTotalPrice(0);
+      setBreakdown({ base: 0, services: 0, bathrooms: 0, windows: 0, servicesDetail: {} });
+      onQuoteChange?.({
+        ...config,
+        estimatedPrice: 0,
+        breakdown: { base: 0, services: 0, bathrooms: 0, windows: 0, servicesDetail: {} }
+      });
+    }
   }, [config, windowsPrice]);
 
   useEffect(() => {
@@ -305,14 +315,14 @@ Genera 2 configurazioni alternative con:
             <Slider
               value={[config.squareMeters]}
               onValueChange={([value]) => setConfig((prev) => ({ ...prev, squareMeters: value }))}
-              min={30}
+              min={0}
               max={500}
               step={5}
               className="py-2"
             />
             <div className="flex justify-between text-sm text-[#dee2e6]">
-              <span>30 m²</span>
-              <span className="font-medium text-[#f8f9fa] text-lg">{config.squareMeters} m²</span>
+              <span>0 m²</span>
+              <span className="font-medium text-[#f8f9fa] text-lg">{config.squareMeters > 0 ? `${config.squareMeters} m²` : '—'}</span>
               <span>500 m²</span>
             </div>
           </div>
@@ -329,12 +339,12 @@ Genera 2 configurazioni alternative con:
               <Slider
                 value={[config.rooms]}
                 onValueChange={([value]) => setConfig((prev) => ({ ...prev, rooms: value }))}
-                min={1}
+                min={0}
                 max={10}
                 step={1}
                 className="py-2"
               />
-              <div className="text-center font-medium text-[#f8f9fa]">{config.rooms} stanze</div>
+              <div className="text-center font-medium text-[#f8f9fa]">{config.rooms > 0 ? `${config.rooms} stanze` : '—'}</div>
             </div>
           </div>
 
@@ -348,12 +358,12 @@ Genera 2 configurazioni alternative con:
               <Slider
                 value={[config.bathrooms]}
                 onValueChange={([value]) => setConfig((prev) => ({ ...prev, bathrooms: value }))}
-                min={1}
+                min={0}
                 max={5}
                 step={1}
                 className="py-2"
               />
-              <div className="text-center font-medium text-[#f8f9fa]">{config.bathrooms} bagno/i</div>
+              <div className="text-center font-medium text-[#f8f9fa]">{config.bathrooms > 0 ? `${config.bathrooms} bagno/i` : '—'}</div>
             </div>
           </div>
         </div>
@@ -448,40 +458,48 @@ Genera 2 configurazioni alternative con:
         {/* Price Breakdown */}
         <div className="bg-gradient-to-br from-[#343a40]/50 to-[#495057]/50 backdrop-blur-sm border border-[#f8f9fa]/20 rounded-2xl p-6 shadow-xl">
           <h4 className="font-medium text-[#f8f9fa] mb-4">Riepilogo Preventivo</h4>
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-[#dee2e6]">Base ristrutturazione</span>
-              <span className="text-[#f8f9fa]">€{breakdown.base?.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-[#dee2e6]">Servizi aggiuntivi</span>
-              <span className="text-[#f8f9fa]">€{breakdown.services?.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-[#dee2e6]">Bagni ({config.bathrooms})</span>
-              <span className="text-[#f8f9fa]">€{breakdown.bathrooms?.toLocaleString()}</span>
-            </div>
-            {windowsPrice > 0 && (
+          {config.squareMeters > 0 ? (
+            <div className="space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="text-[#dee2e6]">Infissi</span>
-                <span className="text-[#f8f9fa]">€{windowsPrice.toLocaleString()}</span>
+                <span className="text-[#dee2e6]">Base ristrutturazione</span>
+                <span className="text-[#f8f9fa]">€{breakdown.base?.toLocaleString()}</span>
               </div>
-            )}
-            <div className="border-t border-[#f8f9fa]/20 pt-3 mt-3">
-              <div className="flex justify-between items-end">
-                <span className="font-medium text-[#f8f9fa]">Totale Stimato</span>
-                <motion.span
-                  key={totalPrice}
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="text-3xl font-light text-transparent bg-clip-text bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef]"
-                >
-                  €{totalPrice.toLocaleString()}
-                </motion.span>
+              {breakdown.services > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#dee2e6]">Servizi aggiuntivi</span>
+                  <span className="text-[#f8f9fa]">€{breakdown.services?.toLocaleString()}</span>
+                </div>
+              )}
+              {breakdown.bathrooms > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#dee2e6]">Bagni ({config.bathrooms})</span>
+                  <span className="text-[#f8f9fa]">€{breakdown.bathrooms?.toLocaleString()}</span>
+                </div>
+              )}
+              {windowsPrice > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#dee2e6]">Infissi</span>
+                  <span className="text-[#f8f9fa]">€{windowsPrice.toLocaleString()}</span>
+                </div>
+              )}
+              <div className="border-t border-[#f8f9fa]/20 pt-3 mt-3">
+                <div className="flex justify-between items-end">
+                  <span className="font-medium text-[#f8f9fa]">Totale Stimato</span>
+                  <motion.span
+                    key={totalPrice}
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="text-3xl font-light text-transparent bg-clip-text bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef]"
+                  >
+                    €{totalPrice.toLocaleString()}
+                  </motion.span>
+                </div>
+                <p className="text-xs text-[#adb5bd] text-right mt-1">IVA esclusa</p>
               </div>
-              <p className="text-xs text-[#adb5bd] text-right mt-1">IVA esclusa</p>
             </div>
-          </div>
+          ) : (
+            <p className="text-[#6c757d] text-sm text-center py-4">Inserisci la superficie per calcolare il preventivo</p>
+          )}
         </div>
       </div>
     </div>
