@@ -63,9 +63,11 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { convertToWebP } from '../utils/imageConverter';
 import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function Dashboard() {
   const { user } = useUser();
+  const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');

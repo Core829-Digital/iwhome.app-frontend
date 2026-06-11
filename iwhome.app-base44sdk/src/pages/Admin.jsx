@@ -26,7 +26,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
+import { useToast } from '@/components/ui/use-toast';
 
 import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
 
@@ -54,6 +54,7 @@ export default function Admin() {
     const deleteUserMutation = useMutation(api.users.deleteUser);
     const runMigration = useMutation(api.migrate.runMigration);
 
+    const { toast } = useToast();
     const [migrationResult, setMigrationResult] = useState(null);
     const [migrationRunning, setMigrationRunning] = useState(false);
 
@@ -65,7 +66,7 @@ export default function Admin() {
             const result = await runMigration({});
             setMigrationResult(result);
         } catch (err) {
-            alert('Errore migrazione: ' + (err.message || err));
+            toast({ title: "Errore", description: 'Errore migrazione: ' + (err.message || err), variant: "destructive" });
         } finally {
             setMigrationRunning(false);
         }
