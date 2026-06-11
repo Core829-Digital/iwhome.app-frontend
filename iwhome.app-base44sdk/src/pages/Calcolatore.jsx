@@ -1,27 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar as DateCalendar } from '@/components/ui/calendar';
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import WindowCalculator from '../components/calculator/WindowCalculator';
-import ProjectCalculator from '../components/calculator/ProjectCalculator';
 import CalcolatoreEdilizia from '../components/calculator/CalcolatoreEdilizia';
-import CalcolatoreRender3D from '../components/calculator/CalcolatoreRender3D';
 import QuoteDownload from '../components/quote/QuoteDownload';
 import { format, isBefore, isWeekend, startOfToday } from 'date-fns';
 import { it } from 'date-fns/locale';
 import {
   Layers,
-  Home,
   HardHat,
-  Box,
+  ArrowLeft,
   ArrowRight,
   Mail,
   Phone,
@@ -45,22 +41,12 @@ export default function Calcolatore() {
   const createPublicQuote = useMutation(api.quotes.createPublic);
   const createPublicAppointment = useMutation(api.appointments.createPublic);
 
-  // ── Quote state ──
-  const [quoteType, setQuoteType] = useState('chiavi_in_mano');
-  const [chiavSubTab, setChiavSubTab] = useState('infissi');
-  const [includeWindows, setIncludeWindows] = useState(true);
-  const [windowConfig, setWindowConfig] = useState(null);
-  const [projectConfig, setProjectConfig] = useState(null);
-  const [ediliziaPrice, setEdiliziaPrice] = useState(0);
-  const [showForm, setShowForm] = useState(false);
+  // ── Step: null = onboarding, 'finestre' | 'edilizia' = calculator ──
+  const [step, setStep] = useState(null);
 
-  // Reset state when switching quote type
-  useEffect(() => {
-    setWindowConfig(null);
-    setProjectConfig(null);
-    setIncludeWindows(true);
-    setChiavSubTab('infissi');
-  }, [quoteType]);
+  // ── Window quote state ──
+  const [windowConfig, setWindowConfig] = useState(null);
+  const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -82,6 +68,13 @@ export default function Calcolatore() {
     aptDate ? { date: format(aptDate, 'yyyy-MM-dd') } : 'skip'
   ) ?? [];
 
+  // Reset window state when going back to onboarding
+  const handleBack = () => {
+    setStep(null);
+    setWindowConfig(null);
+    setShowForm(false);
+  };
+
   // Pre-fill form if user is logged in
   useEffect(() => {
     if (user) {
@@ -98,12 +91,7 @@ export default function Calcolatore() {
   };
 
   const getTotalPrice = () => {
-    if (quoteType === 'finestre') {
-      return windowConfig?.estimatedPrice ?? 0;
-    } else {
-      const windowsPrice = includeWindows ? (windowConfig?.estimatedPrice ?? 0) : 0;
-      return projectConfig?.estimatedPrice ?? windowsPrice;
-    }
+    return windowConfig?.estimatedPrice ?? 0;
   };
 
   const validateForm = () => {
@@ -128,9 +116,6 @@ export default function Calcolatore() {
     setFormErrors({ full_name: '', email: '', phone: '' });
     setIsSubmitting(true);
 
-    // null → undefined: Convex v.optional() expects absent field, not null
-    const windowCfg = (quoteType === 'finestre' || includeWindows) && windowConfig ? windowConfig : undefined;
-    const projectCfg = quoteType === 'chiavi_in_mano' && projectConfig ? projectConfig : undefined;
     const totalPrice = getTotalPrice() > 0 ? getTotalPrice() : undefined;
 
     const quoteData = {
@@ -138,9 +123,8 @@ export default function Calcolatore() {
       email: formData.email.trim(),
       phone: formData.phone.trim(),
       notes: formData.notes.trim() || undefined,
-      quote_type: quoteType === 'finestre' ? 'finestre' : (includeWindows ? 'completo' : 'chiavi_in_mano'),
-      window_config: windowCfg,
-      project_config: projectCfg,
+      quote_type: 'finestre',
+      window_config: windowConfig || undefined,
       estimated_price: totalPrice,
     };
 
@@ -165,7 +149,7 @@ export default function Calcolatore() {
         phone: formData.phone,
         appointment_date: format(aptDate, 'yyyy-MM-dd'),
         appointment_time: aptTime,
-        project_type: quoteType === 'finestre' ? 'finestre' : 'chiavi_in_mano',
+        project_type: 'finestre',
         notes: formData.notes || undefined,
       });
       setAptBooked(true);
@@ -177,11 +161,8 @@ export default function Calcolatore() {
     }
   };
 
-  // Show bottom PDF/submit section only for finestre, or chiavi_in_mano with infissi sub-tab
-  const showBottomSection = quoteType === 'finestre' || (quoteType === 'chiavi_in_mano' && chiavSubTab === 'infissi');
-
   // ────────────────────────────────────────────────────────
-  // SUBMITTED STATE — quote success + optional appointment
+  // SUBMITTED STATE
   // ────────────────────────────────────────────────────────
   if (submitted) {
     if (aptBooked) {
@@ -221,7 +202,6 @@ export default function Calcolatore() {
         />
 
         <div className="relative z-10 max-w-2xl mx-auto space-y-6">
-          {/* Quote success card */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -236,7 +216,6 @@ export default function Calcolatore() {
             </p>
           </motion.div>
 
-          {/* Appointment booking card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -254,7 +233,6 @@ export default function Calcolatore() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Date picker */}
               <div>
                 <Label className="text-[#f8f9fa] mb-3 block">Scegli una data</Label>
                 <div className="bg-[#343a40]/50 backdrop-blur-sm border border-[#f8f9fa]/10 rounded-2xl p-3">
@@ -272,8 +250,6 @@ export default function Calcolatore() {
                   />
                 </div>
               </div>
-
-              {/* Time slots */}
               <div>
                 <Label className="text-[#f8f9fa] mb-3 block">Scegli un orario</Label>
                 <div className="grid grid-cols-3 gap-2">
@@ -300,7 +276,6 @@ export default function Calcolatore() {
                     );
                   })}
                 </div>
-
                 {aptDate && aptTime && (
                   <motion.div
                     initial={{ opacity: 0, y: 8 }}
@@ -348,271 +323,147 @@ export default function Calcolatore() {
   }
 
   // ────────────────────────────────────────────────────────
-  // MAIN CALCULATOR PAGE
+  // ONBOARDING — no calculator selected yet
   // ────────────────────────────────────────────────────────
-  return (
-    <div>
-      {/* Hero */}
-      <section className="relative py-20 lg:py-32 bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] overflow-hidden">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-[#f8f9fa]/10 to-transparent rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.5, 0.2] }}
-          transition={{ duration: 10, repeat: Infinity, delay: 2 }}
-          className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-[#e9ecef]/10 to-transparent rounded-full blur-3xl"
-        />
-
-        <div className="relative max-w-7xl mx-auto px-6">
+  if (!step) {
+    return (
+      <div>
+        {/* Hero */}
+        <section className="relative py-20 lg:py-32 bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] overflow-hidden">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center"
-          >
-            <span className="text-[#f8f9fa] text-sm tracking-widest uppercase">Calcolatore Online</span>
-            <h1 className="text-4xl lg:text-6xl font-light text-[#f8f9fa] mt-4 mb-6">
-              Calcola il tuo <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef]">preventivo</span>
-            </h1>
-            <p className="text-[#dee2e6] max-w-2xl mx-auto text-lg">
-              Configura il tuo progetto e ottieni un preventivo dettagliato.
-              I prezzi potranno essere perfezionati durante la consulenza.
-            </p>
-          </motion.div>
-        </div>
-      </section>
+            animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+            transition={{ duration: 8, repeat: Infinity }}
+            className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-[#f8f9fa]/10 to-transparent rounded-full blur-3xl"
+          />
+          <motion.div
+            animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.5, 0.2] }}
+            transition={{ duration: 10, repeat: Infinity, delay: 2 }}
+            className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-[#e9ecef]/10 to-transparent rounded-full blur-3xl"
+          />
 
-      {/* Type Selection */}
-      <section className="relative py-12 bg-gradient-to-b from-[#495057] to-[#6c757d] border-b border-[#f8f9fa]/10 overflow-hidden">
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle, #f8f9fa 1px, transparent 1px)`,
-            backgroundSize: '40px 40px',
-          }} />
-        </div>
-        <div className="relative max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row gap-4 justify-center">
-
-            {/* Solo Infissi */}
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              whileHover={{ y: -5, scale: 1.02 }}
-              onClick={() => setQuoteType('finestre')}
-              className={`flex items-center gap-4 px-8 py-5 rounded-2xl border-2 transition-all shadow-xl hover-lift ${quoteType === 'finestre'
-                ? 'border-[#f8f9fa] bg-gradient-to-br from-[#f8f9fa]/20 to-[#e9ecef]/10 backdrop-blur-sm'
-                : 'border-[#f8f9fa]/20 bg-[#495057]/50 backdrop-blur-sm hover:border-[#f8f9fa]/40'
-                }`}
+          <div className="relative max-w-7xl mx-auto px-6">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="text-center"
             >
-              <motion.div
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.6 }}
-                className={`w-12 h-12 rounded-xl flex items-center justify-center ${quoteType === 'finestre' ? 'bg-[#f8f9fa]/30' : 'bg-[#f8f9fa]/10'}`}
-              >
-                <Layers size={24} className={quoteType === 'finestre' ? 'text-[#f8f9fa]' : 'text-[#dee2e6]'} />
-              </motion.div>
-              <div className="text-left">
-                <div className={`font-medium ${quoteType === 'finestre' ? 'text-[#f8f9fa]' : 'text-[#dee2e6]'}`}>
-                  Solo Infissi
-                </div>
-                <div className="text-sm text-[#adb5bd]">Finestre e Porte Finestre in PVC</div>
-              </div>
-            </motion.button>
-
-            {/* Chiavi in Mano */}
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              whileHover={{ y: -5, scale: 1.02 }}
-              onClick={() => setQuoteType('chiavi_in_mano')}
-              className={`flex items-center gap-4 px-8 py-5 rounded-2xl border-2 transition-all shadow-xl hover-lift ${quoteType === 'chiavi_in_mano'
-                ? 'border-[#f8f9fa] bg-gradient-to-br from-[#f8f9fa]/20 to-[#e9ecef]/10 backdrop-blur-sm'
-                : 'border-[#f8f9fa]/20 bg-[#495057]/50 backdrop-blur-sm hover:border-[#f8f9fa]/40'
-                }`}
-            >
-              <motion.div
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.6 }}
-                className={`w-12 h-12 rounded-xl flex items-center justify-center ${quoteType === 'chiavi_in_mano' ? 'bg-[#f8f9fa]/30' : 'bg-[#f8f9fa]/10'}`}
-              >
-                <Home size={24} className={quoteType === 'chiavi_in_mano' ? 'text-[#f8f9fa]' : 'text-[#dee2e6]'} />
-              </motion.div>
-              <div className="text-left">
-                <div className={`font-medium ${quoteType === 'chiavi_in_mano' ? 'text-[#f8f9fa]' : 'text-[#dee2e6]'}`}>
-                  Progetto Chiavi in Mano
-                </div>
-                <div className="text-sm text-[#adb5bd]">Ristrutturazione completa, edilizia e render 3D</div>
-              </div>
-            </motion.button>
-
+              <span className="text-[#f8f9fa] text-sm tracking-widest uppercase">Calcolatore Online</span>
+              <h1 className="text-4xl lg:text-6xl font-light text-[#f8f9fa] mt-4 mb-6">
+                Cosa vuoi <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef">calcolare</span>?
+              </h1>
+              <p className="text-[#dee2e6] max-w-2xl mx-auto text-lg">
+                Scegli il tipo di preventivo che ti interessa e configuralo in pochi passi.
+              </p>
+            </motion.div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Calculators */}
-      <section className="relative py-12 lg:py-20 bg-gradient-to-b from-[#6c757d] via-[#495057] to-[#343a40] overflow-hidden">
-        <motion.div
-          animate={{ rotate: [0, 360] }}
-          transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
-          className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-[#f8f9fa]/5 to-transparent rounded-full blur-3xl"
-        />
-        <div className="max-w-5xl mx-auto px-6">
-          <AnimatePresence mode="wait">
+        {/* Onboarding cards */}
+        <section className="relative py-16 lg:py-24 bg-gradient-to-b from-[#495057] to-[#6c757d] overflow-hidden">
+          <div className="max-w-5xl mx-auto px-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
 
-            {/* Solo Infissi */}
-            {quoteType === 'finestre' && (
-              <motion.div
-                key="finestre"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                whileHover={{ y: -6, scale: 1.02 }}
+                onClick={() => setStep('finestre')}
+                className="group bg-gradient-to-br from-[#343a40] to-[#495057] border-2 border-[#f8f9fa]/20 hover:border-[#f8f9fa]/50 rounded-3xl p-8 text-left shadow-xl transition-all"
               >
-                <WindowCalculator onQuoteChange={setWindowConfig} />
-              </motion.div>
-            )}
-
-            {/* Chiavi in Mano */}
-            {quoteType === 'chiavi_in_mano' && (
-              <motion.div
-                key="chiavi_in_mano"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="space-y-8"
-              >
-                {/* Sub-tab navigation */}
-                <div className="flex gap-1.5 bg-[#212529]/60 border border-[#f8f9fa]/10 rounded-2xl p-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setChiavSubTab('infissi')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                      chiavSubTab === 'infissi'
-                        ? 'bg-gradient-to-br from-[#f8f9fa]/20 to-[#e9ecef]/10 text-[#f8f9fa] border border-[#f8f9fa]/20'
-                        : 'text-[#adb5bd] hover:text-[#dee2e6] hover:bg-[#f8f9fa]/5'
-                    }`}
-                  >
-                    <Layers size={15} />
-                    <span className="hidden sm:inline">Infissi &amp; Progetto</span>
-                    <span className="sm:hidden">Progetto</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setChiavSubTab('edilizia')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                      chiavSubTab === 'edilizia'
-                        ? 'bg-gradient-to-br from-orange-400/20 to-orange-500/10 text-orange-200 border border-orange-400/30'
-                        : 'text-[#adb5bd] hover:text-[#dee2e6] hover:bg-[#f8f9fa]/5'
-                    }`}
-                  >
-                    <HardHat size={15} />
-                    <span className="hidden sm:inline">Calcola Edilizia</span>
-                    <span className="sm:hidden">Edilizia</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setChiavSubTab('render3d')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                      chiavSubTab === 'render3d'
-                        ? 'bg-gradient-to-br from-blue-400/20 to-blue-500/10 text-blue-200 border border-blue-400/30'
-                        : 'text-[#adb5bd] hover:text-[#dee2e6] hover:bg-[#f8f9fa]/5'
-                    }`}
-                  >
-                    <Box size={15} />
-                    <span className="hidden sm:inline">Render 3D</span>
-                    <span className="sm:hidden">Render</span>
-                  </button>
+                <div className="w-16 h-16 rounded-2xl bg-[#f8f9fa]/10 flex items-center justify-center mb-6 group-hover:bg-[#f8f9fa]/20 transition-all">
+                  <Layers size={32} className="text-[#f8f9fa]" />
                 </div>
+                <h3 className="text-2xl font-medium text-[#f8f9fa] mb-3">Infissi</h3>
+                <p className="text-[#dee2e6] text-sm leading-relaxed mb-4">
+                  Configura finestre e porte finestre in PVC. Scegli dimensioni, colore, tipo di vetro e ottieni un preventivo istantaneo.
+                </p>
+                <span className="inline-flex items-center gap-2 text-sm font-medium text-[#f8f9fa] group-hover:gap-3 transition-all">
+                  Calcola Preventivo <ArrowRight size={16} />
+                </span>
+              </motion.button>
 
-                {/* Sub-tab content */}
-                <AnimatePresence mode="wait">
-                  {chiavSubTab === 'infissi' && (
-                    <motion.div
-                      key="sub-infissi"
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -16 }}
-                      className="space-y-8"
-                    >
-                      <div className="bg-gradient-to-br from-[#495057] to-[#6c757d] backdrop-blur-sm border border-[#f8f9fa]/20 rounded-2xl p-6 shadow-xl">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-[#f8f9fa]/10 flex items-center justify-center">
-                              <Layers size={24} className="text-[#f8f9fa]" />
-                            </div>
-                            <div>
-                              <div className="font-medium text-[#f8f9fa]">Includi Infissi</div>
-                              <div className="text-sm text-[#dee2e6]">Aggiungi infissi al progetto</div>
-                            </div>
-                          </div>
-                          <Switch
-                            checked={includeWindows}
-                            onCheckedChange={setIncludeWindows}
-                          />
-                        </div>
-                      </div>
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                whileHover={{ y: -6, scale: 1.02 }}
+                onClick={() => setStep('edilizia')}
+                className="group bg-gradient-to-br from-[#343a40] to-[#495057] border-2 border-[#f8f9fa]/20 hover:border-orange-400/50 rounded-3xl p-8 text-left shadow-xl transition-all"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-orange-400/10 flex items-center justify-center mb-6 group-hover:bg-orange-400/20 transition-all">
+                  <HardHat size={32} className="text-orange-300" />
+                </div>
+                <h3 className="text-2xl font-medium text-[#f8f9fa] mb-3">Ristrutturazione Edilizia</h3>
+                <p className="text-[#dee2e6] text-sm leading-relaxed mb-4">
+                  Descrivi il tipo di ristrutturazione, superficie e lavori necessari. Riceverai un preventivo dettagliato via email.
+                </p>
+                <span className="inline-flex items-center gap-2 text-sm font-medium text-orange-300 group-hover:gap-3 transition-all">
+                  Richiedi Preventivo <ArrowRight size={16} />
+                </span>
+              </motion.button>
 
-                      {includeWindows && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                        >
-                          <WindowCalculator onQuoteChange={setWindowConfig} />
-                        </motion.div>
-                      )}
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
-                      <ProjectCalculator
-                        onQuoteChange={setProjectConfig}
-                        windowsPrice={includeWindows ? (windowConfig?.estimatedPrice ?? 0) : 0}
-                      />
-                    </motion.div>
-                  )}
+  // ────────────────────────────────────────────────────────
+  // CALCULATOR: FINESTRE
+  // ────────────────────────────────────────────────────────
+  if (step === 'finestre') {
+    return (
+      <div>
+        {/* Minimal hero */}
+        <section className="relative py-16 bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] overflow-hidden">
+          <motion.div
+            animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+            transition={{ duration: 8, repeat: Infinity }}
+            className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-[#f8f9fa]/10 to-transparent rounded-full blur-3xl"
+          />
+          <div className="relative max-w-7xl mx-auto px-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <button
+                onClick={handleBack}
+                className="flex items-center gap-2 text-[#adb5bd] hover:text-[#f8f9fa] transition-colors mb-6"
+              >
+                <ArrowLeft size={18} />
+                <span className="text-sm">Indietro</span>
+              </button>
+              <h1 className="text-3xl lg:text-4xl font-light text-[#f8f9fa]">
+                Calcola il tuo <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef]">preventivo infissi</span>
+              </h1>
+            </motion.div>
+          </div>
+        </section>
 
-                  {chiavSubTab === 'edilizia' && (
-                    <motion.div
-                      key="sub-edilizia"
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -16 }}
-                    >
-                      <CalcolatoreEdilizia />
-                    </motion.div>
-                  )}
+        {/* WindowCalculator */}
+        <section className="relative py-12 bg-gradient-to-b from-[#6c757d] via-[#495057] to-[#343a40] overflow-hidden">
+          <motion.div
+            animate={{ rotate: [0, 360] }}
+            transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
+            className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-[#f8f9fa]/5 to-transparent rounded-full blur-3xl"
+          />
+          <div className="max-w-5xl mx-auto px-6">
+            <WindowCalculator onQuoteChange={setWindowConfig} />
 
-                  {chiavSubTab === 'render3d' && (
-                    <motion.div
-                      key="sub-render3d"
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -16 }}
-                    >
-                      <CalcolatoreRender3D />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Download & Request Quote */}
-          {showBottomSection && (
+            {/* Download & Request Quote */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="mt-12 space-y-6"
             >
-              {/* Download PDF */}
               <QuoteDownload
                 quoteData={{
-                  quote_type: quoteType === 'finestre' ? 'finestre' : (includeWindows ? 'completo' : 'chiavi_in_mano'),
-                  window_config: quoteType === 'finestre' || includeWindows ? windowConfig : null,
-                  project_config: quoteType === 'chiavi_in_mano' ? projectConfig : null,
+                  quote_type: 'finestre',
+                  window_config: windowConfig,
                   notes: formData.notes
                 }}
                 totalPrice={getTotalPrice()}
               />
 
-              {/* Request Quote */}
               <div className="text-center">
                 {!showForm ? (
                   <motion.button
@@ -745,9 +596,57 @@ export default function Calcolatore() {
                 )}
               </div>
             </motion.div>
-          )}
-        </div>
-      </section>
-    </div>
-  );
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  // ────────────────────────────────────────────────────────
+  // CALCULATOR: EDILIZIA
+  // ────────────────────────────────────────────────────────
+  if (step === 'edilizia') {
+    return (
+      <div>
+        {/* Minimal hero */}
+        <section className="relative py-16 bg-gradient-to-br from-[#212529] via-[#343a40] to-[#495057] overflow-hidden">
+          <motion.div
+            animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+            transition={{ duration: 8, repeat: Infinity }}
+            className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-[#f8f9fa]/10 to-transparent rounded-full blur-3xl"
+          />
+          <div className="relative max-w-7xl mx-auto px-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <button
+                onClick={handleBack}
+                className="flex items-center gap-2 text-[#adb5bd] hover:text-[#f8f9fa] transition-colors mb-6"
+              >
+                <ArrowLeft size={18} />
+                <span className="text-sm">Indietro</span>
+              </button>
+              <h1 className="text-3xl lg:text-4xl font-light text-[#f8f9fa]">
+                Richiedi un preventivo di{' '}
+                <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-orange-300 to-orange-200">ristrutturazione</span>
+              </h1>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* CalcolatoreEdilizia (self-contained with its own form + submit) */}
+        <section className="relative py-12 bg-gradient-to-b from-[#6c757d] via-[#495057] to-[#343a40] overflow-hidden">
+          <motion.div
+            animate={{ rotate: [0, 360] }}
+            transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
+            className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-[#f8f9fa]/5 to-transparent rounded-full blur-3xl"
+          />
+          <div className="max-w-5xl mx-auto px-6">
+            <CalcolatoreEdilizia />
+          </div>
+        </section>
+      </div>
+    );
+  }
 }
