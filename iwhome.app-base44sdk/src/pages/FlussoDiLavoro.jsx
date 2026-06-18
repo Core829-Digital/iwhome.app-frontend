@@ -4,8 +4,8 @@ import { api } from '../../../../Backend/convex/_generated/api';
 import { useUser } from '@clerk/clerk-react';
 import useRBAC from '../hooks/useRBAC';
 import {
-  GitBranch, TrendingUp, DollarSign, Clock, CheckCircle, AlertCircle,
-  Package, Truck, Star, BarChart2, Columns, Filter, ChevronRight
+  GitBranch, DollarSign, Clock, CheckCircle, AlertCircle,
+  Package, BarChart2, Columns, ChevronRight
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

@@ -21,8 +21,6 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
     /** @type {[number, number, number]} */
     const secondary = [108, 117, 125];
     /** @type {[number, number, number]} */
-    const light = [248, 249, 250];
-    /** @type {[number, number, number]} */
     const white = [255, 255, 255];
 
     // Load logo image (black version)

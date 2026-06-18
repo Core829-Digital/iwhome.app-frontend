@@ -1,16 +1,15 @@
 /// <reference types="vite/client" />
 import React, { useState, useRef, useEffect } from 'react';
 import { validateFiles } from '../lib/security';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
 import { useNavigate } from 'react-router-dom';
 import useRBAC from '../hooks/useRBAC';
 import {
-    Truck, Package, Factory, CreditCard, MapPin, Search, Plus, Edit, Trash2,
-    ChevronRight, Clock, CheckCircle, XCircle, AlertCircle, Loader2,
+    Truck, Package, Factory, CreditCard, MapPin, Search, Plus, Trash2, CheckCircle, XCircle, Loader2,
     FileText, Send, Eye, Calendar, MessageCircle, Phone, UserPlus,
-    Copy, Mail, Shield, Star, PhoneCall, User, Hash, Building2, ExternalLink,
+    Copy, Mail, Shield, PhoneCall, User, Hash, Building2,
     Lock, Unlock, ArrowRight, Link2, Paperclip
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';

@@ -35,7 +35,6 @@ import {
   XCircle,
   Clock,
   AlertCircle,
-  Loader2,
   FolderOpen
 } from 'lucide-react';
 

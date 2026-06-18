@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 
 
-import { Upload, FileText, Check, X, Loader2 } from 'lucide-react';
+import { Upload, FileText, Check, X } from 'lucide-react';
 import { createPageUrl } from '../utils';
 
 export default function UploadDocument() {

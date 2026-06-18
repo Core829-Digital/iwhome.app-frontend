@@ -7,14 +7,13 @@ import { useNavigate } from 'react-router-dom';
 import useRBAC from '../hooks/useRBAC';
 import { useUser } from "@clerk/clerk-react";
 import {
-    Users, UserPlus, Search, Clock, MapPin, Phone, Mail, Briefcase,
-    Edit, Trash2, Loader2, CheckCircle, XCircle, Plus, Eye,
-    HardHat, Activity, ChevronRight, MessageCircle, Send, PhoneCall,
+    Users, UserPlus, Search, Clock, MapPin, Phone, Mail, Briefcase, Trash2, Loader2, CheckCircle, XCircle,
+    HardHat, MessageCircle, Send, PhoneCall,
     CreditCard, ExternalLink, CalendarDays, Building2, Link, Shield, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';

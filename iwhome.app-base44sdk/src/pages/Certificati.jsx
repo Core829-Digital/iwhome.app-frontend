@@ -8,11 +8,11 @@ import useRBAC from '../hooks/useRBAC';
 import { useUser } from "@clerk/clerk-react";
 import {
     Shield, FileCheck, Search, Plus, Loader2, AlertTriangle,
-    CheckCircle, Clock, Download, Eye, Calendar, Building2, Truck, Users, ExternalLink
+    CheckCircle, Clock, Download, Calendar, Building2, Truck, Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
