@@ -72,36 +72,36 @@ const COLORS = [
 const PRICE_TABLE = {
   finestra: {
     '1': {
-      bianco_pasta: { doppio: 334, triplo: 362 },
-      bianco_legno: { doppio: 426, triplo: 449 },
-      effetto_legno: { doppio: 489, triplo: 512 }
+      bianco_pasta: { doppio: 319, triplo: 347 },
+      bianco_legno: { doppio: 407, triplo: 429 },
+      effetto_legno: { doppio: 468, triplo: 490 }
     },
     '2': {
-      bianco_pasta: { doppio: 334, triplo: 362 },
-      bianco_legno: { doppio: 454, triplo: 477 },
-      effetto_legno: { doppio: 495, triplo: 523 }
+      bianco_pasta: { doppio: 319, triplo: 347 },
+      bianco_legno: { doppio: 435, triplo: 457 },
+      effetto_legno: { doppio: 473, triplo: 501 }
     },
     '3': {
-      bianco_pasta: { doppio: 328, triplo: 362 },
-      bianco_legno: { doppio: 489, triplo: 523 },
-      effetto_legno: { doppio: 558, triplo: 581 }
+      bianco_pasta: { doppio: 314, triplo: 347 },
+      bianco_legno: { doppio: 468, triplo: 501 },
+      effetto_legno: { doppio: 534, triplo: 556 }
     }
   },
   porta_finestra: {
     '1': {
-      bianco_pasta: { doppio: 328, triplo: 362 },
-      bianco_legno: { doppio: 391, triplo: 420 },
-      effetto_legno: { doppio: 437, triplo: 472 }
+      bianco_pasta: { doppio: 314, triplo: 347 },
+      bianco_legno: { doppio: 374, triplo: 402 },
+      effetto_legno: { doppio: 418, triplo: 451 }
     },
     '2': {
-      bianco_pasta: { doppio: 339, triplo: 374 },
-      bianco_legno: { doppio: 449, triplo: 477 },
-      effetto_legno: { doppio: 483, triplo: 512 }
+      bianco_pasta: { doppio: 325, triplo: 358 },
+      bianco_legno: { doppio: 429, triplo: 457 },
+      effetto_legno: { doppio: 462, triplo: 490 }
     },
     '3': {
-      bianco_pasta: { doppio: 293, triplo: 374 },
-      bianco_legno: { doppio: 437, triplo: 466 },
-      effetto_legno: { doppio: 489, triplo: 512 }
+      bianco_pasta: { doppio: 281, triplo: 358 },
+      bianco_legno: { doppio: 418, triplo: 446 },
+      effetto_legno: { doppio: 468, triplo: 490 }
     }
   }
 };
