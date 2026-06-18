@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../Backend/convex/_generated/api";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Check, Lock, FileText, Eye } from 'lucide-react';
+import { BarChart, Lock, FileText, Eye } from 'lucide-react';
 
 export default function PollMessage({ pollId, userEmail, isAdmin, onViewPdf }) {
     const poll = useQuery(api.quote_polls.getPoll, { poll_id: pollId });

@@ -14,7 +14,6 @@ import {
   Share2,
   Calendar,
   Users,
-  Building,
   Search
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';

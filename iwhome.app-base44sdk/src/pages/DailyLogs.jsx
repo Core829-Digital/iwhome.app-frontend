@@ -12,10 +12,7 @@ import {
   Clock,
   ChevronLeft,
   Search,
-  CheckCircle2,
-  Clock3,
-  TrendingUp,
-  FileText
+  CheckCircle2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';

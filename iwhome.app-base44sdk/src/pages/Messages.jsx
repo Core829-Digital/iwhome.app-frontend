@@ -37,7 +37,6 @@ import {
   Trash2,
   FileText,
   Eye,
-  CheckCircle,
   Loader2
 } from 'lucide-react';
 

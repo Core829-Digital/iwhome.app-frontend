@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 import { Card } from '@/components/ui/card';
-import { User, Mail, Phone, Building, Save, Check, Camera, Briefcase, ShieldCheck, HardHat, Users, Loader2 } from 'lucide-react';
+import { User, Mail, Phone, Save, Check, Camera, Briefcase, ShieldCheck, HardHat, Users } from 'lucide-react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../Backend/convex/_generated/api";
 import { useToast } from '@/components/ui/use-toast';

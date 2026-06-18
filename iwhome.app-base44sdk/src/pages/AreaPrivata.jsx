@@ -7,7 +7,7 @@ import { useUser } from '@clerk/clerk-react';
 import {
     FileText, CreditCard, HardHat, FolderOpen, Clock, CheckCircle, XCircle,
     Upload, Loader2, AlertTriangle, Calendar, Eye, Download, RefreshCw, Activity,
-    User, Package, Truck, Zap, Star, Circle
+    User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

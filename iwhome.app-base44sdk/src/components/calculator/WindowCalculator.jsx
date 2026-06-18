@@ -72,36 +72,36 @@ const COLORS = [
 const PRICE_TABLE = {
   finestra: {
     '1': {
-      bianco_pasta: { doppio: 290, triplo: 315 },
-      bianco_legno: { doppio: 370, triplo: 390 },
-      effetto_legno: { doppio: 425, triplo: 445 }
+      bianco_pasta: { doppio: 319, triplo: 347 },
+      bianco_legno: { doppio: 407, triplo: 429 },
+      effetto_legno: { doppio: 468, triplo: 490 }
     },
     '2': {
-      bianco_pasta: { doppio: 290, triplo: 315 },
-      bianco_legno: { doppio: 395, triplo: 415 },
-      effetto_legno: { doppio: 430, triplo: 455 }
+      bianco_pasta: { doppio: 319, triplo: 347 },
+      bianco_legno: { doppio: 435, triplo: 457 },
+      effetto_legno: { doppio: 473, triplo: 501 }
     },
     '3': {
-      bianco_pasta: { doppio: 285, triplo: 315 },
-      bianco_legno: { doppio: 425, triplo: 455 },
-      effetto_legno: { doppio: 485, triplo: 505 }
+      bianco_pasta: { doppio: 314, triplo: 347 },
+      bianco_legno: { doppio: 468, triplo: 501 },
+      effetto_legno: { doppio: 534, triplo: 556 }
     }
   },
   porta_finestra: {
     '1': {
-      bianco_pasta: { doppio: 285, triplo: 315 },
-      bianco_legno: { doppio: 340, triplo: 365 },
-      effetto_legno: { doppio: 380, triplo: 410 }
+      bianco_pasta: { doppio: 314, triplo: 347 },
+      bianco_legno: { doppio: 374, triplo: 402 },
+      effetto_legno: { doppio: 418, triplo: 451 }
     },
     '2': {
-      bianco_pasta: { doppio: 295, triplo: 325 },
-      bianco_legno: { doppio: 390, triplo: 415 },
-      effetto_legno: { doppio: 420, triplo: 445 }
+      bianco_pasta: { doppio: 325, triplo: 358 },
+      bianco_legno: { doppio: 429, triplo: 457 },
+      effetto_legno: { doppio: 462, triplo: 490 }
     },
     '3': {
-      bianco_pasta: { doppio: 255, triplo: 325 },
-      bianco_legno: { doppio: 380, triplo: 405 },
-      effetto_legno: { doppio: 425, triplo: 445 }
+      bianco_pasta: { doppio: 281, triplo: 358 },
+      bianco_legno: { doppio: 418, triplo: 446 },
+      effetto_legno: { doppio: 468, triplo: 490 }
     }
   }
 };
@@ -120,34 +120,33 @@ const WINDOW_IMAGES = {
   }
 };
 
+const INITIAL_CONFIG = {
+  material: 'pvc',
+  windowType: 'finestra',
+  quantity: 1,
+  ante: '1',
+  width: null,
+  height: null,
+  glassType: 'doppio',
+  color: 'bianco_pasta'
+};
+
 export default function WindowCalculator({ onQuoteChange }) {
-  const [config, setConfig] = useState({
-    material: 'pvc',
-    windowType: 'finestra',
-    quantity: 1,
-    ante: '1',
-    width: 120,
-    height: 140,
-    glassType: 'doppio',
-    color: 'bianco_pasta'
-  });
+  const [config, setConfig] = useState({ ...INITIAL_CONFIG });
 
   const [windows, setWindows] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
   const [currentPrice, setCurrentPrice] = useState(0);
-  const [hasInteracted, setHasInteracted] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState(null);
   const [alternatives, setAlternatives] = useState([]);
   const [loadingAI, setLoadingAI] = useState(false);
-  const [showAI, setShowAI] = useState(false);
+  const [showAI] = useState(false);
 
-  const handleConfigChange = (updates) => {
-    setHasInteracted(true);
-    setConfig(prev => ({ ...prev, ...updates }));
-  };
+  const isConfigValid = config.width !== null && config.width >= 40
+    && config.height !== null && config.height >= 40;
 
   useEffect(() => {
-    if (hasInteracted) {
+    if (isConfigValid) {
       calculatePrice();
     } else {
       setCurrentPrice(0);
@@ -155,7 +154,7 @@ export default function WindowCalculator({ onQuoteChange }) {
       setTotalPrice(windowsTotal);
       onQuoteChange?.({ windows, estimatedPrice: windowsTotal });
     }
-  }, [config, hasInteracted]);
+  }, [config, windows]);
 
   useEffect(() => {
     if (showAI) {
@@ -164,6 +163,7 @@ export default function WindowCalculator({ onQuoteChange }) {
   }, [config, showAI]);
 
   const calculatePrice = () => {
+    if (!isConfigValid) return;
     const area = (config.width * config.height) / 10000;
     const pricePerSqm = PRICE_TABLE[config.windowType][config.ante][config.color][config.glassType];
     const price = Math.round(pricePerSqm * area * config.quantity);
@@ -180,6 +180,8 @@ export default function WindowCalculator({ onQuoteChange }) {
   };
 
   const addWindow = () => {
+    if (!isConfigValid) return;
+
     const area = (config.width * config.height) / 10000;
     const pricePerSqm = PRICE_TABLE[config.windowType][config.ante][config.color][config.glassType];
     const price = Math.round(pricePerSqm * area * config.quantity);
@@ -196,18 +198,7 @@ export default function WindowCalculator({ onQuoteChange }) {
     setWindows(updatedWindows);
 
     // Reset config for new window
-    setConfig({
-      material: 'pvc',
-      windowType: 'finestra',
-      quantity: 1,
-      ante: '1',
-      width: 120,
-      height: 140,
-      glassType: 'doppio',
-      color: 'bianco_pasta'
-    });
-
-    setHasInteracted(false);
+    setConfig({ ...INITIAL_CONFIG });
 
     // Update total
     const newTotal = updatedWindows.reduce((sum, w) => sum + w.price, 0);
@@ -498,7 +489,7 @@ Inoltre genera 2 alternative comparative con:
             </div>
             <div className="space-y-3">
               <Slider
-                value={[config.width]}
+                value={[config.width ?? 40]}
                 onValueChange={([value]) => setConfig((prev) => ({ ...prev, width: value }))}
                 min={40}
                 max={300}
@@ -507,7 +498,7 @@ Inoltre genera 2 alternative comparative con:
               />
               <div className="flex justify-between text-sm text-[#dee2e6]">
                 <span>40 cm</span>
-                <span className="font-medium text-[#f8f9fa]">{config.width} cm</span>
+                <span className="font-medium text-[#f8f9fa]">{config.width ? `${config.width} cm` : '—'}</span>
                 <span>300 cm</span>
               </div>
             </div>
@@ -521,7 +512,7 @@ Inoltre genera 2 alternative comparative con:
             </div>
             <div className="space-y-3">
               <Slider
-                value={[config.height]}
+                value={[config.height ?? 40]}
                 onValueChange={([value]) => setConfig((prev) => ({ ...prev, height: value }))}
                 min={40}
                 max={280}
@@ -530,7 +521,7 @@ Inoltre genera 2 alternative comparative con:
               />
               <div className="flex justify-between text-sm text-[#dee2e6]">
                 <span>40 cm</span>
-                <span className="font-medium text-[#f8f9fa]">{config.height} cm</span>
+                <span className="font-medium text-[#f8f9fa]">{config.height ? `${config.height} cm` : '—'}</span>
                 <span>280 cm</span>
               </div>
             </div>
@@ -685,14 +676,24 @@ Inoltre genera 2 alternative comparative con:
         )}
 
         {/* Add Window Button */}
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-2">
           <Button
             onClick={addWindow}
-            className="px-6 py-3 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-xl"
+            disabled={!isConfigValid}
+            className={`px-6 py-3 rounded-full transition-all ${
+              isConfigValid
+                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-xl'
+                : 'bg-[#343a40]/50 text-[#6c757d] cursor-not-allowed'
+            }`}
           >
             <Plus size={18} className="mr-2" />
             Aggiungi Finestra al Preventivo
           </Button>
+          {!isConfigValid && (
+            <p className="text-[#adb5bd] text-xs text-center">
+              Imposta larghezza e altezza per aggiungere la finestra
+            </p>
+          )}
         </div>
 
         {/* Price Display */}

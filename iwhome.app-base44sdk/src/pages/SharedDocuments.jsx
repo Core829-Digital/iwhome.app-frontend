@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 
 
 import UniversalPdfViewer from '../components/dashboard/UniversalPdfViewer';
-import { FileText, Eye, Share2, Search, Loader2 } from 'lucide-react';
+import { FileText, Eye, Share2, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 export default function SharedDocuments() {
