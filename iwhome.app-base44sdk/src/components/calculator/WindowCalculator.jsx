@@ -125,8 +125,8 @@ const INITIAL_CONFIG = {
   windowType: 'finestra',
   quantity: 1,
   ante: '1',
-  width: 120,
-  height: 140,
+  width: null,
+  height: null,
   glassType: 'doppio',
   color: 'bianco_pasta'
 };
@@ -498,7 +498,7 @@ Inoltre genera 2 alternative comparative con:
               />
               <div className="flex justify-between text-sm text-[#dee2e6]">
                 <span>40 cm</span>
-                <span className="font-medium text-[#f8f9fa]">{config.width} cm</span>
+                <span className="font-medium text-[#f8f9fa]">{config.width ? `${config.width} cm` : '—'}</span>
                 <span>300 cm</span>
               </div>
             </div>
@@ -521,7 +521,7 @@ Inoltre genera 2 alternative comparative con:
               />
               <div className="flex justify-between text-sm text-[#dee2e6]">
                 <span>40 cm</span>
-                <span className="font-medium text-[#f8f9fa]">{config.height} cm</span>
+                <span className="font-medium text-[#f8f9fa]">{config.height ? `${config.height} cm` : '—'}</span>
                 <span>280 cm</span>
               </div>
             </div>
@@ -676,14 +676,24 @@ Inoltre genera 2 alternative comparative con:
         )}
 
         {/* Add Window Button */}
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-2">
           <Button
             onClick={addWindow}
-            className="px-6 py-3 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-xl"
+            disabled={!isConfigValid}
+            className={`px-6 py-3 rounded-full transition-all ${
+              isConfigValid
+                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-xl'
+                : 'bg-[#343a40]/50 text-[#6c757d] cursor-not-allowed'
+            }`}
           >
             <Plus size={18} className="mr-2" />
             Aggiungi Finestra al Preventivo
           </Button>
+          {!isConfigValid && (
+            <p className="text-[#adb5bd] text-xs text-center">
+              Imposta larghezza e altezza per aggiungere la finestra
+            </p>
+          )}
         </div>
 
         {/* Price Display */}
