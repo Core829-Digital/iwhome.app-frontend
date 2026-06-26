@@ -4,7 +4,7 @@ import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import jsPDF from 'jspdf';
 
-export default function QuoteDownload({ quoteData, totalPrice }) {
+export default function QuoteDownload({ quoteData, totalPrice = 0 }) {
   const generateQuoteNumber = () => {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 1000);
@@ -109,7 +109,21 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
 
       doc.setFillColor(250, 250, 252);
       doc.roundedRect(20, yPos, 170, 60, 2, 2, 'F');
-      doc.addImage(schemaImg, 'PNG', 40, yPos + 5, 130, 50, '', 'FAST');
+
+      // Preserve aspect ratio for schema image
+      const maxSW = 150;
+      const maxSH = 50;
+      let sW = schemaImg.naturalWidth;
+      let sH = schemaImg.naturalHeight;
+      if (sW / sH > maxSW / maxSH) {
+        sW = maxSW;
+        sH = maxSW / (schemaImg.naturalWidth / schemaImg.naturalHeight);
+      } else {
+        sH = maxSH;
+        sW = maxSH * (schemaImg.naturalWidth / schemaImg.naturalHeight);
+      }
+      const sX = 20 + (170 - sW) / 2;
+      doc.addImage(schemaImg, 'PNG', sX, yPos + 5, sW, sH, '', 'FAST');
       yPos += 68;
     }
 
@@ -164,7 +178,21 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
             // Left side: Window preview
             doc.setFillColor(250, 250, 252);
             doc.roundedRect(20, yPos, 55, 60, 2, 2, 'F');
-            doc.addImage(windowImg, 'PNG', 23, yPos + 5, 50, 50, '', 'FAST');
+
+            // Preserve aspect ratio for window preview
+            let wW = windowImg.naturalWidth;
+            let wH = windowImg.naturalHeight;
+            const maxWW = 49;
+            const maxWH = 50;
+            if (wW / wH > maxWW / maxWH) {
+              wW = maxWW;
+              wH = maxWW / (windowImg.naturalWidth / windowImg.naturalHeight);
+            } else {
+              wH = maxWH;
+              wW = maxWH * (windowImg.naturalWidth / windowImg.naturalHeight);
+            }
+            const wX = 20 + (55 - wW) / 2;
+            doc.addImage(windowImg, 'PNG', wX, yPos + 5 + (50 - wH) / 2, wW, wH, '', 'FAST');
 
             // Right side: Specs
             const specsX = 82;
@@ -447,7 +475,7 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
     const disclaimer = [
       '• Prezzo indicativo e stimato - Non rappresenta il costo reale del preventivo finale',
       '• Il prezzo definitivo sarà comunicato dopo un sopralluogo e valutazione specifica',
-      '• Tutti i prezzi includono posa in opera e sono da intendersi IVA esclusa',
+      '• Tutti i prezzi sono da intendersi IVA esclusa',
       '• Per configurazioni diverse o materiali specifici (Alluminio, Legno), contattaci in sede',
       '• Validità preventivo: 30 giorni dalla data di emissione',
       '• Materiali certificati e conformi alle normative vigenti • Garanzia 2 anni'
@@ -492,12 +520,12 @@ export default function QuoteDownload({ quoteData, totalPrice }) {
     doc.setFontSize(26);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...primary);
-    doc.text(`€ ${totalPrice.toLocaleString('it-IT')}`, 185, totalY + 19, { align: 'right' });
+    doc.text(`€ ${(totalPrice || 0).toLocaleString('it-IT')}`, 185, totalY + 19, { align: 'right' });
 
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...secondary);
-    doc.text('Posa inclusa • IVA esclusa', 185, totalY + 26, { align: 'right' });
+    doc.text('IVA esclusa', 185, totalY + 26, { align: 'right' });
 
     // Clean footer with branding - well positioned
     const footerY = 277;

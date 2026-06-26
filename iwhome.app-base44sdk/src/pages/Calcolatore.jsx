@@ -350,7 +350,7 @@ export default function Calcolatore() {
             >
               <span className="text-[#f8f9fa] text-sm tracking-widest uppercase">Calcolatore Online</span>
               <h1 className="text-4xl lg:text-6xl font-light text-[#f8f9fa] mt-4 mb-6">
-                Cosa vuoi <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef">calcolare</span>?
+                Cosa vuoi <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef]">calcolare</span>?
               </h1>
               <p className="text-[#dee2e6] max-w-2xl mx-auto text-lg">
                 Scegli il tipo di preventivo che ti interessa e configuralo in pochi passi.
