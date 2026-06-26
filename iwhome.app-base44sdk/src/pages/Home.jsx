@@ -2,7 +2,6 @@ import React from 'react';
 import DynamicSEO from '../components/seo/DynamicSEO';
 import HeroSection from '../components/home/HeroSection';
 import ServicesSection from '../components/home/ServicesSection';
-import StatsSection from '../components/home/StatsSection';
 import GalleryCarousel from '../components/home/GalleryCarousel';
 import PartnersSection from '../components/home/PartnersSection';
 import MapSection from '../components/home/MapSection';
@@ -36,7 +35,6 @@ export default function Home() {
       />
       <HeroSection />
       <ServicesSection />
-      <StatsSection />
       <GalleryCarousel />
       <PartnersSection />
       <MapSection />

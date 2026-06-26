@@ -726,9 +726,6 @@ Inoltre genera 2 alternative comparative con:
               >
                 €{totalPrice.toLocaleString()}
               </motion.div>
-              <p className="text-[#adb5bd] text-xs mt-1">
-                Posa in opera inclusa - IVA esclusa
-              </p>
             </div>
           </div>
 
