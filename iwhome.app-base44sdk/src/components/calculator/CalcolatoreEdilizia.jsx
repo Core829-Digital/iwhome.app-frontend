@@ -12,62 +12,64 @@ import {
   Send, Check, ChevronDown, ChevronUp, AlertCircle
 } from 'lucide-react';
 
+const DEFAULT_FALLBACK_PRICES = {
+  prezzo_villa: 450, prezzo_casale: 450, prezzo_appartamento: 350, prezzo_fallback: 400,
+  degradato_percent: 0.15, tramezzi_percent: 0.05,
+  elettrico_piccole: 0, elettrico_standard: 50, elettrico_domotico: 75,
+  riscaldamento_escluso: 70, riscaldamento_adeguamento: 25,
+  controsoffittature_mq: 50, porta_unit: 300, finestra_unit: 600,
+  parquet_mq: 20, marmo_mq: 50, monocottura_mq: 0, resina_mq: 150,
+  bagno_unit: 4500, bagni_inclusi: 1, pittura_sconto: 1500,
+};
+
 // ── Pure calculation function ────────────────────────────────────────────────
 function calculateEdilizia(form, prices) {
-  if (!prices) return 0;
+  const p = { ...DEFAULT_FALLBACK_PRICES, ...prices };
   const mq = Number(form.mq) || 0;
   if (mq <= 0 || !form.ubicazione) return 0;
 
-  // 1. Base — prezzo per MQ in base al tipo immobile
   const tipoMap = {
-    villa_unifamiliare: prices.prezzo_villa,
-    casale: prices.prezzo_casale,
-    appartamento: prices.prezzo_appartamento,
+    villa_unifamiliare: p.prezzo_villa,
+    casale: p.prezzo_casale,
+    appartamento: p.prezzo_appartamento,
   };
   const prezzoBaseMq = form.tipo_immobile
-    ? (tipoMap[form.tipo_immobile] ?? prices.prezzo_fallback)
-    : prices.prezzo_fallback;
+    ? (tipoMap[form.tipo_immobile] ?? p.prezzo_fallback)
+    : p.prezzo_fallback;
   let subtotale = mq * prezzoBaseMq;
 
-  // 2. Impianto elettrico (per MQ)
   if (form.impianto_elettrico) {
-    const el = { piccole: prices.elettrico_piccole, standard: prices.elettrico_standard, domotico: prices.elettrico_domotico };
+    const el = { piccole: p.elettrico_piccole, standard: p.elettrico_standard, domotico: p.elettrico_domotico };
     subtotale += mq * (el[form.impianto_elettrico] ?? 0);
   }
 
-  // 3. Riscaldamento (fisso)
   if (form.riscaldamento === 'escluso') {
-    subtotale += prices.riscaldamento_escluso;
+    subtotale += p.riscaldamento_escluso;
   } else if (form.riscaldamento === 'adeguamento') {
-    subtotale += prices.riscaldamento_adeguamento;
+    subtotale += p.riscaldamento_adeguamento;
   }
 
-  // 4. Opere di completamento (MQ)
-  subtotale += (Number(form.controsoffittature_mq) || 0) * prices.controsoffittature_mq;
-  subtotale += (Number(form.parquet_mq) || 0) * prices.parquet_mq;
-  subtotale += (Number(form.marmo_mq) || 0) * prices.marmo_mq;
-  subtotale += (Number(form.monocottura_mq) || 0) * prices.monocottura_mq;
-  subtotale += (Number(form.resina_mq) || 0) * prices.resina_mq;
+  subtotale += (Number(form.controsoffittature_mq) || 0) * p.controsoffittature_mq;
+  subtotale += (Number(form.parquet_mq) || 0) * p.parquet_mq;
+  subtotale += (Number(form.marmo_mq) || 0) * p.marmo_mq;
+  subtotale += (Number(form.monocottura_mq) || 0) * p.monocottura_mq;
+  subtotale += (Number(form.resina_mq) || 0) * p.resina_mq;
 
-  // 5. Opere a corpo/unità
-  subtotale += (Number(form.porte_num) || 0) * prices.porta_unit;
-  subtotale += (Number(form.finestre_num) || 0) * prices.finestra_unit;
+  subtotale += (Number(form.porte_num) || 0) * p.porta_unit;
+  subtotale += (Number(form.finestre_num) || 0) * p.finestra_unit;
 
-  // 6. Bagni — primo incluso, ogni bagno extra oltre il primo
   const bagniCount = Number(form.bagni_num) || 0;
-  subtotale += Math.max(0, bagniCount - prices.bagni_inclusi) * prices.bagno_unit;
+  subtotale += Math.max(0, bagniCount - p.bagni_inclusi) * p.bagno_unit;
 
-  // 7. Pittura — se escluse, sottrai importo fisso
   if (form.pittura === 'escluse') {
-    subtotale -= prices.pittura_sconto;
+    subtotale -= p.pittura_sconto;
   }
 
-  // 8. Percentuali (applicate in sequenza cumulativa sul subtotale corrente)
   if (form.spostamento_tramezzi === 'si') {
-    subtotale *= (1 + prices.tramezzi_percent);
+    subtotale *= (1 + p.tramezzi_percent);
   }
   if (form.stato_conservazione === 'degradato') {
-    subtotale *= (1 + prices.degradato_percent);
+    subtotale *= (1 + p.degradato_percent);
   }
 
   return Math.round(Math.max(0, subtotale));
