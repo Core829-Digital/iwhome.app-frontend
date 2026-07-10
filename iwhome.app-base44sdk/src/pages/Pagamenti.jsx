@@ -212,7 +212,7 @@ export default function Pagamenti() {
                 reference_id: formData.reference_id || 'N/A',
                 reference_name: formData.reference_name || undefined,
                 description: formData.description,
-                amount: parseFloat(formData.amount),
+                amount: (parseFloat(formData.amount) || 0),
                 payment_type: formData.payment_type || undefined,
                 due_date: formData.due_date || undefined,
                 notes: formData.notes || undefined,
@@ -531,9 +531,10 @@ export default function Pagamenti() {
                                     </div>
                                 </div>
                                 <div className="text-right font-mono text-sm bg-black/20 p-3 rounded-lg border border-[#495057] w-full md:w-auto">
-                                    <p className="text-[#f8f9fa]"><span className="text-[#adb5bd] mr-2">IBAN:</span> IT 99 X 01234 56789 000000123456</p>
+                                    <p className="text-[#f8f9fa]"><span className="text-[#adb5bd] mr-2">IBAN:</span> <span className="text-yellow-400">IT 99 X 01234 56789 000000123456</span></p>
                                     <p className="text-[#f8f9fa]"><span className="text-[#adb5bd] mr-2">BIC:</span> ABCITM1RXXX</p>
                                     <p className="text-[#f8f9fa]"><span className="text-[#adb5bd] mr-2">BANCA:</span> IWHome Financial Services</p>
+                                    <p className="text-[#adb5bd] text-xs mt-1 italic">Contatta l'amministratore per verificare le coordinate aggiornate.</p>
                                 </div>
                             </CardContent>
                         </Card>

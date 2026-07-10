@@ -86,7 +86,7 @@ export default function CantieriDashboard() {
     const isClient = convexUser?.role === 'client' || convexUser?.role === 'user';
     const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'superadmin';
     const isWorker = ['collaborator', 'collaborator_internal', 'collaborator_external', 'worker', 'operaio'].includes(convexUser?.role);
-    const isSupervisor = false;
+    const isSupervisor = convexUser?.company_role === "supervisor" || false;
 
     // Queries for Admin/Creation
     const allQuotes = useQuery(api.quotes.getAll, isAdmin ? {} : "skip") || [];

@@ -482,7 +482,7 @@ export default function CalcolatoreEdilizia() {
           </div>
           {estimatedPrice > 0 && (
             <div className="flex-shrink-0 bg-[#495057]/50 rounded-xl p-3 text-right hidden sm:block">
-              <p className="text-[#adb5bd] text-xs">{form.mq} MQ · {form.ubicazione}</p>
+              <p className="text-[#adb5bd] text-xs">{form.mq} MQ · {({ nord: 'Nord Italia', centro: 'Centro Italia', sud: 'Sud Italia' }[form.ubicazione] || form.ubicazione || '—')}</p>
               <p className="text-[#dee2e6] text-xs mt-0.5">
                 ≈ €{form.mq ? Math.round(estimatedPrice / Number(form.mq)).toLocaleString('it-IT') : '-'}/MQ
               </p>

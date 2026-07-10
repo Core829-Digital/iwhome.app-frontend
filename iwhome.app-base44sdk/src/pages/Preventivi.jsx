@@ -1325,19 +1325,57 @@ function QuoteDetailContent({ quote, onViewPdf }) {
             )}
 
             {/* Project Config */}
-            {quote.project_config && (
-                <div className="bg-[#495057]/40 rounded-lg p-3">
-                    <p className="text-xs text-[#adb5bd] mb-2">Configurazione Progetto</p>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                        {Object.entries(quote.project_config).map(([key, value]) => (
-                            <div key={key} className="flex justify-between">
-                                <span className="text-[#adb5bd] capitalize">{key.replace(/_/g, ' ')}:</span>
-                                <span className="text-[#f8f9fa]">{String(value)}</span>
+            {quote.project_config && (() => {
+                const pc = quote.project_config;
+                if (quote.quote_type === 'edilizia') {
+                    const labels = {
+                        mq: { label: 'Superficie', fmt: (v) => `${v} MQ` },
+                        tipo_immobile: { label: 'Tipo Immobile', fmt: (v) => ({ villa_unifamiliare: 'Villa Unifamiliare', casale: 'Casale', appartamento: 'Appartamento' }[v] || v) },
+                        ubicazione: { label: 'Ubicazione', fmt: (v) => ({ nord: 'Nord Italia', centro: 'Centro Italia', sud: 'Sud Italia' }[v] || v) },
+                        stato_conservazione: { label: 'Stato di Conservazione', fmt: (v) => ({ media: 'Nella media', degradato: 'Degradato' }[v] || v) },
+                        spostamento_tramezzi: { label: 'Spostamento Tramezzi', fmt: (v) => v === 'si' ? 'Sì' : '' },
+                        impianto_elettrico: { label: 'Impianto Elettrico', fmt: (v) => ({ piccole: 'Piccole modifiche', standard: 'Nuovo impianto standard', domotico: 'Nuovo impianto domotico' }[v] || v) },
+                        riscaldamento: { label: 'Riscaldamento', fmt: (v) => ({ incluso: 'Incluso', escluso: 'Da realizzare', adeguamento: 'Lavori di adeguamento' }[v] || v) },
+                        controsoffittature_mq: { label: 'Controsoffittature', fmt: (v) => `${v} MQ` },
+                        porte_num: { label: 'Porte', fmt: (v) => `${v} n.` },
+                        finestre_num: { label: 'Finestre', fmt: (v) => `${v} n.` },
+                        parquet_mq: { label: 'Parquet', fmt: (v) => `${v} MQ` },
+                        marmo_mq: { label: 'Marmo', fmt: (v) => `${v} MQ` },
+                        monocottura_mq: { label: 'Monocottura', fmt: (v) => `${v} MQ` },
+                        resina_mq: { label: 'Resina', fmt: (v) => `${v} MQ` },
+                        bagni_num: { label: 'Bagni', fmt: (v) => `${v} n.` },
+                        pittura: { label: 'Pittura', fmt: (v) => ({ incluse: 'Incluse', escluse: 'Escluse' }[v] || v) },
+                    };
+                    const rows = Object.entries(labels).filter(([k, _]) => pc[k] !== undefined && pc[k] !== '' && pc[k] !== null);
+                    if (rows.length === 0) return null;
+                    return (
+                        <div className="bg-[#495057]/40 rounded-lg p-3">
+                            <p className="text-xs text-[#adb5bd] mb-2">Configurazione Ristrutturazione</p>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                                {rows.map(([key, { label, fmt }]) => (
+                                    <div key={key} className="flex justify-between">
+                                        <span className="text-[#adb5bd]">{label}:</span>
+                                        <span className="text-[#f8f9fa]">{fmt(pc[key])}</span>
+                                    </div>
+                                ))}
                             </div>
-                        ))}
+                        </div>
+                    );
+                }
+                return (
+                    <div className="bg-[#495057]/40 rounded-lg p-3">
+                        <p className="text-xs text-[#adb5bd] mb-2">Configurazione Progetto</p>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                            {Object.entries(quote.project_config).map(([key, value]) => (
+                                <div key={key} className="flex justify-between">
+                                    <span className="text-[#adb5bd] capitalize">{key.replace(/_/g, ' ')}:</span>
+                                    <span className="text-[#f8f9fa]">{String(value)}</span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
         </div>
     );
 }

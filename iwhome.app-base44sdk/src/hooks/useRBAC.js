@@ -56,7 +56,7 @@ export function useRBAC() {
     const isSupplier = role === "supplier";
     const isCollaborator = baseRole === "collaborator";
     const isClient = role === "client";
-    const isSupervisor = false;
+    const isSupervisor = convexUser?.company_role === "supervisor" || false;
     const isPending = !role && convexUser !== undefined && convexUser !== null;
 
     // RBAC: Get linked supplier record when role is 'supplier'.
