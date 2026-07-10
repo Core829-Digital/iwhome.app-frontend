@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useQuery, useMutation } from 'convex/react';
+import { RotateCcw } from 'lucide-react';
 import { api } from '../../../../Backend/convex/_generated/api';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -71,6 +72,8 @@ export default function Prezzi() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const resetPrices = useMutation(api.edilizia.resetPrices);
+  const [resetting, setResetting] = useState(false);
 
   // Sync form state when prices load
   useEffect(() => {
@@ -124,6 +127,21 @@ export default function Prezzi() {
   };
 
   const set = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
+
+  const handleReset = async () => {
+    if (!window.confirm('Ripristinare i valori predefiniti? I prezzi personalizzati verranno persi.')) return;
+    setResetting(true);
+    try {
+      await resetPrices();
+      // form will auto-sync via useEffect when currentPrices reloads
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      setError(err.message || 'Errore durante il ripristino');
+    } finally {
+      setResetting(false);
+    }
+  };
 
   return (
     <div className="lg:ml-[280px] pt-[76px] min-h-screen bg-[#212529]">
@@ -212,6 +230,24 @@ export default function Prezzi() {
                 </span>
               ) : (
                 'Salva Prezzi'
+              )}
+            </Button>
+            <Button
+              type="button"
+              onClick={handleReset}
+              disabled={resetting}
+              variant="outline"
+              className="border-[#f8f9fa]/20 text-[#adb5bd] hover:text-[#f8f9fa] hover:border-[#f8f9fa]/40 rounded-full px-5 py-2.5 text-sm transition-all"
+            >
+              {resetting ? (
+                <span className="flex items-center gap-2">
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="w-4 h-4 border-2 border-[#adb5bd] border-t-transparent rounded-full" />
+                  Ripristino...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <RotateCcw size={14} /> Ripristina Default
+                </span>
               )}
             </Button>
             {error && (
