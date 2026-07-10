@@ -10,47 +10,26 @@ import useRBAC from '../hooks/useRBAC';
 
 const PRICE_SECTIONS = [
   {
-    title: 'Prezzo Base',
+    title: 'Prezzi Base per MQ',
+    description: 'Tariffa al MQ in base al tipo immobile. Il fallback viene usato se il cliente non seleziona il tipo.',
     fields: [
-      { key: 'price_per_mq', label: 'Prezzo base per MQ', unit: '€/MQ', type: 'currency' },
+      { key: 'prezzo_villa', label: 'Villa unifamiliare', unit: '€/MQ', type: 'currency' },
+      { key: 'prezzo_casale', label: 'Casale', unit: '€/MQ', type: 'currency' },
+      { key: 'prezzo_appartamento', label: 'Appartamento', unit: '€/MQ', type: 'currency' },
+      { key: 'prezzo_fallback', label: 'Fallback (se non selezionato)', unit: '€/MQ', type: 'currency' },
     ],
   },
   {
-    title: 'Moltiplicatori Ubicazione',
-    description: 'Fattori moltiplicativi applicati al prezzo base. 1.0 = invariato, 1.1 = +10%, 0.85 = -15%',
+    title: 'Percentuali',
+    description: 'Valori decimali. Es. 0.15 = +15%, 0.05 = +5%',
     fields: [
-      { key: 'multiplier_nord', label: 'Nord Italia', unit: 'x', type: 'multiplier' },
-      { key: 'multiplier_centro', label: 'Centro Italia', unit: 'x', type: 'multiplier' },
-      { key: 'multiplier_sud', label: 'Sud Italia', unit: 'x', type: 'multiplier' },
-    ],
-  },
-  {
-    title: 'Moltiplicatori Tipo Immobile',
-    fields: [
-      { key: 'multiplier_villa', label: 'Villa unifamiliare', unit: 'x', type: 'multiplier' },
-      { key: 'multiplier_casale', label: 'Casale', unit: 'x', type: 'multiplier' },
-      { key: 'multiplier_appartamento', label: 'Appartamento', unit: 'x', type: 'multiplier' },
-    ],
-  },
-  {
-    title: 'Moltiplicatori Stato Conservazione',
-    fields: [
-      { key: 'multiplier_media', label: 'Nella media', unit: 'x', type: 'multiplier' },
-      { key: 'multiplier_degradato', label: 'Degradato', unit: 'x', type: 'multiplier' },
-    ],
-  },
-  {
-    title: 'Spostamento Tramezzi',
-    description: 'Prezzi aggiuntivi per MQ in base alla variazione',
-    fields: [
-      { key: 'tramezzi_20', label: 'Variazione 20%', unit: '€/MQ', type: 'currency' },
-      { key: 'tramezzi_50', label: 'Variazione 50%', unit: '€/MQ', type: 'currency' },
-      { key: 'tramezzi_100', label: 'Variazione 100%', unit: '€/MQ', type: 'currency' },
+      { key: 'degradato_percent', label: 'Stato degradato', unit: 'x (+%)', type: 'multiplier' },
+      { key: 'tramezzi_percent', label: 'Spostamento tramezzi', unit: 'x (+%)', type: 'multiplier' },
     ],
   },
   {
     title: 'Impianto Elettrico',
-    description: 'Prezzi aggiuntivi per MQ',
+    description: 'Prezzo aggiuntivo per MQ',
     fields: [
       { key: 'elettrico_piccole', label: 'Piccole modifiche', unit: '€/MQ', type: 'currency' },
       { key: 'elettrico_standard', label: 'Nuovo impianto standard', unit: '€/MQ', type: 'currency' },
@@ -58,10 +37,11 @@ const PRICE_SECTIONS = [
     ],
   },
   {
-    title: 'Riscaldamento & Finiture',
+    title: 'Riscaldamento',
+    description: 'Importi fissi (non per MQ)',
     fields: [
-      { key: 'riscaldamento_adeguamento', label: 'Adeguamento riscaldamento', unit: '€/MQ', type: 'currency' },
-      { key: 'finiture_alta_qualita_extra', label: 'Extra alta qualità', unit: 'x (es. 0.20 = +20%)', type: 'multiplier' },
+      { key: 'riscaldamento_escluso', label: 'Da realizzare', unit: '€ fisso', type: 'currency' },
+      { key: 'riscaldamento_adeguamento', label: 'Adeguamento', unit: '€ fisso', type: 'currency' },
     ],
   },
   {
@@ -75,8 +55,9 @@ const PRICE_SECTIONS = [
       { key: 'marmo_mq', label: 'Marmo', unit: '€/MQ', type: 'currency' },
       { key: 'monocottura_mq', label: 'Monocottura', unit: '€/MQ', type: 'currency' },
       { key: 'resina_mq', label: 'Resina', unit: '€/MQ', type: 'currency' },
-      { key: 'bagno_unit', label: 'Bagno completo', unit: '€/cad.', type: 'currency' },
-      { key: 'pittura_mq', label: 'Pittura (se inclusa)', unit: '€/MQ', type: 'currency' },
+      { key: 'bagno_unit', label: 'Bagno extra (dal 2° in poi)', unit: '€/cad.', type: 'currency' },
+      { key: 'bagni_inclusi', label: 'Bagni inclusi nel prezzo', unit: 'n.', type: 'number' },
+      { key: 'pittura_sconto', label: 'Sconto se pittura esclusa', unit: '€ fisso', type: 'currency' },
     ],
   },
 ];

@@ -18,59 +18,59 @@ function calculateEdilizia(form, prices) {
   const mq = Number(form.mq) || 0;
   if (mq <= 0 || !form.ubicazione) return 0;
 
-  // 1. Base
-  let base = mq * prices.price_per_mq;
+  // 1. Base — prezzo per MQ in base al tipo immobile
+  const tipoMap = {
+    villa_unifamiliare: prices.prezzo_villa,
+    casale: prices.prezzo_casale,
+    appartamento: prices.prezzo_appartamento,
+  };
+  const prezzoBaseMq = form.tipo_immobile
+    ? (tipoMap[form.tipo_immobile] ?? prices.prezzo_fallback)
+    : prices.prezzo_fallback;
+  let subtotale = mq * prezzoBaseMq;
 
-  // 2. Location
-  const locMap = { nord: prices.multiplier_nord, centro: prices.multiplier_centro, sud: prices.multiplier_sud };
-  base *= (locMap[form.ubicazione] ?? 1.0);
-
-  // 3. Property type
-  if (form.tipo_immobile) {
-    const tipoMap = {
-      villa_unifamiliare: prices.multiplier_villa,
-      casale: prices.multiplier_casale,
-      appartamento: prices.multiplier_appartamento,
-    };
-    base *= (tipoMap[form.tipo_immobile] ?? 1.0);
-  }
-
-  // 4. Conservation state
-  if (form.stato_conservazione) {
-    const statoMap = { media: prices.multiplier_media, degradato: prices.multiplier_degradato };
-    base *= (statoMap[form.stato_conservazione] ?? 1.0);
-  }
-
-  // 5. Tramezzi
-  if (form.spostamento_tramezzi) {
-    const tm = { '20pct': prices.tramezzi_20, '50pct': prices.tramezzi_50, '100pct': prices.tramezzi_100 };
-    base += mq * (tm[form.spostamento_tramezzi] ?? 0);
-  }
-
-  // 6. Electrical
+  // 2. Impianto elettrico (per MQ)
   if (form.impianto_elettrico) {
     const el = { piccole: prices.elettrico_piccole, standard: prices.elettrico_standard, domotico: prices.elettrico_domotico };
-    base += mq * (el[form.impianto_elettrico] ?? 0);
+    subtotale += mq * (el[form.impianto_elettrico] ?? 0);
   }
 
-  // 7. Heating
-  if (form.riscaldamento === 'adeguamento') {
-    base += mq * prices.riscaldamento_adeguamento;
+  // 3. Riscaldamento (fisso)
+  if (form.riscaldamento === 'escluso') {
+    subtotale += prices.riscaldamento_escluso;
+  } else if (form.riscaldamento === 'adeguamento') {
+    subtotale += prices.riscaldamento_adeguamento;
   }
 
-  // 8. Completamento
-  let extra = 0;
-  extra += (Number(form.controsoffittature_mq) || 0) * prices.controsoffittature_mq;
-  extra += (Number(form.porte_num) || 0) * prices.porta_unit;
-  extra += (Number(form.finestre_num) || 0) * prices.finestra_unit;
-  extra += (Number(form.parquet_mq) || 0) * prices.parquet_mq;
-  extra += (Number(form.marmo_mq) || 0) * prices.marmo_mq;
-  extra += (Number(form.monocottura_mq) || 0) * prices.monocottura_mq;
-  extra += (Number(form.resina_mq) || 0) * prices.resina_mq;
-  extra += (Number(form.bagni_num) || 0) * prices.bagno_unit;
-  if (form.pittura === 'incluse') extra += mq * prices.pittura_mq;
+  // 4. Opere di completamento (MQ)
+  subtotale += (Number(form.controsoffittature_mq) || 0) * prices.controsoffittature_mq;
+  subtotale += (Number(form.parquet_mq) || 0) * prices.parquet_mq;
+  subtotale += (Number(form.marmo_mq) || 0) * prices.marmo_mq;
+  subtotale += (Number(form.monocottura_mq) || 0) * prices.monocottura_mq;
+  subtotale += (Number(form.resina_mq) || 0) * prices.resina_mq;
 
-  return Math.round(base + extra);
+  // 5. Opere a corpo/unità
+  subtotale += (Number(form.porte_num) || 0) * prices.porta_unit;
+  subtotale += (Number(form.finestre_num) || 0) * prices.finestra_unit;
+
+  // 6. Bagni — primo incluso, ogni bagno extra oltre il primo
+  const bagniCount = Number(form.bagni_num) || 0;
+  subtotale += Math.max(0, bagniCount - prices.bagni_inclusi) * prices.bagno_unit;
+
+  // 7. Pittura — se escluse, sottrai importo fisso
+  if (form.pittura === 'escluse') {
+    subtotale -= prices.pittura_sconto;
+  }
+
+  // 8. Percentuali (applicate in sequenza cumulativa sul subtotale corrente)
+  if (form.spostamento_tramezzi === 'si') {
+    subtotale *= (1 + prices.tramezzi_percent);
+  }
+  if (form.stato_conservazione === 'degradato') {
+    subtotale *= (1 + prices.degradato_percent);
+  }
+
+  return Math.round(Math.max(0, subtotale));
 }
 
 const EMPTY_FORM = {
@@ -80,7 +80,7 @@ const EMPTY_FORM = {
   tipo_immobile: '',
   ubicazione: '',
   stato_conservazione: '',
-  spostamento_tramezzi: '',
+  spostamento_tramezzi: '',     // '' | 'si'
   impianto_elettrico: '',
   riscaldamento: '',
   controsoffittature_mq: '',
@@ -91,7 +91,7 @@ const EMPTY_FORM = {
   monocottura_mq: '',
   resina_mq: '',
   bagni_num: '',
-  pittura: '',
+  pittura: '',                  // '' | 'incluse' | 'escluse'
   notes: '',
 };
 
@@ -356,15 +356,14 @@ export default function CalcolatoreEdilizia() {
       <div className="bg-gradient-to-br from-[#495057] to-[#6c757d] border border-[#f8f9fa]/15 rounded-2xl p-6 shadow-xl">
         <SectionHeader icon={Zap} title="Lavori da Eseguire" step="3" />
 
-        {/* Tramezzi */}
+        {/* Tramezzi — toggle sì/no */}
         <div className="mb-5">
           <Label className="text-[#dee2e6] text-xs mb-2 block">Spostamento tramezzi</Label>
           <div className="flex gap-2 flex-wrap">
             {[
-              { v: '20pct', l: '20%', sub: 'Variazione minima' },
-              { v: '50pct', l: '50%', sub: 'Variazione media' },
-              { v: '100pct', l: '100%', sub: 'Completa ridistribuzione' },
-            ].map(o => <RadioCard key={o.v} value={o.v} current={form.spostamento_tramezzi} onChange={(v) => set('spostamento_tramezzi', v)} label={o.l} sub={o.sub} />)}
+              { v: 'si', l: 'Sì', sub: '+5% sul totale' },
+              { v: '', l: 'No', sub: 'Nessuna modifica' },
+            ].map(o => <RadioCard key={o.v || 'no'} value={o.v} current={form.spostamento_tramezzi} onChange={(v) => set('spostamento_tramezzi', v)} label={o.l} sub={o.sub} />)}
           </div>
         </div>
 
@@ -375,10 +374,10 @@ export default function CalcolatoreEdilizia() {
           </Label>
           <div className="flex gap-2 flex-wrap">
             {[
-              { v: 'piccole', l: 'Piccole modifiche' },
-              { v: 'standard', l: 'Nuovo impianto standard' },
-              { v: 'domotico', l: 'Nuovo impianto domotico' },
-            ].map(o => <RadioCard key={o.v} value={o.v} current={form.impianto_elettrico} onChange={(v) => set('impianto_elettrico', v)} label={o.l} />)}
+              { v: 'piccole', l: 'Piccole modifiche', sub: 'Incluse nel prezzo' },
+              { v: 'standard', l: 'Nuovo impianto standard', sub: '+50€/mq' },
+              { v: 'domotico', l: 'Nuovo impianto domotico', sub: '+75€/mq' },
+            ].map(o => <RadioCard key={o.v} value={o.v} current={form.impianto_elettrico} onChange={(v) => set('impianto_elettrico', v)} label={o.l} sub={o.sub} />)}
           </div>
         </div>
 
@@ -389,10 +388,10 @@ export default function CalcolatoreEdilizia() {
           </Label>
           <div className="flex gap-2 flex-wrap">
             {[
-              { v: 'incluso', l: 'Incluso' },
-              { v: 'escluso', l: 'Escluso' },
-              { v: 'adeguamento', l: 'Lavori di adeguamento' },
-            ].map(o => <RadioCard key={o.v} value={o.v} current={form.riscaldamento} onChange={(v) => set('riscaldamento', v)} label={o.l} />)}
+              { v: 'incluso', l: 'Incluso', sub: 'Già presente' },
+              { v: 'escluso', l: 'Da realizzare', sub: '+70€' },
+              { v: 'adeguamento', l: 'Adeguamento', sub: '+25€' },
+            ].map(o => <RadioCard key={o.v} value={o.v} current={form.riscaldamento} onChange={(v) => set('riscaldamento', v)} label={o.l} sub={o.sub} />)}
           </div>
         </div>
 
@@ -421,14 +420,14 @@ export default function CalcolatoreEdilizia() {
               className="overflow-hidden"
             >
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-5">
-                <NumberField label="Controsoffittature" value={form.controsoffittature_mq} onChange={(v) => set('controsoffittature_mq', v)} unit="MQ" />
-                <NumberField label="Porte" value={form.porte_num} onChange={(v) => set('porte_num', v)} unit="n." />
-                <NumberField label="Finestre" value={form.finestre_num} onChange={(v) => set('finestre_num', v)} unit="n." />
-                <NumberField label="Parquet" value={form.parquet_mq} onChange={(v) => set('parquet_mq', v)} unit="MQ" />
-                <NumberField label="Marmo" value={form.marmo_mq} onChange={(v) => set('marmo_mq', v)} unit="MQ" />
-                <NumberField label="Monocottura" value={form.monocottura_mq} onChange={(v) => set('monocottura_mq', v)} unit="MQ" />
-                <NumberField label="Resina" value={form.resina_mq} onChange={(v) => set('resina_mq', v)} unit="MQ" />
-                <NumberField label="Bagni completi" value={form.bagni_num} onChange={(v) => set('bagni_num', v)} unit="n." />
+                <NumberField label="Controsoffittature" value={form.controsoffittature_mq} onChange={(v) => set('controsoffittature_mq', v)} unit="MQ (+50€/mq)" />
+                <NumberField label="Porte" value={form.porte_num} onChange={(v) => set('porte_num', v)} unit="n. (300€/cad)" />
+                <NumberField label="Finestre" value={form.finestre_num} onChange={(v) => set('finestre_num', v)} unit="n. (600€/cad)" />
+                <NumberField label="Parquet" value={form.parquet_mq} onChange={(v) => set('parquet_mq', v)} unit="MQ (+20€/mq)" />
+                <NumberField label="Marmo" value={form.marmo_mq} onChange={(v) => set('marmo_mq', v)} unit="MQ (+50€/mq)" />
+                <NumberField label="Monocottura" value={form.monocottura_mq} onChange={(v) => set('monocottura_mq', v)} unit="MQ (inclusa)" />
+                <NumberField label="Resina" value={form.resina_mq} onChange={(v) => set('resina_mq', v)} unit="MQ (+150€/mq)" />
+                <NumberField label="Bagni completi" value={form.bagni_num} onChange={(v) => set('bagni_num', v)} unit="n. (1° incluso, poi +4.500€)" />
               </div>
 
               <div>
@@ -437,9 +436,9 @@ export default function CalcolatoreEdilizia() {
                 </Label>
                 <div className="flex gap-2 flex-wrap">
                   {[
-                    { v: 'incluse', l: 'Incluse' },
-                    { v: 'escluse', l: 'Escluse' },
-                  ].map(o => <RadioCard key={o.v} value={o.v} current={form.pittura} onChange={(v) => set('pittura', v)} label={o.l} />)}
+                    { v: 'incluse', l: 'Incluse', sub: 'Nel prezzo' },
+                    { v: 'escluse', l: 'Escluse', sub: '-1.500€' },
+                  ].map(o => <RadioCard key={o.v} value={o.v} current={form.pittura} onChange={(v) => set('pittura', v)} label={o.l} sub={o.sub} />)}
                 </div>
               </div>
             </motion.div>
