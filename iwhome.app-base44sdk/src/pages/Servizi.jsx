@@ -22,35 +22,35 @@ const services = [
     title: 'Selezione Materiali',
     description: 'Selezioniamo materiali resistenti e di qualità, curando ogni dettaglio per garantire durata, bellezza e funzionalità.',
     features: ['Materiali certificati', 'Fornitori selezionati', 'Campionatura in showroom'],
-    image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=800&q=80'
+    image: '/foto/foto-1.webp'
   },
   {
     icon: Palette,
     title: 'Design su Misura',
     description: 'Progettiamo soluzioni su misura dove estetica e praticità si incontrano, sempre in linea con il tuo stile.',
     features: ['Progettazione 3D', 'Render fotorealistici', 'Personalizzazione totale'],
-    image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80'
+    image: '/foto/foto-2.webp'
   },
   {
     icon: Home,
     title: 'Ristrutturazione Chiavi in Mano',
     description: 'Gestiamo ogni aspetto del progetto, dalla demolizione alla consegna finale.',
     features: ['Gestione completa', 'Unico referente', 'Tempi garantiti'],
-    image: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&q=80'
+    image: '/foto/foto-3.webp'
   },
   {
     icon: Ruler,
     title: 'Infissi e Serramenti',
     description: 'Finestre, porte e serramenti in PVC, alluminio e legno di alta qualità.',
     features: ['PVC, Alluminio, Legno', 'Alta efficienza energetica', 'Installazione professionale'],
-    image: 'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=800&q=80'
+    image: '/foto/foto-4.webp'
   },
   {
     icon: Paintbrush,
     title: 'Interior Design',
     description: 'Creiamo ambienti armoniosi che riflettono la tua personalità e il tuo stile di vita.',
     features: ['Consulenza colori', 'Arredamento', 'Illuminotecnica'],
-    image: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800&q=80'
+    image: '/foto/foto-5.webp'
   },
   {
     icon: Wrench,
@@ -84,8 +84,8 @@ export default function Servizi() {
           className="absolute inset-0"
         >
           <img
-            src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1920&q=80"
-            alt="Services"
+            src="/foto/foto-5.webp"
+            alt="Servizi IwHome"
             className="w-full h-full object-cover opacity-20"
             loading="lazy"
             decoding="async"

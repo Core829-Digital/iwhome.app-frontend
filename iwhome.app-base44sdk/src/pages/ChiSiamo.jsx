@@ -51,8 +51,8 @@ export default function ChiSiamo() {
           className="absolute inset-0"
         >
           <img
-            src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1920&q=80"
-            alt="Interior"
+            src="/foto/foto-3.webp"
+            alt="Progetti IwHome"
             className="w-full h-full object-cover opacity-20"
           />
         </motion.div>
@@ -138,14 +138,14 @@ export default function ChiSiamo() {
               <div className="grid grid-cols-2 gap-4">
                 <motion.img
                   whileHover={{ scale: 1.05 }}
-                  src="https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=600&q=80"
-                  alt="Interior 1"
+                  src="/foto/foto-4.webp"
+                  alt="Progetto IwHome 1"
                   className="rounded-2xl w-full h-64 object-cover shadow-2xl hover-lift"
                 />
                 <motion.img
                   whileHover={{ scale: 1.05 }}
-                  src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=600&q=80"
-                  alt="Interior 2"
+                  src="/foto/foto-5.webp"
+                  alt="Progetto IwHome 2"
                   className="rounded-2xl w-full h-64 object-cover mt-8 shadow-2xl hover-lift"
                 />
               </div>

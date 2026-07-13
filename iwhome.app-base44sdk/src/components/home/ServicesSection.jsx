@@ -10,21 +10,21 @@ const services = [
     number: '01',
     title: 'Materiali',
     description: 'Selezioniamo materiali resistenti e di qualità, curando ogni dettaglio per garantire durata, bellezza e funzionalità.',
-    image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=800&q=80'
+    image: '/foto/foto-1.webp'
   },
   {
     icon: Palette,
     number: '02',
     title: 'Design',
     description: 'Progettiamo soluzioni su misura dove estetica e praticità si incontrano, sempre in linea con il tuo stile.',
-    image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80'
+    image: '/foto/foto-2.webp'
   },
   {
     icon: Home,
     number: '03',
     title: 'Casa',
     description: 'È il tuo spazio, il tuo rifugio. La rendiamo accogliente, armoniosa e fatta per rispecchiarti davvero.',
-    image: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&q=80'
+    image: '/foto/foto-3.webp'
   }
 ];
 

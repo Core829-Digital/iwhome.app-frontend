@@ -13,6 +13,8 @@ const images = [
   'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/508e1e578_gallery-11.jpg',
   'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/a3525bd44_gallery-12.jpg',
   'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/693fee2042e99e5e698561c0/d71c5f8f3_minimalistic-25-g.jpg',
+  '/foto/foto-4.webp',
+  '/foto/foto-5.webp',
 ];
 
 const CARD_W = 320;
