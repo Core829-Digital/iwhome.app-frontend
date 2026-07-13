@@ -511,7 +511,7 @@ export default function Messages() {
                               className={`flex gap-3 ${isOwn ? 'flex-row-reverse' : ''}`}
                             >
                               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm flex-shrink-0">
-                                {msg.sender_email[0].toUpperCase()}
+                                {(msg.sender_email?.[0] || '?').toUpperCase()}
                               </div>
                               <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[70%]`}>
                                 <div className={`rounded-2xl px-4 py-2 ${isOwn

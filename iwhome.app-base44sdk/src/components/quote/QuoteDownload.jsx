@@ -81,6 +81,7 @@ export default function QuoteDownload({ quoteData, totalPrice = 0 }) {
     // Quote type badge - well spaced
     const quoteTypeText = quoteData.quote_type === 'finestre' ? 'Solo Infissi' :
       quoteData.quote_type === 'chiavi_in_mano' ? 'Chiavi in Mano' :
+      quoteData.quote_type === 'edilizia' ? 'Ristrutturazione' :
         'Progetto Completo';
     doc.setFillColor(240, 240, 242);
     doc.roundedRect(20, yPos - 5, 55, 9, 2, 2, 'F');
@@ -296,13 +297,38 @@ export default function QuoteDownload({ quoteData, totalPrice = 0 }) {
         return labels[key] || key?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || '-';
       };
 
-      const projectRows = [
-        ['Tipo di Immobile', formatLabel(pc.propertyType)],
-        ['Superficie', pc.squareMeters ? `${pc.squareMeters} m²` : '-'],
-        ['Numero di Stanze', pc.rooms?.toString() || '-'],
-        ['Numero di Bagni', pc.bathrooms?.toString() || '-'],
-        ['Livello di Qualità', formatLabel(pc.qualityLevel)]
-      ];
+      const ediliziaLabels = {
+        tipo_immobile: { l: 'Tipo di Immobile', f: (v) => ({ villa_unifamiliare: 'Villa Unifamiliare', casale: 'Casale', appartamento: 'Appartamento' }[v] || v) },
+        ubicazione: { l: 'Ubicazione', f: (v) => ({ nord: 'Nord Italia', centro: 'Centro Italia', sud: 'Sud Italia' }[v] || v) },
+        stato_conservazione: { l: 'Stato di Conservazione', f: (v) => ({ media: 'Nella media', degradato: 'Degradato' }[v] || v) },
+        spostamento_tramezzi: { l: 'Spostamento Tramezzi', f: (v) => v === 'si' ? 'Sì' : '' },
+        impianto_elettrico: { l: 'Impianto Elettrico', f: (v) => ({ piccole: 'Piccole modifiche', standard: 'Nuovo impianto standard', domotico: 'Nuovo impianto domotico' }[v] || v) },
+        riscaldamento: { l: 'Riscaldamento', f: (v) => ({ incluso: 'Incluso', escluso: 'Da realizzare', adeguamento: 'Lavori di adeguamento' }[v] || v) },
+        controsoffittature_mq: { l: 'Controsoffittature', f: (v) => `${v} MQ` },
+        porte_num: { l: 'Porte', f: (v) => `${v} n.` },
+        finestre_num: { l: 'Finestre', f: (v) => `${v} n.` },
+        parquet_mq: { l: 'Parquet', f: (v) => `${v} MQ` },
+        marmo_mq: { l: 'Marmo', f: (v) => `${v} MQ` },
+        bagni_num: { l: 'Bagni', f: (v) => `${v} n.` },
+        pittura: { l: 'Pittura', f: (v) => ({ incluse: 'Incluse', escluse: 'Escluse' }[v] || v) },
+      };
+
+      let projectRows = [];
+      if (quoteData.quote_type === 'edilizia' && pc.mq) {
+        projectRows.push(['Superficie', `${pc.mq} m²`]);
+        Object.entries(ediliziaLabels).forEach(([k, { l, f }]) => {
+          const v = pc[k];
+          if (v !== undefined && v !== '' && v !== null && v !== 0) projectRows.push([l, f(v)]);
+        });
+      } else {
+        projectRows = [
+          ['Tipo di Immobile', formatLabel(pc.propertyType)],
+          ['Superficie', pc.squareMeters ? `${pc.squareMeters} m²` : '-'],
+          ['Numero di Stanze', pc.rooms?.toString() || '-'],
+          ['Numero di Bagni', pc.bathrooms?.toString() || '-'],
+          ['Livello di Qualità', formatLabel(pc.qualityLevel)]
+        ];
+      }
 
       projectRows.forEach((row, index) => {
         if (index % 2 === 0) {

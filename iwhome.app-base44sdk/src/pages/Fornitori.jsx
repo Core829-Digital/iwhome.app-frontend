@@ -404,7 +404,7 @@ export default function Fornitori() {
     const orders = useQuery(api.suppliers.listOrders, isSupplier && supplierId ? { supplier_id: supplierId } : {}) || [];
     const deliveries = useQuery(api.suppliers.listDeliveries, isSupplier && supplierId ? { supplier_id: supplierId } : {}) || [];
     const allCertificates = useQuery(api.certificates.list, {}) || [];
-    const allCantieri = useQuery(api.cantieri.listCantieri, { company_email: 'contact.core829@gmail.com' }) || [];
+    const allCantieri = useQuery(api.cantieri.listCantieri, email ? { company_email: email } : "skip") || [];
     const allClients = useQuery(api.clients.list, isAdmin ? {} : "skip") || [];
 
     // Mutations
@@ -2168,7 +2168,7 @@ export default function Fornitori() {
                                          channelId={isAdmin ? `${showRequestDetailsModal._id}_admin_supplier` : showRequestDetailsModal._id} 
                                          channelName={`Richiesta: ${showRequestDetailsModal.title}`} 
                                          currentUserEmail={email}
-                                         contactPhone={isAdmin ? (suppliers.find(s => s._id === showRequestDetailsModal.supplier_id)?.phone) : "0039300000000"} 
+                                         contactPhone={suppliers.find(s => s._id === showRequestDetailsModal.supplier_id)?.phone || ""} 
                                      />
                                 </div>
                             </div>
@@ -2191,7 +2191,7 @@ export default function Fornitori() {
                             channelId={isAdmin ? `${showChatModal._id}_admin_supplier` : `${showChatModal._id}_admin_supplier`} 
                             channelName={showChatModal.name} 
                             currentUserEmail={email} 
-                            contactPhone={isAdmin ? showChatModal.phone : "0039300000000"} 
+                            contactPhone={showChatModal.phone || ""} 
                         />
                     )}
                 </DialogContent>
@@ -2211,7 +2211,7 @@ export default function Fornitori() {
                             channelId={isAdmin ? `${showOrderChatModal._id}_admin_supplier` : showOrderChatModal._id} 
                             channelName={`Ordine #${showOrderChatModal.order_number || showOrderChatModal._id.slice(-6)}`} 
                             currentUserEmail={email} 
-                            contactPhone={isAdmin ? (suppliers.find(s => s._id === showOrderChatModal.supplier_id)?.phone) : "0039300000000"} 
+                            contactPhone={suppliers.find(s => s._id === showOrderChatModal.supplier_id)?.phone || ""} 
                         />
                     )}
                 </DialogContent>

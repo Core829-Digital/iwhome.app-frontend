@@ -63,8 +63,8 @@ const getMenuItems = (user) => {
   const role = user?.role || 'user';
   const isAdmin = role === 'admin' || role === 'superadmin';
   const isSupplier = role === 'supplier';
-  const isCollaborator = role === 'collaborator_internal' || role === 'collaborator_external' || role === 'collaborator';
-  const isSupervisor = false;
+    const isCollaborator = role === 'collaborator_internal' || role === 'collaborator_external' || role === 'collaborator';
+    const isSupervisor = user?.company_role === 'supervisor' || false;
   const isClient = role === 'client';
 
   // Role display config
@@ -170,6 +170,7 @@ export default function VerticalMenu({ isCollapsed = false, onCollapse }) {
     full_name: clerkUser.fullName,
     role: convexUser?.role || null, // Get role from Convex, null if not assigned
     profile_image: convexUser?.profile_image,
+    company_role: convexUser?.company_role,
   } : null;
 
   // Role display config for the UI badge

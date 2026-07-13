@@ -60,7 +60,7 @@ export default function Certificati() {
     const cantieri = useQuery(api.cantieri.listCantieri, userEmail ? { company_email: userEmail } : "skip") || [];
     const createMutation = useMutation(api.certificates.create);
     const removeMutation = useMutation(api.certificates.remove);
-    const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
+    const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
     if (!userEmail) return null;
 

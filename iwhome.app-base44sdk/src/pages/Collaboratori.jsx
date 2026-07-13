@@ -65,7 +65,7 @@ export default function Collaboratori() {
 
     const jobTitles = useQuery(api.job_titles.list, {}) || [];
     const generateOnboarding = useMutation(api.collaborators.generateOnboardingLink);
-    const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
+    const generateUploadUrl = useMutation(api.files.generateUploadUrl);
     const seedJobTitlesMutation = useMutation(api.job_titles.seedDefaults);
     const [onboardingLink, setOnboardingLink] = useState(null);
     const [selectedCollabDetailId, setSelectedCollabDetailId] = useState(null);
